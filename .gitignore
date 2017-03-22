@@ -1,0 +1,59 @@
+# misc
+*.log
+*.xml
+
+# IntelliJ files
+shelf
+workspace.xml
+tasks.xml
+modules.xml
+*.iml
+.idea/libraries/*.xml
+.idea/*.xml
+.idea/scopes/*.xml
+
+# Two items below are needed for automatic copyright notices in source files.
+!.idea/copyright/*
+!.idea/scopes/Non_3rd_party_files.xml
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+#*.jar
+*.war
+*.ear
+*.rar
+*.tar
+*.zip
+
+# Folders
+.classpath
+.project
+.settings
+target
+
+# Java
+*.class
+
+# C++
+*.slo
+*.lo
+*.o
+*.obj
+*.ko
+*.elf
+*.lai
+*.la
+*.a
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Libraries
+*.lib
+*.a
+*.dll
