@@ -110,6 +110,16 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
   }
 
   /**
+   * Log a general purpose error message.
+   * @param msg the error message to be logged.
+   */
+  @Override
+  public void error(String msg)
+  {
+    super.error(msg);
+  }
+
+  /**
    * Creates a new logfile in the parentDir and returns a File reference to it.
    * @param parentDir the result directory where the logfile will be created.
    * @return a File reference to the newly created logfile.

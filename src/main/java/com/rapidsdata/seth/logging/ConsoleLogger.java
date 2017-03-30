@@ -86,6 +86,16 @@ public class ConsoleLogger implements TestLogger
   }
 
   /**
+   * Log a general purpose error message.
+   * @param msg the error message to be logged.
+   */
+  @Override
+  public void error(String msg)
+  {
+    System.err.println(msg);
+  }
+
+  /**
    * Closes this stream and releases any system resources associated
    * with it. If the stream is already closed then invoking this
    * method has no effect.

@@ -109,6 +109,18 @@ public class TestFileLogger extends FileLogger
   }
 
   /**
+   * Log a general purpose error message.
+   *
+   * @param msg the error message to be logged.
+   */
+  @Override
+  public void error(String msg)
+  {
+    super.log(msg);
+    queue.add(decorateMessage("ERROR: " + msg));
+  }
+
+  /**
    * Wraps a timestamped header around a log message
    * @param content the log message to be decorated.
    * @return a new string with a timestamp prefixed to the log message.

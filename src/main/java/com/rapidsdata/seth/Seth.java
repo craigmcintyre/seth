@@ -4,14 +4,21 @@ package com.rapidsdata.seth;
 
 import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.logging.*;
+import org.apache.commons.io.FileUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -21,6 +28,12 @@ public class Seth {
 
   /** The parsed arguments to the application. */
   private CommandLineArgs args;
+
+  /** Time the application was started. */
+  private long jvmStartTime = ManagementFactory.getRuntimeMXBean().getStartTime();
+
+  /** The thing to log messages to. */
+  private TestLogger logger;
 
   /**
    * The main entry point for the SE Test Harness
@@ -43,17 +56,35 @@ public class Seth {
       System.exit(1);
     }
 
-    Seth seth = new Seth(args);
+    // Create an appropriate logger.
+    TestLogger logger;
+
+    if (args.logSteps) {
+      // This logger logs all test steps to the console and to a file.
+      logger = new StepFileLogger(args.resultDir);
+
+    } else if (args.logTests) {
+      // This logger logs only messages about whole tests to the console and to a file.
+      logger = new TestFileLogger(args.resultDir);
+
+    } else {
+      // This logger only logs to the screen.
+      logger = new ConsoleLogger();
+    }
+
+    Seth seth = new Seth(args, logger);
     seth.run();
   }
 
   /**
    * Constructor
    * @param args The parsed command line arguments provided to the application.
+   * @param logger the thing to log messages to.
    */
-  public Seth(CommandLineArgs args)
+  public Seth(CommandLineArgs args, TestLogger logger)
   {
     this.args = args;
+    this.logger = logger;
   }
 
   /**
@@ -61,8 +92,15 @@ public class Seth {
    */
   private void run()
   {
+    logStartTime();
+
     // Build a list of test files to run.
     List<File> testFiles = buildTestList(args);
+
+    if (testFiles.isEmpty()) {
+      logger.log("There are no test files to execute!");
+      return;
+    }
 
     // Get the JDBC driver we are using.
     Driver driver;
@@ -79,21 +117,6 @@ public class Seth {
       cleanResultDir(args.resultDir);
     }
 
-    TestLogger logger;
-
-    if (args.logSteps) {
-      // This logger logs all test steps to the console and to a file.
-      logger = new StepFileLogger(args.resultDir);
-
-    } else if (args.logTests) {
-      // This logger logs only messages about whole tests to the console and to a file.
-      logger = new TestFileLogger(args.resultDir);
-
-    } else {
-      // This logger only logs to the screen.
-      logger = new ConsoleLogger();
-    }
-
     // Create the main run context.
     RunContext runContext = new RunContext(testFiles, driver, args.doValidate, args.includesAreRelativeToTest, logger);
 
@@ -105,17 +128,111 @@ public class Seth {
   }
 
 
+  /**
+   * Logs the time the application started.
+   */
+  private void logStartTime()
+  {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    Calendar cal = Calendar.getInstance();
+    cal.setTimeInMillis(jvmStartTime);
+
+    final String msg = "Application started at " + sdf.format(cal) + ".";
+    logger.log(msg);
+  }
+
+
+  /**
+   * Builds a list of test files to run and validates that they all exist.
+   * @param args
+   * @return
+   */
   private List<File> buildTestList(CommandLineArgs args)
   {
-    List<File> testFiles = new ArrayList<>();
+    List<File> testFiles;
 
-    // TODO
+    if (args.listFile != null) {
+      // We need to read a file that then contains the
+      testFiles = getTestFileListFromListFile(args.listFile);
+
+    } else {
+      // We should have a set of test files specified on the command line.
+      testFiles = new ArrayList<>(args.testFiles);
+    }
+
+    // Validate that each of these files exist. Remove those that do not exist.
+    Iterator<File> iterator = testFiles.iterator();
+
+    while (iterator.hasNext()) {
+      File testFile = iterator.next();
+
+      if (!testFile.exists()) {
+        final String msg = "Test file \"" + testFile.getPath() + "\" does not exist and will not be executed.";
+        logger.error(msg);
+        iterator.remove();
+      }
+    }
 
     return testFiles;
   }
 
+  /**
+   * Read the list file, which may contain a test file to execute on each line.
+   * @param listFile the list file to get the set of test files from.
+   * @return a list of File objects representing the test files to be executed.
+   */
+  private List<File> getTestFileListFromListFile(File listFile)
+  {
+    List<String> lines;
+
+    try {
+      lines = Files.readAllLines(listFile.toPath());
+
+    } catch (IOException | SecurityException e) {
+      final String msg = "Could not read from the listFile at " + listFile.getPath() + ".";
+      throw new SethSystemException(msg, e);
+    }
+
+    List<File> files = new ArrayList<File>();
+
+    final String[] lineComments = new String[] {"#", "--", "//"};
+
+    for (String line : lines) {
+      line = line.trim();
+
+      // Strip out any rest-of-line-comments from the line.
+      for (String comment : lineComments) {
+
+        int index = line.indexOf(comment);
+
+        if (index >= 0) {
+          // Remove the rest of the line.
+          line = line.substring(0, index);
+        }
+      }
+
+      line = line.trim();
+
+      if (!line.isEmpty()) {
+        files.add(new File(line));
+      }
+    }
+
+    return files;
+  }
+
+  /**
+   * Removes all files and subdirectories from the results directory.
+   * @param resultDir the results directory to be cleaned of all contents.
+   */
   private void cleanResultDir(File resultDir)
   {
-    // TODO
+    try {
+      FileUtils.cleanDirectory(resultDir);
+
+    } catch (IOException e) {
+      final String msg = "Could not clean the result directory, " + resultDir.getPath() + ".";
+      throw new SethSystemException(msg, e);
+    }
   }
 }

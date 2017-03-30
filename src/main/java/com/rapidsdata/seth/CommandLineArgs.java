@@ -81,8 +81,8 @@ public class CommandLineArgs
       usage     = "Log the execution of each step to a log file in the resultdir. This logs in greater detail than --logtests. Default is not to log anything to file.")
   public boolean logSteps = false;
 
-  @Argument
-  public List<String> testFiles = null;
+  @Argument(usage = "The list of test files to be executed.")
+  public List<File> testFiles = null;
 
 
   /**

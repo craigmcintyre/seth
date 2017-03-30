@@ -41,4 +41,10 @@ public interface TestLogger extends Closeable
    * @param msg the message to be logged.
    */
   public void log(String msg);
+
+  /**
+   * Log a general purpose error message.
+   * @param msg the message to be logged.
+   */
+  public void error(String msg);
 }
