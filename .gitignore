@@ -12,9 +12,12 @@ modules.xml
 .idea/*.xml
 .idea/scopes/*.xml
 
-# Two items below are needed for automatic copyright notices in source files.
+# Some needed IntelliJ config files.
 !.idea/copyright/*
 !.idea/scopes/Non_3rd_party_files.xml
+!.idea/compiler.xml
+!.idea/encodings.xml
+!.idea/vcs.xml
 
 # Archives
 *.7z
