@@ -20,8 +20,6 @@ public class CommandLineArgs
   // --validate
   // -u <connection_url>
   // -f <path_to_listfile>
-  // --includes_relative_to_cwd
-  // --includes_relative_to_test
   // --resultdir <path>
   // --resultformat <type>
   // --resultname <filename>
@@ -60,12 +58,13 @@ public class CommandLineArgs
           usage     = "Log the execution of each step to a log file in the resultdir. This logs in greater detail than --logtests. Default is not to log anything to file.")
   public boolean logSteps = false;
 
-  @Option(name      = "--includes_relative_to_cwd",
+  @Option(name      = "--relativity",
           required  = false,
-          usage     = "When a test file includes another test with a relative path, that path will be considered " +
-                      "relative to the current working directory. The default is to use paths relative to the location " +
-                      "of the test file running the INCLUDE command.")
-  public boolean includesAreRelativeToTest;
+          usage     = "Determines how relative paths are interpreted. Set to \"referer\" for " +
+                      "relative paths to be relative to the thing referring to it (usually another " +
+                      "file). Set to \"cwd\" for relative paths to be relative to the current " +
+                      "working directory of the application. The default is \"referer\".")
+  public PathRelativity relativity = PathRelativity.REFERER;
 
   @Option(name      = "--resultdir",
           required  = false,

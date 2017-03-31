@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -121,7 +122,7 @@ public class Seth {
     }
 
     // Create the main run context.
-    //RunContext runContext = new RunContext(testFiles, driver, args.doValidate, args.includesAreRelativeToTest, logger);
+    RunContext runContext = new RunContext(testFiles, driver, args.doValidate, args.relativity, logger);
 
     // Run the test suite.
 
@@ -156,7 +157,7 @@ public class Seth {
 
     if (args.listFile != null) {
       // We need to read a file that then contains the
-      testFiles = getTestFileListFromListFile(args.listFile);
+      testFiles = getTestFileListFromListFile(args.listFile, args.relativity);
 
     } else {
       // We should have a set of test files specified on the command line.
@@ -182,9 +183,10 @@ public class Seth {
   /**
    * Read the list file, which may contain a test file to execute on each line.
    * @param listFile the list file to get the set of test files from.
+   * @param relativity how we deal with relative paths.
    * @return a list of File objects representing the test files to be executed.
    */
-  private List<File> getTestFileListFromListFile(File listFile)
+  private List<File> getTestFileListFromListFile(File listFile, PathRelativity relativity)
   {
     List<String> lines;
 
@@ -217,7 +219,22 @@ public class Seth {
       line = line.trim();
 
       if (!line.isEmpty()) {
-        files.add(new File(line));
+        File f = new File(line);
+
+        // If the filename is relative and our path relativity is REFERER then
+        // we need to make this filename relative to the path of the listFile
+        // that is referring to it.
+        if (!f.toPath().isAbsolute() && relativity == PathRelativity.REFERER) {
+          String parent = listFile.getParent();
+
+          if (parent == null) {
+            parent = "";
+          }
+
+          f = Paths.get(parent, f.getPath()).toFile();
+        }
+
+        files.add(f);
       }
     }
 
