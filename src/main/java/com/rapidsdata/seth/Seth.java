@@ -7,6 +7,7 @@ import com.rapidsdata.seth.logging.*;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.ParserProperties;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +44,8 @@ public class Seth {
   {
     // Parse the command line arguments
     CommandLineArgs args = new CommandLineArgs();
-    CmdLineParser parser  = new CmdLineParser(args);
+    ParserProperties parserProperties = ParserProperties.defaults().withShowDefaults(false).withOptionSorter(null);
+    CmdLineParser parser  = new CmdLineParser(args, parserProperties);
 
     try {
       parser.parseArgument(arguments);
@@ -51,7 +53,8 @@ public class Seth {
 
     } catch (CmdLineException e) {
       System.err.println(e.getMessage());
-      System.err.println("Command line arguments are:");
+      System.err.println("Usage: ./seth.sh <options> [files...]");
+      System.err.println("Command line options are:");
       parser.printUsage(System.err);
       System.exit(1);
     }
@@ -118,7 +121,7 @@ public class Seth {
     }
 
     // Create the main run context.
-    RunContext runContext = new RunContext(testFiles, driver, args.doValidate, args.includesAreRelativeToTest, logger);
+    //RunContext runContext = new RunContext(testFiles, driver, args.doValidate, args.includesAreRelativeToTest, logger);
 
     // Run the test suite.
 
@@ -137,7 +140,7 @@ public class Seth {
     Calendar cal = Calendar.getInstance();
     cal.setTimeInMillis(jvmStartTime);
 
-    final String msg = "Application started at " + sdf.format(cal) + ".";
+    final String msg = "Application started at " + sdf.format(cal.getTime()) + ".";
     logger.log(msg);
   }
 

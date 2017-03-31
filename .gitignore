@@ -1,6 +1,7 @@
 # misc
 *.log
 results
+debug/
 
 # IntelliJ files
 shelf
