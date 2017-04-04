@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth;
 
+import com.rapidsdata.seth.contexts.AppContext;
+import com.rapidsdata.seth.contexts.AppContextImpl;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.logging.*;
 import org.apache.commons.io.FileUtils;
@@ -22,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * The SE Test Harness.
@@ -122,9 +126,17 @@ public class Seth {
     }
 
     // Create the main run context.
-    RunContext runContext = new RunContext(testFiles, driver, args.doValidate, args.relativity, logger);
+    AppContext appContext = new AppContextImpl(jvmStartTime,
+                                               testFiles,
+                                               driver,
+                                               args.doValidate,
+                                               args.relativity,
+                                               logger,
+                                               Executors.newCachedThreadPool());
 
     // Run the test suite.
+    TestSuite testSuite = new TestSuite(appContext);
+    testSuite.run();
 
     // Print the results.
 

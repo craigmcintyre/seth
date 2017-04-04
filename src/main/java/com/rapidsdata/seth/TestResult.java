@@ -11,12 +11,28 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TestResult
 {
   public enum ResultStatus {
-    NOT_STARTED,
-    IN_PROGRESS,
-    VALIDATED,
-    SUCCEEDED,
-    FAILED,
-    ABORTED
+    NOT_STARTED (false),
+    IN_PROGRESS (false),
+    VALIDATED   (true),
+    SUCCEEDED   (true),
+    FAILED      (true),
+    ABORTED     (true);
+
+    private final boolean finished;
+
+    ResultStatus(boolean finished)
+    {
+      this.finished = finished;
+    }
+
+    /**
+     * Returns true if the enum value indicates that the test has a result.
+     * @return true if the enum value indicates that the test has a result.
+     */
+    public boolean hasFinished()
+    {
+      return this.finished;
+    }
   }
 
   /** The test file being executed. */
@@ -67,6 +83,13 @@ public class TestResult
       throw new SethSystemException(msg);
     }
 
+    if (status.hasFinished()) {
+      final String msg = "Cannot set a ResultStatus to " + status.name() +
+                         " when the test already has a completed test status (" +
+                         this.status.name() + ").";
+      throw new SethSystemException(msg);
+    }
+
     this.status = status;
 
     if (status == ResultStatus.IN_PROGRESS) {
@@ -99,10 +122,11 @@ public class TestResult
 
   /**
    * Increments the number of test steps executed by this test file.
+   * @param count the number of test steps to add to the counter.
    */
-  public void incrementSteps()
+  public void accumulateSteps(long count)
   {
-    numStepsExecuted.incrementAndGet();
+    numStepsExecuted.addAndGet(count);
   }
 
   /**

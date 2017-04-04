@@ -31,8 +31,9 @@ singularStatements : (  sleepStatement
                      ) ';' ;
 
 loopStatement     : LOOP ( '(' loopCount=INT ')' )? statementBlock ;
-createThreadStatement : CREATE (THREAD | (threadCount=INT (THREADS | THREAD))) statementBlock ;
+createThreadStatement : CREATE (THREAD | (threadCount=INT (THREADS | THREAD))) testFileBlock ;
 statementBlock    : '{' statements '}' ;
+testFileBlock     : '{' testFile '}' ;
 
 sleepStatement      : SLEEP '(' millis=INT ')' ;
 logStatement        : LOG '(' STR ')' ;
