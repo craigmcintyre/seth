@@ -5,7 +5,6 @@ package com.rapidsdata.seth.contexts;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.exceptions.FailureException;
-import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.logging.TestLogger;
 
 import java.io.File;
@@ -19,7 +18,7 @@ public class TestContextImpl implements TestContext
   private final AppContext appContext;
 
   /** The test file being executed. */
-  private final String testFilePath;
+  private final File testFile;
 
   /** The object that will hold the result of the test. */
   private final TestResult testResult;
@@ -31,13 +30,23 @@ public class TestContextImpl implements TestContext
    * Constructor.
    * @param appContext The application context.
    */
-  public TestContextImpl(AppContext appContext, String testFilePath, TestResult testResult)
+  public TestContextImpl(AppContext appContext, File testFile, TestResult testResult)
   {
     this.appContext = appContext;
-    this.testFilePath = testFilePath;
+    this.testFile = testFile;
     this.testResult = testResult;
   }
 
+
+  /**
+   * Returns the time since the application started, in nanoseconds since the epoch.
+   * @return the time since the application started, in nanoseconds since the epoch.
+   */
+  @Override
+  public long getAppStartTime()
+  {
+    return appContext.getAppStartTime();
+  }
 
   /**
    * Returns the list of test files to be executed.
@@ -101,13 +110,13 @@ public class TestContextImpl implements TestContext
   }
 
   /**
-   * Returns the path of the test file currently being executed.
-   * @return the path of the test file currently being executed.
+   * Returns the test file currently being executed.
+   * @return the test file currently being executed.
    */
   @Override
-  public String getTestFilePath()
+  public File getTestFile()
   {
-    return testFilePath;
+    return testFile;
   }
 
   /**

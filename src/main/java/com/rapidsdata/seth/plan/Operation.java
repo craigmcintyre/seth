@@ -4,6 +4,7 @@ package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
+import com.rapidsdata.seth.exceptions.ValidationException;
 
 public abstract class Operation
 {
@@ -42,6 +43,16 @@ public abstract class Operation
   {
     return line;
   }
+
+  /**
+   * Validates the operation.
+   * This does not execute the operation, but it ensures that the operation is semantically correct.
+   * e.g., an INCLUDE statement can find the file it is including, the statement has the correct
+   * expected result, etc.
+   * @param xContext The execution context, which encapsulates any necessary parameters.
+   * @throws ValidationException if the validation fails.
+   */
+  public abstract void validate(ExecutionContext xContext) throws ValidationException;
 
   /**
    * Executes the operation.

@@ -203,13 +203,13 @@ public class ExecutionContextImpl implements ExecutionContext
   /***********************************************************************************************/
 
   /**
-   * Returns the path of the test file currently being executed.
-   * @return the path of the test file currently being executed.
+   * Returns the test file currently being executed.
+   * @return the test file currently being executed.
    */
   @Override
-  public String getTestFilePath()
+  public File getTestFile()
   {
-    return testContext.getTestFilePath();
+    return testContext.getTestFile();
   }
 
   /**

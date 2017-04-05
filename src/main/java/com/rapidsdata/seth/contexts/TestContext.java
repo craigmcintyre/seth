@@ -2,19 +2,17 @@
 
 package com.rapidsdata.seth.contexts;
 
-
 import com.rapidsdata.seth.exceptions.FailureException;
 
-import java.util.concurrent.ExecutorService;
+import java.io.File;
 
 public interface TestContext extends AppContext
 {
-
   /**
-   * Returns the path of the test file currently being executed.
-   * @return the path of the test file currently being executed.
+   * Returns the test file currently being executed.
+   * @return the test file currently being executed.
    */
-  public String getTestFilePath();
+  public File getTestFile();
 
   /**
    * A notification flag to child threads whether to continue testing or whether the test is ending
