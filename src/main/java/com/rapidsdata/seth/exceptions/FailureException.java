@@ -4,6 +4,8 @@ package com.rapidsdata.seth.exceptions;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 /**
  * A class that represents a failure while executing a test.
@@ -12,12 +14,14 @@ import java.io.FileNotFoundException;
  */
 public abstract class FailureException extends SethException
 {
-  protected static final String FILE_HEADING      = "File     : ";
-  protected static final String LINE_HEADING      = "Line     : ";
-  protected static final String COMMAND_HEADING   = "Command  : ";
-  protected static final String ERROR_HEADING     = "Error    : ";
-  protected static final String EXPECTED_HEADING  = "Expected : ";
-  protected static final String ACTUAL_HEADING    = "Actual   : ";
+  protected static final String FILE_HEADING      = "File       : ";
+  protected static final String LINE_HEADING      = "Line       : ";
+  protected static final String COMMAND_HEADING   = "Command    : ";
+  protected static final String ERROR_HEADING     = "Error      : ";
+  protected static final String EXPECTED_HEADING  = "Expected   : ";
+  protected static final String ACTUAL_HEADING    = "Actual     : ";
+  protected static final String STACK_HEADING     = "StackTrace : ";
+
 
   protected final File testFile;
   protected final long lineNumber;
@@ -70,6 +74,15 @@ public abstract class FailureException extends SethException
   }
 
   /**
+   * Returns the test file that the error occurred in.
+   * @return the test file that the error occurred in.
+   */
+  public File getTestFile()
+  {
+    return testFile;
+  }
+
+  /**
    * Return a description of the failure, showing where it occurred, the command executed
    * and why it failed.
    * @return a description of the failure, showing where it occurred, the command executed
@@ -78,47 +91,58 @@ public abstract class FailureException extends SethException
   public abstract String getMessage();
 
   /**
-   * Return a description of the failure, with option descriptions of where it failed and what
-   * was being executed.
-   * @param showFile if true then it will print the path of the test file being executed.
-   * @param showLine if true then it will print the line number of the command being executed.
-   * @param showCommand if true then it will print the command being executed.
-   * @return a description of the failure.
+   * Return a description of the failure, showing where it occurred, the command executed
+   * and why it failed.
+   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   *                      had the error then we won't reprint the test file path.
+   * @return a description of the failure, showing where it occurred, the command executed
+   * and why it failed.
    */
-  public abstract String getMessage(boolean showFile, boolean showLine, boolean showCommand);
+  public abstract String getMessage(File outerTestFile);
 
   /**
    * Returns a StringBuilder with a partially formatted message, optionally describing where
    * the error occurred and what was being executed.
    * This function should be called first when overriding getMessage(boolean, boolean, boolean) above.
-   * @param showFile if true then it will print the path of the test file being executed.
-   * @param showLine if true then it will print the line number of the command being executed.
-   * @param showCommand if true then it will print the command being executed.
+   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   *                      had the error then we won't reprint the test file path.
    * @return a partially filled StringBuilder instance with some metadata about the failure.
    */
-  protected StringBuilder formatMessage(boolean showFile, boolean showLine, boolean showCommand)
+  protected StringBuilder formatMessage(File outerTestFile)
   {
     StringBuilder sb = new StringBuilder(1024);
 
-    if (showFile) {
-      sb.append(FILE_HEADING)
-        .append(testFile.getPath())
-        .append(System.lineSeparator());
+    if ( !(testFile != null && outerTestFile != null && testFile.equals(outerTestFile)) ) {
+      sb.append(System.lineSeparator())
+        .append(FILE_HEADING)
+        .append(testFile.getPath());
     }
 
-    if (showLine) {
-      sb.append(LINE_HEADING)
-        .append(lineNumber >= 0 ? "(none)" : lineNumber)
-        .append(System.lineSeparator());
+    if (lineNumber >= 0) {
+      sb.append(System.lineSeparator())
+        .append(LINE_HEADING)
+        .append(lineNumber >= 0 ? "(none)" : lineNumber);
     }
 
-    if (showCommand) {
-      sb.append(COMMAND_HEADING)
-        .append(command == null ? "(none)" : command)
-        .append(System.lineSeparator());
+    if (command != null) {
+      sb.append(System.lineSeparator())
+        .append(COMMAND_HEADING)
+        .append(command == null ? "(none)" : command);
     }
 
     return sb;
   }
 
+  /**
+   * Returns the stack trace of an exception as a string.
+   * @param t the Throwable to get the stack trace of.
+   * @return the stack trace of an exception as a string.
+   */
+  protected String getStackTrace(Throwable t)
+  {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    t.printStackTrace(pw);
+    return sw.toString();
+  }
 }

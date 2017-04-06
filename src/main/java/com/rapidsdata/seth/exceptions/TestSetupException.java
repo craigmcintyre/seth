@@ -44,34 +44,40 @@ public class TestSetupException extends FailureException
   }
 
   /**
-   * Return a description of the failure, showing where it occurred, the command executed
-   * and why it failed.
-   *
-   * @return a description of the failure, showing where it occurred, the command executed
-   * and why it failed.
+   * Return a description of the failure, with option descriptions of where it failed and what
+   * was being executed.
+   * @return a description of the failure.
    */
   @Override
   public String getMessage()
   {
-    return getMessage(true, (lineNumber >= 0), false);
+    return getMessage(null);
   }
 
   /**
    * Return a description of the failure, with option descriptions of where it failed and what
    * was being executed.
-   *
-   * @param showFile    if true then it will print the path of the test file being executed.
-   * @param showLine    if true then it will print the line number of the command being executed.
-   * @param showCommand if true then it will print the command being executed.
+   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   *                      had the error then we won't reprint the test file path.
    * @return a description of the failure.
    */
   @Override
-  public String getMessage(boolean showFile, boolean showLine, boolean showCommand)
+  public String getMessage(File outerTestFile)
   {
-    StringBuilder sb = formatMessage(showFile, showLine, showCommand);
-    sb.append(ERROR_HEADING)
-      .append(error)
-      .append(System.lineSeparator());
+    StringBuilder sb = formatMessage(outerTestFile);
+
+    if (error != null) {
+      sb.append(System.lineSeparator())
+        .append(ERROR_HEADING)
+        .append(error);
+
+    }
+
+    if (getCause() != null) {
+      sb.append(System.lineSeparator())
+        .append(STACK_HEADING)
+        .append(getStackTrace(getCause()));
+    }
 
     return sb.toString();
   }

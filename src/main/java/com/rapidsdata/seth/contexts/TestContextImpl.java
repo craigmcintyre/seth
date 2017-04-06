@@ -68,13 +68,13 @@ public class TestContextImpl implements TestContext
   }
 
   /**
-   * Returns the JDBC driver to use to communicate to the system being tested.
-   * @return the JDBC driver to use to communicate to the system being tested.
+   * Returns the url that the JDBC driver should use to communicate to the system being tested.
+   * @return the url that the JDBC driver should use to communicate to the system being tested.
    */
   @Override
-  public Driver getDriver()
+  public String getUrl()
   {
-    return appContext.getDriver();
+    return appContext.getUrl();
   }
 
   /**
@@ -175,6 +175,15 @@ public class TestContextImpl implements TestContext
     } finally {
       lock.unlock();
     }
+  }
+
+  /**
+   * Marks the test result that the test has started executing.
+   */
+  @Override
+  public void markAsStarted()
+  {
+    testResult.setStarted();
   }
 
   /**

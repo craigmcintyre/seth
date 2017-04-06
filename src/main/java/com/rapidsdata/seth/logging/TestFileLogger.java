@@ -71,13 +71,10 @@ public class TestFileLogger extends FileLogger
     // Ensure we write to the console.
     super.testExecutionFinished(testFile, result);
 
-    String msg = "Result: " + result.getStatus().name() + ", test file " + testFile.getPath();
-
     if (result.getStatus() == TestResult.ResultStatus.FAILED) {
-      msg += System.lineSeparator() + result.getFailureDescription(false, true, true);
+      String msg = result.getFailureDescription().trim();
+      queue.add(decorateMessage(msg));
     }
-
-    queue.add(decorateMessage(msg));
   }
 
   /**

@@ -12,7 +12,8 @@ import java.io.IOException;
  */
 public class ConsoleLogger implements TestLogger
 {
-  private final String FMT = "%-11s:  %s";
+  private static final String FMT = "%-11s:  %s";
+  private static final String FAILURE_INDENTING = System.lineSeparator() + "  ";
 
   /**
    * Logs that the test is currently being validated.
@@ -49,7 +50,7 @@ public class ConsoleLogger implements TestLogger
   {
     if (result.getStatus() == TestResult.ResultStatus.FAILED) {
       final String msg = String.format(FMT, "Failed",
-          testFile.getPath() + System.lineSeparator() + System.lineSeparator() + result.getFailureDescription());
+          testFile.getPath() + indent(result.getFailureDescription()));
       System.out.println(msg);
 
     } else if (result.getStatus() == TestResult.ResultStatus.ABORTED) {
@@ -112,5 +113,10 @@ public class ConsoleLogger implements TestLogger
   public void close() throws IOException
   {
     // nothing to do here.
+  }
+
+  protected String indent(String str)
+  {
+    return str.replace(System.lineSeparator(), FAILURE_INDENTING);
   }
 }

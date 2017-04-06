@@ -5,7 +5,10 @@ package com.rapidsdata.seth;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.contexts.ExecutionContextImpl;
 import com.rapidsdata.seth.contexts.TestContext;
+import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.TestSetupException;
+import com.rapidsdata.seth.logging.TestLogger;
+import com.rapidsdata.seth.plan.Operation;
 import com.rapidsdata.seth.plan.Plan;
 
 import java.sql.Connection;
@@ -15,6 +18,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class TestRunner implements Runnable
@@ -31,7 +35,7 @@ public class TestRunner implements Runnable
   private final boolean isPrimaryThread;
 
   /** A list of Futures from any child threads. */
-  private final List<Future<?>> futures = new LinkedList<>();
+  private final List<Future<?>> childFutures = new LinkedList<>();
 
   /** A map of connections keyed by a user-defined name. */
   private final Map<String, Connection> connectionMap = new HashMap<>();
@@ -78,40 +82,77 @@ public class TestRunner implements Runnable
   @Override
   public void run()
   {
+    TestLogger logger = testContext.getLogger();
+
+    // Mark the test result as having started.
+    testContext.markAsStarted();
+
     // Make the default connection.
     try {
       createDefaultConnection();
 
     } catch (TestSetupException e) {
       testContext.markAsFailed(e);
+
+      // No test operations run, so nothing to cleanup.
       return;
     }
 
     // Make the execution context that each operation will use.
-    ExecutionContext xContext = new ExecutionContextImpl(testContext, futures, connectionMap);
+    ExecutionContext xContext = new ExecutionContextImpl(testContext, childFutures, connectionMap);
 
     // Run all of the test operations until they complete, an error occurs or
     // until we are told that the test is not longer continuing.
+    boolean earlyExit = false;
+    for (Operation op : plan.getTestOperations()) {
 
+      // Check if a failure occurred in another thread and we have to stop running the test.
+      if (!testContext.continueTesting()) {
+        earlyExit = true;
+        break;
+      }
 
+      logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
 
-    if (isPrimaryThread) {
-      // If we are the primary thread then when we have finished all the test operations
-      // we can mark the test as having succeeded. This will also result in causing all
-      // other child threads to start their own cleanup actions.
-      testContext.markAsSucceeded();
+      try {
+        op.execute(xContext);
 
-    } else {
-      // Since we are not the primary thread, when we have finished our test operations
-      // we must wait until the primary thread has finished its operations or until
-      // an error has occurred.
-      testContext.waitForCleanup();
+      } catch (FailureException e) {
+        testContext.markAsFailed(e);
+        earlyExit = true;
+      }
+    }
+
+    if (!earlyExit) {
+      if (isPrimaryThread) {
+        // If we are the primary thread then when we have finished all the test operations
+        // we can mark the test as having succeeded. This will also result in causing all
+        // other child threads to start their own cleanup actions.
+        testContext.markAsSucceeded();
+
+      } else {
+        // Since we are not the primary thread, when we have finished our test operations
+        // we must wait until the primary thread has finished its operations or until
+        // an error has occurred.
+        testContext.waitForCleanup();
+      }
     }
 
     // Run all of the cleanup operations
+    for (Operation op : plan.getCleanupOperations()) {
+
+      logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+
+      try {
+        op.execute(xContext);
+
+      } catch (FailureException e) {
+        // TODO: ignore failures in cleanup?
+      }
+    }
 
     // Wait for all child threads to exit.
-
+    waitForChildrenToExit();
   }
 
   protected void createDefaultConnection() throws TestSetupException
@@ -128,5 +169,28 @@ public class TestRunner implements Runnable
     }
 
     connectionMap.put(ExecutionContext.DEFAULT_CONNECTION_NAME, conn);
+  }
+
+  /**
+   * Wait for all child threads to exit.
+   */
+  protected void waitForChildrenToExit()
+  {
+    for (Future<?> future : childFutures) {
+
+      while (true) {  // necessary to retry in case we get an InterruptedException
+
+        try {
+          future.get();
+          break;
+
+        } catch (InterruptedException e) {
+          continue;
+
+        } catch (ExecutionException e) {
+          // ignore
+        }
+      } // while(true)
+    }
   }
 }

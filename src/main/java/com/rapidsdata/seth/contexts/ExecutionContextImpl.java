@@ -192,6 +192,15 @@ public class ExecutionContextImpl implements ExecutionContext
   }
 
   /**
+   * Marks the test result that the test has started executing.
+   */
+  @Override
+  public void markAsStarted()
+  {
+    testContext.markAsStarted();
+  }
+
+  /**
    * Marks the test result as successful and causes the test threads to begin cleaning up.
    */
   @Override

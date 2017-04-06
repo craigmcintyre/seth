@@ -13,6 +13,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.io.File;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.List;
 
 public class TestGenerator extends SethBaseVisitor
 {
@@ -26,11 +27,11 @@ public class TestGenerator extends SethBaseVisitor
   private final Deque<Plan> planStack = new LinkedList<>();
 
   /**
-   * A stack of operation queues that go with the stack of plans above.
-   * The head of this queue points to either the queue of test operations
-   * or the queue of cleanup operations.
+   * A stack of a list of operation that go with the stack of plans above.
+   * The head of this queue points to either the list of *test* operations
+   * or the list of *cleanup* operations.
    */
-  private Deque<Deque<Operation>> currentOpQueueStack = new LinkedList<>();
+  private Deque<List<Operation>> currentOpQueueStack = new LinkedList<>();
 
   /** A stack of metadata for the current operation as seen by the parser. */
   private Deque<OperationMetadata> opMetadataStack = new LinkedList<>();
@@ -68,8 +69,8 @@ public class TestGenerator extends SethBaseVisitor
   {
     // Create a new plan for this test file (or part thereof) and push it onto the stack.
     // Also push the currentOpQueue, which is the queue of testOps, onto a stack too.
-    Deque<Operation> testOps    = new LinkedList<>();
-    Deque<Operation> cleanupOps = new LinkedList<>();
+    List<Operation> testOps    = new LinkedList<>();
+    List<Operation> cleanupOps = new LinkedList<>();
     Plan plan = new Plan(testFile, testOps, cleanupOps);
 
     planStack.push(plan);
@@ -122,14 +123,23 @@ public class TestGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String msg = ctx.logStr.getText();
+    String msg = cleanString(ctx.logStr.getText());
     Operation op = new LogOperation(opMetadataStack.pop(), msg);
-    currentOpQueueStack.peek().addLast(op);
+    currentOpQueueStack.peek().add(op);
 
     return null;
   }
 
 
+  /**
+   * Return a cleaned-up string for raw string tokens.
+   */
+  private String cleanString(String raw)
+  {
+    String str = raw.substring(1, raw.length() - 1);
+    str = str.replaceAll("\'\'", "\'");
+    return str;
+  }
 
   /**
    * Given a starting token, search backwards in the parser's token stream to see if there

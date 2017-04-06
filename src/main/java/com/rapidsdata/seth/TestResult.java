@@ -38,6 +38,8 @@ public class TestResult
     }
   }
 
+  private static final String FAILURE_INDENTING = System.lineSeparator() + "  ";
+
   /** The test file being executed. */
   private File testFile;
 
@@ -77,6 +79,14 @@ public class TestResult
   public File getTestFile()
   {
     return testFile;
+  }
+
+  /**
+   * Marks the test as having started executing.
+   */
+  public void setStarted()
+  {
+    setStatus(ResultStatus.IN_PROGRESS);
   }
 
   /**
@@ -125,23 +135,23 @@ public class TestResult
     setStatus(ResultStatus.ABORTED);
   }
 
-  private void setStatus(ResultStatus status)
+  private void setStatus(ResultStatus newStatus)
   {
-    if (status == ResultStatus.NOT_STARTED) {
+    if (newStatus == ResultStatus.NOT_STARTED) {
       final String msg = "Cannot set ResultStatus to NOT_STARTED.";
       throw new SethSystemException(msg);
     }
 
-    if (status.hasFinished()) {
-      final String msg = "Cannot set a ResultStatus to " + status.name() +
+    if (this.status.hasFinished()) {
+      final String msg = "Cannot set a ResultStatus to " + newStatus.name() +
                          " when the test already has a completed test status (" +
                          this.status.name() + ").";
       throw new SethSystemException(msg);
     }
 
-    this.status = status;
+    this.status = newStatus;
 
-    if (status == ResultStatus.IN_PROGRESS) {
+    if (newStatus == ResultStatus.IN_PROGRESS) {
       // Test is starting, so record the start time.
       this.startTimeNs = System.nanoTime();
 
@@ -202,30 +212,31 @@ public class TestResult
    */
   public String getFailureDescription()
   {
-    return getFailureDescription(true, true, true);
+    if (failureException != null) {
+      return failureException.getMessage(testFile);
+    }
+
+    return "";
   }
 
-  /**
-   * Returns a description of the failure, or an empty string if there is none.
-   * @param showFile if true then it will print the path of the test file being executed.
-   * @param showLine if true then it will print the line number of the command being executed.
-   * @param showCommand if true then it will print the command being executed.
-   * @return a description of the failure, or an empty string if there is none.
-   */
-  public String getFailureDescription(boolean showFile, boolean showLine, boolean showCommand)
+  @Override
+  public String toString()
   {
-    if (status == ResultStatus.ABORTED) {
-      return "TEST ABORTED: " + testFile.getPath();
+    String msg = String.format("Test %-11s :  ", status.name().toUpperCase());
+
+    if (status == ResultStatus.FAILED) {
+      if (!testFile.equals(failureException.getTestFile())) {
+        msg += testFile.getPath();
+      }
+
+      if (failureException != null) {
+        msg += failureException.getMessage().replace(System.lineSeparator(), FAILURE_INDENTING);
+      }
+
+      return msg;
     }
 
-    if (status != ResultStatus.FAILED) {
-      return "";
-    }
-
-    if (failureException == null) {
-      throw new SethSystemException("failureException cannot be null.");
-    }
-
-    return failureException.getMessage(showFile, showLine, showCommand);
+    msg += testFile.getPath();
+    return msg;
   }
 }

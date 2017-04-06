@@ -3,7 +3,7 @@
 package com.rapidsdata.seth.plan;
 
 import java.io.File;
-import java.util.Deque;
+import java.util.List;
 
 /** A container of test operations and corresponding cleanup operations. */
 public class Plan
@@ -12,19 +12,19 @@ public class Plan
   private final File testFile;
 
   /** The operations for the test. */
-  private final Deque<Operation> testOps;
+  private final List<Operation> testOps;
 
   /** The cleanup operations to run to undo any changes from the cleanup operations. */
-  private final Deque<Operation> cleanupOps;
+  private final List<Operation> cleanupOps;
 
 
   /**
    * Constructor
    * @param testFile the file under test.
-   * @param testOps
-   * @param cleanupOps
+   * @param testOps the list of operations to be executed for this test.
+   * @param cleanupOps the list of operations to cleanup any changes after running the test.
    */
-  public Plan(File testFile, Deque<Operation> testOps, Deque<Operation> cleanupOps)
+  public Plan(File testFile, List<Operation> testOps, List<Operation> cleanupOps)
   {
     this.testFile = testFile;
     this.testOps = testOps;
@@ -41,19 +41,19 @@ public class Plan
   }
 
   /**
-   * Returns the queue of operations to execute for this test.
-   * @return the queue of operations to execute for this test.
+   * Returns the list of operations to execute for this test.
+   * @return the list of operations to execute for this test.
    */
-  public Deque<Operation> getTestOperations()
+  public List<Operation> getTestOperations()
   {
     return testOps;
   }
 
   /**
-   * Returns the queue of operations to cleanup any changes after executing this test.
-   * @return the queue of operations to cleanup any changes after executing this test.
+   * Returns the list of operations to cleanup any changes after executing this test.
+   * @return the list of operations to cleanup any changes after executing this test.
    */
-  public Deque<Operation> getCleanupOperations()
+  public List<Operation> getCleanupOperations()
   {
     return cleanupOps;
   }

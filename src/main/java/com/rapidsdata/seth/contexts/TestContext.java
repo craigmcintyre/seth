@@ -34,6 +34,11 @@ public interface TestContext extends AppContext
   public void abortTest();
 
   /**
+   * Marks the test result that the test has started executing.
+   */
+  public void markAsStarted();
+
+  /**
    * Marks the test result as successful and causes the test threads to begin cleaning up.
    */
   public void markAsSucceeded();

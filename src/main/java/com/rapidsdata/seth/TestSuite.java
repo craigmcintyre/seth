@@ -88,11 +88,8 @@ public class TestSuite
         Future<?> future = threadPool.submit(testRunner);
         future.get();
 
-        // Log the result of each test file if it didn't succeed.
-        if (testResult.getStatus() != TestResult.ResultStatus.SUCCEEDED) {
-          logger.error(testResult.getFailureDescription());
-        }
-
+        // Log the result of each test file
+        logger.testExecutionFinished(testFile, testResult);
       }
     } catch (ExecutionException e) {
       // TODO: Thrown if the execution of a sub-task throws an exception.
