@@ -36,7 +36,7 @@ statementBlock    : '{' statements '}' ;
 testFileBlock     : '{' testFile '}' ;
 
 sleepStatement      : SLEEP '(' millis=INT ')' ;
-logStatement        : LOG '(' STR ')' ;
+logStatement        : LOG '(' logStr=STR ')' ;
 synchroniseStmt     : (SYNCHRONISE | SYNCHRONIZE) '(' (syncName=STR ',')? syncCount=INT ')' ;
 createConnStmt      : CREATE CONNECTION '(' connName=STR (',' url=STR)? ')' ;
 useConnectionStmt   : USE CONNECTION '(' conName=STR ')' ;

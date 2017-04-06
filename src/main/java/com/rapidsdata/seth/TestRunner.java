@@ -2,10 +2,25 @@
 
 package com.rapidsdata.seth;
 
+import com.rapidsdata.seth.contexts.ExecutionContext;
+import com.rapidsdata.seth.contexts.ExecutionContextImpl;
+import com.rapidsdata.seth.contexts.TestContext;
+import com.rapidsdata.seth.exceptions.TestSetupException;
 import com.rapidsdata.seth.plan.Plan;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Future;
 
 public class TestRunner implements Runnable
 {
+  private static final String DEFAULT_CONNECTION_NAME = "default";
+
   /** The test plan to be executed. */
   private final Plan plan;
 
@@ -15,24 +30,37 @@ public class TestRunner implements Runnable
    */
   private final boolean isPrimaryThread;
 
+  /** A list of Futures from any child threads. */
+  private final List<Future<?>> futures = new LinkedList<>();
+
+  /** A map of connections keyed by a user-defined name. */
+  private final Map<String, Connection> connectionMap = new HashMap<>();
+
+  /** The context containing common test information. */
+  private final TestContext testContext;
+
   /**
    * Constructor
    * @param plan the plan to be executed.
+   * @param testContext the test context that holds various test information.
    * @param isPrimaryThread whether this is running as the primary thread of the test.
    */
-  public TestRunner(Plan plan, boolean isPrimaryThread)
+  public TestRunner(Plan plan, TestContext testContext, boolean isPrimaryThread)
   {
     this.plan = plan;
+    this.testContext = testContext;
     this.isPrimaryThread = isPrimaryThread;
   }
 
   /**
    * Constructor for child threads of a test.
    * @param plan the plan to be executed.
+   * @param testContext the test context that holds various test information.
    */
-  public TestRunner(Plan plan)
+  public TestRunner(Plan plan, TestContext testContext)
   {
     this.plan = plan;
+    this.testContext = testContext;
     this.isPrimaryThread = false;
   }
 
@@ -50,6 +78,55 @@ public class TestRunner implements Runnable
   @Override
   public void run()
   {
+    // Make the default connection.
+    try {
+      createDefaultConnection();
 
+    } catch (TestSetupException e) {
+      testContext.markAsFailed(e);
+      return;
+    }
+
+    // Make the execution context that each operation will use.
+    ExecutionContext xContext = new ExecutionContextImpl(testContext, futures, connectionMap);
+
+    // Run all of the test operations until they complete, an error occurs or
+    // until we are told that the test is not longer continuing.
+
+
+
+    if (isPrimaryThread) {
+      // If we are the primary thread then when we have finished all the test operations
+      // we can mark the test as having succeeded. This will also result in causing all
+      // other child threads to start their own cleanup actions.
+      testContext.markAsSucceeded();
+
+    } else {
+      // Since we are not the primary thread, when we have finished our test operations
+      // we must wait until the primary thread has finished its operations or until
+      // an error has occurred.
+      testContext.waitForCleanup();
+    }
+
+    // Run all of the cleanup operations
+
+    // Wait for all child threads to exit.
+
+  }
+
+  protected void createDefaultConnection() throws TestSetupException
+  {
+    Connection conn = null;
+
+    try {
+      conn = DriverManager.getConnection(testContext.getUrl());
+
+    } catch (SQLException e) {
+      final String msg = "Could not create the default connection to the server with url: " +
+                         testContext.getUrl();
+      throw new TestSetupException(msg, e, testContext.getTestFile());
+    }
+
+    connectionMap.put(ExecutionContext.DEFAULT_CONNECTION_NAME, conn);
   }
 }

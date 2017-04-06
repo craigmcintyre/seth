@@ -11,6 +11,9 @@ import java.io.File;
 import java.sql.Driver;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class TestContextImpl implements TestContext
 {
@@ -25,6 +28,12 @@ public class TestContextImpl implements TestContext
 
   /** A flag that indicates to test threads whether to keep running or to exit the test early. */
   private volatile boolean continueTesting = true;
+
+  /** A lock used for the cleanupPhase. */
+  private final Lock lock = new ReentrantLock();
+
+  /** A condition to wait on for cleanup to start. */
+  private final Condition cleanupPhase = lock.newCondition();
 
   /**
    * Constructor.
@@ -131,15 +140,40 @@ public class TestContextImpl implements TestContext
   }
 
   /**
+   * Blocks the current thread until testing operations have completed (either successfully
+   * or in failure) and threads should now start executing cleanup operations.
+   */
+  @Override
+  public void waitForCleanup()
+  {
+    lock.lock();
+
+    try {
+      while (continueTesting) {
+        cleanupPhase.awaitUninterruptibly();
+      }
+
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
    * Marks the test result as being aborted and causes all the test threads to stop executing and
    * start cleaning up.
    */
   @Override
-  public synchronized void abortTest()
+  public void abortTest()
   {
-    if (continueTesting) {
-      testResult.setStatus(TestResult.ResultStatus.ABORTED);
-      continueTesting = false;
+    lock.lock();
+
+    try {
+      if (continueTesting) {
+        testResult.setAbort();
+        signalEndOfTesting();
+      }
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -147,11 +181,17 @@ public class TestContextImpl implements TestContext
    * Marks the test result as successful and causes the test threads to begin cleaning up.
    */
   @Override
-  public synchronized void markAsSucceeded()
+  public void markAsSucceeded()
   {
-    if (continueTesting) {
-      testResult.setStatus(TestResult.ResultStatus.SUCCEEDED);
-      continueTesting = false;
+    lock.lock();
+
+    try {
+      if (continueTesting) {
+        testResult.setSuccess();
+        signalEndOfTesting();
+      }
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -160,11 +200,34 @@ public class TestContextImpl implements TestContext
    * @param failure
    */
   @Override
-  public synchronized void markAsFailed(FailureException failure)
+  public void markAsFailed(FailureException failure)
   {
-    if (continueTesting) {
-      testResult.setStatus(TestResult.ResultStatus.FAILED);
+    lock.lock();
+
+    try {
+      if (continueTesting) {
+        testResult.setFailure(failure);
+        signalEndOfTesting();
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
+   * Tells any waiting threads on the cleanupPhase condition variable that the testing phase
+   * has finished and the cleanup phase has begun. It releases any blocked, waiting threads.
+   */
+  private void signalEndOfTesting()
+  {
+    lock.lock();
+
+    try {
       continueTesting = false;
+      cleanupPhase.signalAll();
+
+    } finally {
+      lock.unlock();
     }
   }
 

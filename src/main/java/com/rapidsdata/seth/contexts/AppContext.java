@@ -25,10 +25,10 @@ public interface AppContext
   public List<File> getTestFiles();
 
   /**
-   * Returns the JDBC driver to use to communicate to the system being tested.
-   * @return the JDBC driver to use to communicate to the system being tested.
+   * Returns the url the JDBC driver should use to communicate to the system being tested.
+   * @return the url the JDBC driver should use to communicate to the system being tested.
    */
-  public Driver getDriver();
+  public String getUrl();
 
   /**
    * If true then the test files will only be validated and not executed.

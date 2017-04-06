@@ -2,13 +2,14 @@
 
 package com.rapidsdata.seth.plan;
 
+import java.io.File;
 import java.util.Deque;
 
 /** A container of test operations and corresponding cleanup operations. */
 public class Plan
 {
   /** The test file that this plan represents. */
-  private final String testFilePath;
+  private final File testFile;
 
   /** The operations for the test. */
   private final Deque<Operation> testOps;
@@ -19,24 +20,24 @@ public class Plan
 
   /**
    * Constructor
-   * @param testFilePath the
+   * @param testFile the file under test.
    * @param testOps
    * @param cleanupOps
    */
-  public Plan(String testFilePath, Deque<Operation> testOps, Deque<Operation> cleanupOps)
+  public Plan(File testFile, Deque<Operation> testOps, Deque<Operation> cleanupOps)
   {
-    this.testFilePath = testFilePath;
+    this.testFile = testFile;
     this.testOps = testOps;
     this.cleanupOps = cleanupOps;
   }
 
   /**
-   * Return the path of the test file that this plan represents.
-   * @return the path of the test file that this plan represents.
+   * Returns the test file that this plan represents.
+   * @return the test file that this plan represents.
    */
-  public String getTestFilePath()
+  public File getTestFile()
   {
-    return testFilePath;
+    return testFile;
   }
 
   /**

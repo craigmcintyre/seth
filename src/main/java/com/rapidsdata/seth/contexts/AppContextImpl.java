@@ -18,8 +18,8 @@ public class AppContextImpl implements AppContext
   /** The list of test files to be executed. */
   private final List<File> testFiles;
 
-  /** The JDBC driver to use. */
-  private final Driver driver;
+  /** The url that the JDBC driver should use. */
+  private final String url;
 
   /** If true then we don't run the test, just validate them. If false, we run the tests. */
   private final boolean onlyValidate;
@@ -39,7 +39,7 @@ public class AppContextImpl implements AppContext
 
   public AppContextImpl(long appStartTime,
                         List<File> testFiles,
-                        Driver driver,
+                        String url,
                         boolean onlyValidate,
                         PathRelativity pathRelativity,
                         TestLogger logger,
@@ -47,7 +47,7 @@ public class AppContextImpl implements AppContext
   {
     this.appStartTime = appStartTime;
     this.testFiles = testFiles;
-    this.driver = driver;
+    this.url = url;
     this.onlyValidate = onlyValidate;
     this.pathRelativity = pathRelativity;
     this.logger = logger;
@@ -75,13 +75,13 @@ public class AppContextImpl implements AppContext
   }
 
   /**
-   * Returns the JDBC driver to use to communicate to the system being tested.
-   * @return the JDBC driver to use to communicate to the system being tested.
+   * Returns the url that the JDBC driver should to use to communicate to the system being tested.
+   * @return the url that the JDBC driver should to use to communicate to the system being tested.
    */
   @Override
-  public Driver getDriver()
+  public String getUrl()
   {
-    return driver;
+    return url;
   }
 
   /**

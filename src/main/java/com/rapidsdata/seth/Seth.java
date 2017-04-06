@@ -128,7 +128,7 @@ public class Seth {
     // Create the main run context.
     AppContext appContext = new AppContextImpl(jvmStartTime,
                                                testFiles,
-                                               driver,
+                                               args.url,
                                                args.doValidate,
                                                args.relativity,
                                                logger,

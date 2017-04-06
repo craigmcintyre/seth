@@ -6,33 +6,30 @@ import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
 
+import java.io.File;
+
 public abstract class Operation
 {
-  /** The path of the test file that this operation came from. */
-  private final String testFilePath;
-
-  /** The line number that this operation occurs on in the above file. */
-  private final long line;
+  /** The metadata about where this operation came from in the test file. */
+  private final OperationMetadata metadata;
 
 
   /**
    * Constructor
-   * @param testFilePath The path of the test file that this operation came from.
-   * @param line The line number that this operation occurs on in the above file.
+   * @param metadata The metadata about where this operation came from in the test file.
    */
-  public Operation(String testFilePath, long line)
+  public Operation(OperationMetadata metadata)
   {
-    this.testFilePath = testFilePath;
-    this.line = line;
+    this.metadata = metadata;
   }
 
   /**
-   * Returns the path of the test file that this operation came from.
-   * @return the path of the test file that this operation came from.
+   * Returns the test file that this operation came from.
+   * @return the test file that this operation came from.
    */
-  public String getTestFilePath()
+  public File getTestFile()
   {
-    return testFilePath;
+    return metadata.getTestFile();
   }
 
   /**
@@ -41,14 +38,13 @@ public abstract class Operation
    */
   public long getLine()
   {
-    return line;
+    return metadata.getLine();
   }
 
   /**
    * Validates the operation.
    * This does not execute the operation, but it ensures that the operation is semantically correct.
-   * e.g., an INCLUDE statement can find the file it is including, the statement has the correct
-   * expected result, etc.
+   * e.g., the statement has the correct expected result, etc.
    * @param xContext The execution context, which encapsulates any necessary parameters.
    * @throws ValidationException if the validation fails.
    */
@@ -64,29 +60,41 @@ public abstract class Operation
 
   /**
    * Returns a string describing the command to be executed.
+   * This can be overridden because some methods (e.g., LOOP / CREATE THREAD)
+   * don't need to be shown with all their detail.
    * @return a string describing the command to be executed.
    */
-  protected abstract String getCommandDesc();
+  protected String getCommandDesc()
+  {
+    return metadata.getDescription();
+  }
 
   /**
    * Returns a string describing the expected result, or null if there isn't one.
    * @return a string describing the expected result, or null if there isn't one.
    */
-  protected abstract String getExpectedResultDesc();
+  protected String getExpectedResultDesc()
+  {
+    // TODO
+    return null;
+  }
 
 
   @Override
   public String toString()
   {
+    StringBuffer sb = new StringBuffer(1024);
+
+    sb.append("Command  : ")
+      .append(getCommandDesc());
+
     String expected = getExpectedResultDesc();
-    if (expected == null || expected.isEmpty()) {
-      expected = "(none)";
+
+    if (expected != null && !expected.isEmpty()) {
+      sb.append("\nExpected : ")
+        .append(expected);
     }
 
-    String desc = String.format("Command  : %s\nExpected : %s",
-                                getCommandDesc(),
-                                expected);
-
-    return desc;
+    return sb.toString();
   }
 }

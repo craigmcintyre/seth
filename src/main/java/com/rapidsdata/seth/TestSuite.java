@@ -5,9 +5,13 @@ package com.rapidsdata.seth;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.contexts.TestContextImpl;
+import com.rapidsdata.seth.exceptions.SyntaxException;
+import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.plan.Plan;
+import com.rapidsdata.seth.plan.TestPlanner;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -45,11 +49,13 @@ public class TestSuite
     Plan plan = null;
 
     ExecutorService threadPool = appContext.getThreadPool();
+    TestLogger logger = appContext.getLogger();
 
     try {
 
       // Iterate each test file
       for (File testFile : appContext.getTestFiles()) {
+        logger.testExecuting(testFile);
 
         // Make a TestResult to hold the result of the test.
         TestResult testResult = new TestResult(testFile);
@@ -58,20 +64,34 @@ public class TestSuite
         resultList.add(testResult);
 
         // Parse each test file
-        //Plan plan = planner.parse(testFile);
-        // TODO: handle the file not being parseable.
+        try {
+          plan = planner.newPlanFor(testFile);
+
+        } catch (FileNotFoundException e) {
+          testResult.setFailure(e);
+          logger.error(testResult.getFailureDescription());
+          continue;
+
+        } catch (SyntaxException e) {
+          testResult.setFailure(e);
+          logger.error(testResult.getFailureDescription());
+          continue;
+        }
 
         // Make a new test context for executing this test.
         TestContext testContext = new TestContextImpl(appContext, testFile, testResult);
 
         // Make a new TestRunner to run the plan
-        TestRunner testRunner = new TestRunner(plan, true);
+        TestRunner testRunner = new TestRunner(plan, testContext, true);
 
         // Run each test file and wait until it finishes.
         Future<?> future = threadPool.submit(testRunner);
         future.get();
 
-        // TODO: Log the result of each test file
+        // Log the result of each test file if it didn't succeed.
+        if (testResult.getStatus() != TestResult.ResultStatus.SUCCEEDED) {
+          logger.error(testResult.getFailureDescription());
+        }
 
       }
     } catch (ExecutionException e) {

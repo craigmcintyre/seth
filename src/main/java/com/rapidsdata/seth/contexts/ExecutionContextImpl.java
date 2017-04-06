@@ -23,19 +23,11 @@ import java.util.concurrent.Future;
  */
 public class ExecutionContextImpl implements ExecutionContext
 {
-  private static final String DEFAULT_CONNECTION_NAME = "default";
-
   /** The TestContext that this ExecutionContext uses. */
   private final TestContext testContext;
 
   /** The list of Future objects for asynchronous child tasks. */
   private final List<Future<?>> futures;
-
-  /** A queue of operations that need to be executed following the completion of the test. */
-  private final Deque<Operation> cleanupOpQueue;
-
-  /** The queue of test operations being executed. */
-  private final Deque<Operation> testOpQueue;
 
   /** The name of the current connection returned by getConnection(). */
   private String currentConnectionName = DEFAULT_CONNECTION_NAME;
@@ -50,14 +42,10 @@ public class ExecutionContextImpl implements ExecutionContext
    */
   public ExecutionContextImpl(TestContext testContext,
                               List<Future<?>> futures,
-                              Deque<Operation> cleanupOpQueue,
-                              Deque<Operation> testOpQueue,
                               Map<String,Connection> connectionMap)
   {
     this.testContext = testContext;
     this.futures = futures;
-    this.cleanupOpQueue = cleanupOpQueue;
-    this.testOpQueue = testOpQueue;
     this.connectionMap = connectionMap;
   }
 
@@ -73,46 +61,6 @@ public class ExecutionContextImpl implements ExecutionContext
     // This doesn't need any synchronisation since an ExecutionContext is only ever
     // used by a single thread.
     futures.add(future);
-  }
-
-  /**
-   * Pushes a queue of cleanup operations onto the head of a queue of cleanup operations to be
-   * performed when the test finishes.
-   * @param newCleanupOps The queue of cleanup operations to be performed when the test finishes.
-   */
-  @Override
-  public void pushCleanupOperations(Deque<Operation> newCleanupOps)
-  {
-    // We already have a queue of cleanup operations, but this new lot need to be executed
-    // before the existing cleanup operations. So in order to execute them in the order
-    // they are in we need to push them onto the head of the queue in reverse order so that
-    // when we pop them off the queue they are in the desired order.
-
-    // This doesn't need any synchronisation since an ExecutionContext is only ever
-    // used by a single thread.
-    while (!newCleanupOps.isEmpty()) {
-      Operation op = newCleanupOps.removeLast();
-      cleanupOpQueue.addFirst(op);
-    }
-  }
-
-  /**
-   * Inserts additional test operations to be executed immediately after the current operation finishes.
-   * @param newTestOps The queue of new operations to be inserted into the existing queue of
-   *                   test operations.
-   */
-  @Override
-  public void pushTestOperations(Deque<Operation> newTestOps)
-  {
-    // We already have an existing queue of test operations, but this new lot need
-    // to be executed immediately next. So in order to execute them in the order
-    // they are in we need to push them onto the head of the existing queue in
-    // reverse order so that when we pop them off the queue they are in the desired order.
-
-    while (!newTestOps.isEmpty()) {
-      Operation op = newTestOps.removeLast();
-      testOpQueue.addFirst(op);
-    }
   }
 
   /**
@@ -224,6 +172,16 @@ public class ExecutionContextImpl implements ExecutionContext
   }
 
   /**
+   * Blocks the current thread until testing operations have completed (either successfully
+   * or in failure) and threads should now start executing cleanup operations.
+   */
+  @Override
+  public void waitForCleanup()
+  {
+    testContext.waitForCleanup();
+  }
+
+  /**
    * Marks the test result as being aborted and causes all the test threads to stop executing and
    * start cleaning up.
    */
@@ -284,13 +242,13 @@ public class ExecutionContextImpl implements ExecutionContext
   }
 
   /**
-   * Returns the JDBC driver to use to communicate to the system being tested.
-   * @return the JDBC driver to use to communicate to the system being tested.
+   * Returns the url that the JDBC driver should use to communicate to the system being tested.
+   * @return the url that the JDBC driver should use to communicate to the system being tested.
    */
   @Override
-  public Driver getDriver()
+  public String getUrl()
   {
-    return testContext.getDriver();
+    return testContext.getUrl();
   }
 
   /**

@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.exceptions;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 /**
  * A class that represents a failure while executing a test.
@@ -11,16 +12,16 @@ import java.io.File;
  */
 public abstract class FailureException extends SethException
 {
-  private static final String FILE_HEADING      = "File     : ";
-  private static final String LINE_HEADING      = "Line     : ";
-  private static final String COMMAND_HEADING   = "Command  : ";
-  private static final String ERROR_HEADING     = "Error    : ";
-  private static final String EXPECTED_HEADING  = "Expected : ";
-  private static final String ACTUAL_HEADING    = "Actual   : ";
+  protected static final String FILE_HEADING      = "File     : ";
+  protected static final String LINE_HEADING      = "Line     : ";
+  protected static final String COMMAND_HEADING   = "Command  : ";
+  protected static final String ERROR_HEADING     = "Error    : ";
+  protected static final String EXPECTED_HEADING  = "Expected : ";
+  protected static final String ACTUAL_HEADING    = "Actual   : ";
 
-  private final File testFile;
-  private final long lineNumber;
-  private final String command;
+  protected final File testFile;
+  protected final long lineNumber;
+  protected final String command;
 
 
   public FailureException(String message, File testFile, long lineNumber, String command)
@@ -32,22 +33,40 @@ public abstract class FailureException extends SethException
     this.command = command;
   }
 
-  public FailureException(String message, Throwable throwable, File testFile, long lineNumber, String command)
+  public FailureException(String message, Throwable e, File testFile, long lineNumber, String command)
   {
-    super(message, throwable);
+    super(message);
 
     this.testFile = testFile;
     this.lineNumber = lineNumber;
     this.command = command;
   }
 
-  public FailureException(Throwable t, File testFile, long lineNumber, String command)
+  /**
+   * Creates a FailureException from a FileNotFoundException.
+   * @param e The FileNotFoundException for not finding the test file.
+   * @param testFile The test file we were trying to find.
+   */
+  public FailureException(FileNotFoundException e, File testFile)
   {
-    super(t);
+    super(e.getMessage(), e);
 
     this.testFile = testFile;
-    this.lineNumber = lineNumber;
-    this.command = command;
+    this.lineNumber = -1;
+    this.command = null;
+  }
+
+  /**
+   * Creates a FailureException from a SyntaxException.
+   * @param e The SyntaxException we encountered when we were parsing the test file.
+   */
+  public FailureException(SyntaxException e)
+  {
+    super(e.getMessage(), e);
+
+    this.testFile = e.getFile();
+    this.lineNumber = e.getLine();
+    this.command = null;
   }
 
   /**
@@ -89,13 +108,13 @@ public abstract class FailureException extends SethException
 
     if (showLine) {
       sb.append(LINE_HEADING)
-        .append(lineNumber)
+        .append(lineNumber >= 0 ? "(none)" : lineNumber)
         .append(System.lineSeparator());
     }
 
     if (showCommand) {
       sb.append(COMMAND_HEADING)
-        .append(command)
+        .append(command == null ? "(none)" : command)
         .append(System.lineSeparator());
     }
 

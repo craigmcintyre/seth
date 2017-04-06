@@ -21,6 +21,11 @@ public interface TestContext extends AppContext
    */
   public boolean continueTesting();
 
+  /**
+   * Blocks the current thread until testing operations have completed (either successfully
+   * or in failure) and threads should now start executing cleanup operations.
+   */
+  public void waitForCleanup();
 
   /**
    * Marks the test result as being aborted and causes all the test threads to stop executing and

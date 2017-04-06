@@ -4,8 +4,11 @@ package com.rapidsdata.seth;
 
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.SethSystemException;
+import com.rapidsdata.seth.exceptions.SyntaxException;
+import com.rapidsdata.seth.exceptions.TestSetupException;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TestResult
@@ -76,7 +79,53 @@ public class TestResult
     return testFile;
   }
 
-  public void setStatus(ResultStatus status)
+  /**
+   * Marks the test as having executed successfully.
+   */
+  public void setSuccess()
+  {
+    setStatus(ResultStatus.SUCCEEDED);
+  }
+
+  /**
+   * Marks the test result as having failed, explained in the given FailureException.
+   * @param e The reason why the test failed.
+   */
+  public void setFailure(FailureException e)
+  {
+    setStatus(ResultStatus.FAILED);
+    failureException = e;
+  }
+
+  /**
+   * Marks the test result as having been a failure due to a test file not being found.
+   * @param e The FileNotFoundException encountered.
+   */
+  public void setFailure(FileNotFoundException e)
+  {
+    setStatus(ResultStatus.FAILED);
+    failureException = new TestSetupException(e, testFile);
+  }
+
+  /**
+   * Marks the test result as having been a failure due to a syntax error encountered.
+   * @param e The SyntaxException encountered.
+   */
+  public void setFailure(SyntaxException e)
+  {
+    setStatus(ResultStatus.FAILED);
+    failureException = new TestSetupException(e);
+  }
+
+  /**
+   * Marks the test result as having been aborted by the user.
+   */
+  public void setAbort()
+  {
+    setStatus(ResultStatus.ABORTED);
+  }
+
+  private void setStatus(ResultStatus status)
   {
     if (status == ResultStatus.NOT_STARTED) {
       final String msg = "Cannot set ResultStatus to NOT_STARTED.";
@@ -144,7 +193,7 @@ public class TestResult
    */
   public long getExecutionTimeNs()
   {
-    return executionTimeNs;
+    return (executionTimeNs >= 0 ? executionTimeNs : 0);
   }
 
   /**
@@ -165,6 +214,10 @@ public class TestResult
    */
   public String getFailureDescription(boolean showFile, boolean showLine, boolean showCommand)
   {
+    if (status == ResultStatus.ABORTED) {
+      return "TEST ABORTED: " + testFile.getPath();
+    }
+
     if (status != ResultStatus.FAILED) {
       return "";
     }

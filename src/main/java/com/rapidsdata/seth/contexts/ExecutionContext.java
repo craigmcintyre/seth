@@ -13,26 +13,14 @@ import java.util.concurrent.Future;
 /** A container object that is used when executing test operations. */
 public interface ExecutionContext extends TestContext
 {
+  static final String DEFAULT_CONNECTION_NAME = "default";
+
   /**
    * Registers the Future object of an asynchronous task with the task running the test.
    * Typically called as a result of creating a thread in the test.
    * @param future The Future object to be registered.
    */
   public void registerFuture(Future<?> future);
-
-  /**
-   * Pushes a queue of cleanup operations onto the head of a queue of cleanup operations to be
-   * performed when the test finishes.
-   * @param cleanupOps The queue of cleanup operations to be performed when the test finishes.
-   */
-  public void pushCleanupOperations(Deque<Operation> cleanupOps);
-
-  /**
-   * Inserts additional test operations to be executed immediately after the current operation finishes.
-   * @param newTestOps The queue of new operations to be inserted into the existing queue of
-   *                   test operations.
-   */
-  public void pushTestOperations(Deque<Operation> newTestOps);
 
   /**
    * Returns the name of the current connection object used by getConnection().
