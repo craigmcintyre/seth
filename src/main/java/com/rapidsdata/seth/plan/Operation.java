@@ -11,7 +11,7 @@ import java.io.File;
 public abstract class Operation
 {
   /** The metadata about where this operation came from in the test file. */
-  private final OperationMetadata metadata;
+  protected final OperationMetadata metadata;
 
 
   /**

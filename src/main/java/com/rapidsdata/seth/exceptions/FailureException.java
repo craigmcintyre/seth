@@ -117,13 +117,13 @@ public abstract class FailureException extends SethException
         .append(testFile.getPath());
     }
 
-    if (lineNumber >= 0) {
+    if (lineNumber > 0) {
       if (sb.length() > 0) {
         sb.append(System.lineSeparator());
       }
 
       sb.append(LINE_HEADING)
-        .append(lineNumber >= 0 ? "(none)" : lineNumber);
+        .append(lineNumber);
     }
 
     if (command != null) {
@@ -132,7 +132,7 @@ public abstract class FailureException extends SethException
       }
 
       sb.append(COMMAND_HEADING)
-        .append(command == null ? "(none)" : command);
+        .append(command);
     }
 
     return sb;

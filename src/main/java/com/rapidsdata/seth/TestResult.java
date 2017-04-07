@@ -2,10 +2,7 @@
 
 package com.rapidsdata.seth;
 
-import com.rapidsdata.seth.exceptions.FailureException;
-import com.rapidsdata.seth.exceptions.SethSystemException;
-import com.rapidsdata.seth.exceptions.SyntaxException;
-import com.rapidsdata.seth.exceptions.TestSetupException;
+import com.rapidsdata.seth.exceptions.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -122,6 +119,16 @@ public class TestResult
    * @param e The SyntaxException encountered.
    */
   public void setFailure(SyntaxException e)
+  {
+    setStatus(ResultStatus.FAILED);
+    failureException = new TestSetupException(e);
+  }
+
+  /**
+   * Marks the test result as having been a failure due to a semantic error encountered.
+   * @param e The SyntaxException encountered.
+   */
+  public void setFailure(SemanticException e)
   {
     setStatus(ResultStatus.FAILED);
     failureException = new TestSetupException(e);

@@ -2,6 +2,9 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.exceptions.SemanticException;
+import com.rapidsdata.seth.exceptions.SethBrownBagException;
+import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
@@ -15,7 +18,7 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-public class TestGenerator extends SethBaseVisitor
+public class TestPlanGenerator extends SethBaseVisitor
 {
   /** The parser we're using to parse the test file. */
   private final Parser parser;
@@ -41,7 +44,7 @@ public class TestGenerator extends SethBaseVisitor
    * @param parser The parser we're using to parse the test file.
    * @param testFile The test file we're reading.
    */
-  public TestGenerator(SethParser parser, File testFile)
+  public TestPlanGenerator(SethParser parser, File testFile)
   {
     this.parser = parser;
     this.testFile = testFile;
@@ -110,7 +113,14 @@ public class TestGenerator extends SethBaseVisitor
 
     int line = startToken.getLine();
 
-    OperationMetadata opMetadata = new OperationMetadata(statementText, testFile, line);
+    // Is this statement occuring in a test phase or a cleanup phase.
+    TestPhase phase = TestPhase.TEST;
+
+    if (currentOpQueueStack.peek() == planStack.peek().getCleanupOperations()) {
+      phase = TestPhase.CLEANUP;
+    }
+
+    OperationMetadata opMetadata = new OperationMetadata(statementText, testFile, line, phase);
 
     opMetadataStack.push(opMetadata);
 
@@ -124,10 +134,53 @@ public class TestGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     String msg = cleanString(ctx.logStr.getText());
-    Operation op = new LogOperation(opMetadataStack.pop(), msg);
+    Operation op = new LogOp(opMetadataStack.pop(), msg);
     currentOpQueueStack.peek().add(op);
 
     return null;
+  }
+
+  @Override
+  public Void visitSleepStatement(SethParser.SleepStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    long millis = convertToLong(ctx.millis);
+
+    if (millis < 0) {
+      final String msg = "Sleep time must be positive: " + millis;
+      throw semanticException(testFile, ctx.millis.getLine(), ctx.millis.getCharPositionInLine(), null, msg);
+    }
+
+    Operation op = new SleepOp(opMetadataStack.pop(), millis);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  /**
+   * Creates a SemanticException and wraps a SethBrownBagException around it.
+   * @param file the file that the error occurred in.
+   * @param line the line that the error occurred in.
+   * @param pos the position on the line that the error occurred in.
+   * @param near (optional) a description of where the error occurred.
+   * @param errorMsg an error message.
+   * @return an unchecked exception ready for throwing.
+   */
+  private SethBrownBagException semanticException(File file, int line, int pos, String near, String errorMsg)
+  {
+    String format = "Semantic error in file %s:%d:%d near %s : %s";
+    String msg;
+
+    if (near == null) {
+      format = "Semantic error in file %s:%d:%d : %s";
+      msg = String.format(format, file, line, pos, errorMsg);
+
+    } else {
+      msg = String.format(format, file, line, pos, near, errorMsg);
+    }
+
+    return new SethBrownBagException(new SemanticException(msg, file, line, pos, near));
   }
 
 
@@ -139,6 +192,27 @@ public class TestGenerator extends SethBaseVisitor
     String str = raw.substring(1, raw.length() - 1);
     str = str.replaceAll("\'\'", "\'");
     return str;
+  }
+
+  /**
+   * Converts the text of a token into a long.
+   * @param token the token to convert
+   * @return a long.
+   */
+  private long convertToLong(Token token)
+  {
+    String s = token.getText();
+    long val;
+
+    try {
+      val = Long.valueOf(s);
+
+    } catch (NumberFormatException e) {
+      final String msg = "Unable to convert value to long: " + s;
+      throw new SethSystemException(msg, e);
+    }
+
+    return val;
   }
 
   /**

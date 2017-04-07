@@ -2,13 +2,12 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.exceptions.SemanticException;
 import com.rapidsdata.seth.exceptions.SethBrownBagException;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.exceptions.SyntaxException;
-import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
-import com.rapidsdata.seth.plan.Plan;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -28,7 +27,7 @@ public class TestPlanner
     
   }
   
-  public Plan newPlanFor(File testFile) throws FileNotFoundException, SyntaxException
+  public Plan newPlanFor(File testFile) throws FileNotFoundException, SyntaxException, SemanticException
   {
     if (!testFile.exists()) {
       throw new FileNotFoundException("File not found: " + testFile.getPath());
@@ -55,7 +54,6 @@ public class TestPlanner
       tree = parser.testFile();
 
     } catch (SethBrownBagException e) {
-
       if (e.getCause() instanceof SyntaxException) {
         throw (SyntaxException) e.getCause();
 
@@ -66,8 +64,20 @@ public class TestPlanner
 
     // Now that we've parsed the statement into a ParseTree we now need to build
     // the list of Operations. We use the visitor pattern for walking the ParseTree.
-    TestGenerator generator = new TestGenerator(parser, testFile);
-    Plan plan = generator.generateFor(tree);
+    TestPlanGenerator generator = new TestPlanGenerator(parser, testFile);
+    Plan plan;
+
+    try {
+      plan = generator.generateFor(tree);
+
+    } catch (SethBrownBagException e) {
+      if (e.getCause() instanceof SemanticException) {
+        throw (SemanticException) e.getCause();
+
+      } else {
+        throw new SethSystemException("Unhandled exception " + e.getClass().getSimpleName(), e.getCause());
+      }
+    }
 
     return plan;
   }

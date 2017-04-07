@@ -6,7 +6,7 @@ import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
 
-public class LogOperation extends Operation
+public class LogOp extends Operation
 {
   /** The message to be logged. */
   private final String message;
@@ -16,7 +16,7 @@ public class LogOperation extends Operation
    * @param metadata The metadata about where this operation came from in the test file.
    * @param message The message to be logged.
    */
-  public LogOperation(OperationMetadata metadata, String message)
+  public LogOp(OperationMetadata metadata, String message)
   {
     super(metadata);
 

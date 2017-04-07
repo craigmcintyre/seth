@@ -104,9 +104,9 @@ fragment DUBLSINGL    : '\'\'' ;
 ID  : (ID_LETTER (ID_LETTER | DIGIT)*) | QID ;
 QID : '"' (DUBLDUBL | ~["\r\n])* '"';
 
-FLT : (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
-INT : DIGIT+ ;
-DEC : (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ;
+FLT : ('+' | '-')? (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
+INT : ('+' | '-')? DIGIT+ ;
+DEC : ('+' | '-')? ( (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ) ;
 STR : '\'' (DUBLSINGL | (~'\''))* '\'' ;
 
 // We put comments and whitespace on a hidden tokeniser channel so that we can reconstruct
