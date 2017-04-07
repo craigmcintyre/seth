@@ -65,6 +65,13 @@ public class Seth {
       System.exit(1);
     }
 
+    // Clean the result directory if necessary.
+    // Must do this before creating the logger because otherwise it may create a log file
+    // which would duly then be cleaned up.
+    if (args.doClean) {
+      cleanResultDir(args.resultDir);
+    }
+
     // Create an appropriate logger.
     TestLogger logger;
 
@@ -122,11 +129,6 @@ public class Seth {
     }
 
     ExecutorService threadPool = Executors.newCachedThreadPool();
-
-    // Clean the result directory if necessary
-    if (args.doClean) {
-      cleanResultDir(args.resultDir);
-    }
 
     // Create the main run context.
     AppContext appContext = new AppContextImpl(jvmStartTime,
@@ -278,7 +280,7 @@ public class Seth {
    * Removes all files and subdirectories from the results directory.
    * @param resultDir the results directory to be cleaned of all contents.
    */
-  private void cleanResultDir(File resultDir)
+  private static void cleanResultDir(File resultDir)
   {
     try {
       FileUtils.cleanDirectory(resultDir);
