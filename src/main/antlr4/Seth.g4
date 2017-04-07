@@ -4,14 +4,15 @@ grammar Seth ;
 
 testFile          : statements cleanupSection? ;
 
-cleanupSection    : CLEANUP '{' statements '}' ;
+cleanupSection    : CLEANUP statementBlock ;
 
 statements        : statement* ;
 statement         : sethStatement | sqlStatement ;
 
 sqlStatement      : enclosedSqlStatement | nakedSqlStatement ;
 enclosedSqlStatement  : '{' ~('}')+ '}' ;
-nakedSqlStatement     : (~(';' | '}'))+ ';';
+nakedSqlStatement     : {_input.LT(1).getType() != CLEANUP}?  // SQL statements cannot start with CLEANUP.
+                        (~(';' | '}'))+ ';';                  // The parser gets confused without this.
 
 
 sethStatement     : compoundStatements | singularStatements ;

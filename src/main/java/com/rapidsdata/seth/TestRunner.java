@@ -98,63 +98,73 @@ public class TestRunner implements Runnable
       return;
     }
 
-    // Make the execution context that each operation will use.
-    ExecutionContext xContext = new ExecutionContextImpl(testContext, childFutures, connectionMap);
+    try {
+      // Make the execution context that each operation will use.
+      ExecutionContext xContext = new ExecutionContextImpl(testContext, childFutures, connectionMap);
 
-    // Run all of the test operations until they complete, an error occurs or
-    // until we are told that the test is not longer continuing.
-    boolean earlyExit = false;
-    for (Operation op : plan.getTestOperations()) {
+      // Run all of the test operations until they complete, an error occurs or
+      // until we are told that the test is not longer continuing.
+      boolean earlyExit = false;
+      for (Operation op : plan.getTestOperations()) {
 
-      // Check if a failure occurred in another thread and we have to stop running the test.
-      if (!testContext.continueTesting()) {
-        earlyExit = true;
-        break;
+        // Check if a failure occurred in another thread and we have to stop running the test.
+        if (!testContext.continueTesting()) {
+          earlyExit = true;
+          break;
+        }
+
+        logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+
+        try {
+          op.execute(xContext);
+
+        } catch (FailureException e) {
+          testContext.markAsFailed(e);
+          earlyExit = true;
+        }
       }
 
-      logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+      if (!earlyExit) {
+        if (isPrimaryThread) {
+          // If we are the primary thread then when we have finished all the test operations
+          // we can mark the test as having succeeded. This will also result in causing all
+          // other child threads to start their own cleanup actions.
+          testContext.markAsSucceeded();
 
-      try {
-        op.execute(xContext);
-
-      } catch (FailureException e) {
-        testContext.markAsFailed(e);
-        earlyExit = true;
+        } else {
+          // Since we are not the primary thread, when we have finished our test operations
+          // we must wait until the primary thread has finished its operations or until
+          // an error has occurred.
+          testContext.waitForCleanup();
+        }
       }
+
+      // Run all of the cleanup operations
+      for (Operation op : plan.getCleanupOperations()) {
+
+        logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+
+        try {
+          op.execute(xContext);
+
+        } catch (FailureException e) {
+          // TODO: ignore failures in cleanup?
+        }
+      }
+
+      // Wait for all child threads to exit.
+      waitForChildrenToExit();
+
+    } finally {
+      closeAllConnections();
     }
-
-    if (!earlyExit) {
-      if (isPrimaryThread) {
-        // If we are the primary thread then when we have finished all the test operations
-        // we can mark the test as having succeeded. This will also result in causing all
-        // other child threads to start their own cleanup actions.
-        testContext.markAsSucceeded();
-
-      } else {
-        // Since we are not the primary thread, when we have finished our test operations
-        // we must wait until the primary thread has finished its operations or until
-        // an error has occurred.
-        testContext.waitForCleanup();
-      }
-    }
-
-    // Run all of the cleanup operations
-    for (Operation op : plan.getCleanupOperations()) {
-
-      logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
-
-      try {
-        op.execute(xContext);
-
-      } catch (FailureException e) {
-        // TODO: ignore failures in cleanup?
-      }
-    }
-
-    // Wait for all child threads to exit.
-    waitForChildrenToExit();
   }
 
+  /**
+   * Creates the default connection to the server and saves it in the connection map
+   * under the name "default".
+   * @throws TestSetupException if there is an error creating the connection.
+   */
   protected void createDefaultConnection() throws TestSetupException
   {
     Connection conn = null;
@@ -163,8 +173,8 @@ public class TestRunner implements Runnable
       conn = DriverManager.getConnection(testContext.getUrl());
 
     } catch (SQLException e) {
-      final String msg = "Could not create the default connection to the server with url: " +
-                         testContext.getUrl();
+      final String msg = "Could not create the default connection to the server with url: \"" +
+                         testContext.getUrl() + "\".";
       throw new TestSetupException(msg, e, testContext.getTestFile());
     }
 
@@ -192,5 +202,19 @@ public class TestRunner implements Runnable
         }
       } // while(true)
     }
+  }
+
+  /**
+   * Closes all open connections in the connectionMap.
+   */
+  protected void closeAllConnections()
+  {
+    for (Connection conn : connectionMap.values()) {
+      try {
+        conn.close();
+      } catch (SQLException e) { /*ignore*/ }
+    }
+
+    connectionMap.clear();
   }
 }

@@ -37,9 +37,9 @@ public abstract class FailureException extends SethException
     this.command = command;
   }
 
-  public FailureException(String message, Throwable e, File testFile, long lineNumber, String command)
+  public FailureException(String message, Throwable t, File testFile, long lineNumber, String command)
   {
-    super(message);
+    super(message, t);
 
     this.testFile = testFile;
     this.lineNumber = lineNumber;
@@ -113,20 +113,25 @@ public abstract class FailureException extends SethException
     StringBuilder sb = new StringBuilder(1024);
 
     if ( !(testFile != null && outerTestFile != null && testFile.equals(outerTestFile)) ) {
-      sb.append(System.lineSeparator())
-        .append(FILE_HEADING)
+      sb.append(FILE_HEADING)
         .append(testFile.getPath());
     }
 
     if (lineNumber >= 0) {
-      sb.append(System.lineSeparator())
-        .append(LINE_HEADING)
+      if (sb.length() > 0) {
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(LINE_HEADING)
         .append(lineNumber >= 0 ? "(none)" : lineNumber);
     }
 
     if (command != null) {
-      sb.append(System.lineSeparator())
-        .append(COMMAND_HEADING)
+      if (sb.length() > 0) {
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(COMMAND_HEADING)
         .append(command == null ? "(none)" : command);
     }
 

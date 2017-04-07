@@ -13,7 +13,8 @@ import java.io.IOException;
 public class ConsoleLogger implements TestLogger
 {
   private static final String FMT = "%-11s:  %s";
-  private static final String FAILURE_INDENTING = System.lineSeparator() + "  ";
+  private static final String INDENTATION = "  ";
+  private static final String NL_AND_INDENTATION = System.lineSeparator() + INDENTATION;
 
   /**
    * Logs that the test is currently being validated.
@@ -50,7 +51,7 @@ public class ConsoleLogger implements TestLogger
   {
     if (result.getStatus() == TestResult.ResultStatus.FAILED) {
       final String msg = String.format(FMT, "Failed",
-          testFile.getPath() + indent(result.getFailureDescription()));
+          testFile.getPath() + System.lineSeparator() + indent(result.getFailureDescription()));
       System.out.println(msg);
 
     } else if (result.getStatus() == TestResult.ResultStatus.ABORTED) {
@@ -83,7 +84,7 @@ public class ConsoleLogger implements TestLogger
   @Override
   public void log(String msg)
   {
-    System.out.println(msg);
+    System.out.println(indent(msg));
   }
 
   /**
@@ -93,7 +94,7 @@ public class ConsoleLogger implements TestLogger
   @Override
   public void error(String msg)
   {
-    System.err.println(msg);
+    System.err.println(indent(msg));
   }
 
   /**
@@ -115,8 +116,23 @@ public class ConsoleLogger implements TestLogger
     // nothing to do here.
   }
 
-  protected String indent(String str)
+  /**
+   * Nicely indents a string, including any newlines that string may contain.
+   * @param oldStr the string to be indented.
+   * @return the nicely indented string.
+   */
+  protected String indent(String oldStr)
   {
-    return str.replace(System.lineSeparator(), FAILURE_INDENTING);
+    // Replace tabs with spaces
+    String newStr = oldStr.replace("\t", INDENTATION);
+
+    // Replace newlines with newlines and some spaces.
+    newStr = newStr.replace(System.lineSeparator(), NL_AND_INDENTATION);
+
+    if (!newStr.startsWith(INDENTATION)) {
+      newStr = INDENTATION + newStr;
+    }
+
+    return newStr;
   }
 }

@@ -87,17 +87,17 @@ public class TestPlanner
       this.testFile = testFile;
     }
 
-    @Override
-    public void recover(Parser recognizer, RecognitionException e)
-    {
-      throw new SethSystemException("Parser internal error", e);
-    }
+    //@Override
+    //public void recover(Parser recognizer, RecognitionException e)
+    //{
+    //  throw new SethSystemException("Parser internal error", e);
+    //}
 
-    @Override
-    protected void reportFailedPredicate(Parser recognizer, FailedPredicateException e)
-    {
-      throw new SethSystemException("Parser internal error", e);
-    }
+    //@Override
+    //protected void reportFailedPredicate(Parser recognizer, FailedPredicateException e)
+    //{
+    //  throw new SethSystemException("Parser internal error", e);
+    //}
 
     @Override
     protected void reportUnwantedToken(Parser recognizer)

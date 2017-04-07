@@ -67,15 +67,21 @@ public class TestSetupException extends FailureException
     StringBuilder sb = formatMessage(outerTestFile);
 
     if (error != null) {
-      sb.append(System.lineSeparator())
-        .append(ERROR_HEADING)
+      if (sb.length() > 0) {
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(ERROR_HEADING)
         .append(error);
 
     }
 
     if (getCause() != null) {
-      sb.append(System.lineSeparator())
-        .append(STACK_HEADING)
+      if (sb.length() > 0) {
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(STACK_HEADING)
         .append(getStackTrace(getCause()));
     }
 

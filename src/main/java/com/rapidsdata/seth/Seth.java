@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The SE Test Harness.
@@ -120,6 +121,8 @@ public class Seth {
       throw new SethSystemException(msg, e);
     }
 
+    ExecutorService threadPool = Executors.newCachedThreadPool();
+
     // Clean the result directory if necessary
     if (args.doClean) {
       cleanResultDir(args.resultDir);
@@ -132,15 +135,33 @@ public class Seth {
                                                args.doValidate,
                                                args.relativity,
                                                logger,
-                                               Executors.newCachedThreadPool());
+                                               threadPool);
 
     // Run the test suite.
     TestSuite testSuite = new TestSuite(appContext);
     testSuite.run();
 
-    // Print the results.
+    // TODO: Print the results?
 
-    // Exit.
+    // Shut down the thread pool we created for running the tests.
+    // Wait 5 seconds for it to complete and then force it to shutdown.
+    threadPool.shutdown();
+
+    try {
+      threadPool.awaitTermination(5, TimeUnit.SECONDS);
+    } catch (InterruptedException e) { /*ignore*/ }
+
+    if (!threadPool.isTerminated()) {
+      threadPool.shutdownNow();
+    }
+
+
+    // Close the logger.
+    try {
+      logger.close();
+    } catch (IOException e) { /*ignore*/ }
+
+    // All done.
   }
 
 

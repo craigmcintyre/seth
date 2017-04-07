@@ -79,9 +79,7 @@ public abstract class Operation
     return null;
   }
 
-
-  @Override
-  public String toString()
+  public String describe()
   {
     StringBuffer sb = new StringBuffer(1024);
 
@@ -96,5 +94,12 @@ public abstract class Operation
     }
 
     return sb.toString();
+  }
+
+
+  @Override
+  public String toString()
+  {
+    return getCommandDesc();
   }
 }

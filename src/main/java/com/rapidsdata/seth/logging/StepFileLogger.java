@@ -29,7 +29,7 @@ public class StepFileLogger extends TestFileLogger
     // Ensure we write to the console.
     super.testStepExecuting(testFile, command, lineNum);
 
-    String msg = "Executing line number " + lineNum + " : " + command;
+    String msg = String.format("Executing line #%03d : %s", lineNum, command);
     queue.add(decorateMessage(msg));
   }
 }

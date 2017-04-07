@@ -15,7 +15,10 @@ import java.util.Calendar;
 public class TestFileLogger extends FileLogger
 {
   /** A string of spaces. */
-  private static final String DECORATION_INDENT = System.lineSeparator() + new String(new char[28]).replace('\0', ' ');
+  private static final String DECORATION_INDENT = System.lineSeparator() + new String(new char[27]).replace('\0', ' ');
+
+  private static final long MILLIS_PER_MINUTE = 1000 * 60;
+  private static final long MILLIS_PER_SECOND = 1000;
 
   // Get the time that the application started.
   private long jvmStartTime = ManagementFactory.getRuntimeMXBean().getStartTime();
@@ -55,7 +58,7 @@ public class TestFileLogger extends FileLogger
     // Ensure we write to the console.
     super.testExecuting(testFile);
 
-    String msg = "Executing test file " + testFile.getPath();
+    String msg = "Executing test: " + testFile.getPath();
     queue.add(decorateMessage(msg));
   }
 
@@ -128,13 +131,28 @@ public class TestFileLogger extends FileLogger
     Calendar cal = Calendar.getInstance();
     long elapsedTime = cal.getTimeInMillis() - jvmStartTime;
 
+    long minutes;
+    long seconds;
+    long millis;
+
+    minutes = elapsedTime / MILLIS_PER_MINUTE;
+    elapsedTime = elapsedTime % MILLIS_PER_MINUTE;
+    seconds = elapsedTime / MILLIS_PER_SECOND;
+    millis = elapsedTime % MILLIS_PER_SECOND;
+
     StringBuilder sb = new StringBuilder(1024);
     sb.append(sdf.format(cal.getTime()))
-      .append("/+")
-      .append(String.format("%06.3f :  ", elapsedTime / 1000.0));
+      .append("/T+")
+      .append(String.format("%02d:%02d.%03d : ", minutes, seconds, millis));
 
-    // Now add the content. Any newlines are replaced by a newline and an indent.
-    sb.append(content.replace(System.lineSeparator(), DECORATION_INDENT));
+    // Replace any tabs with 2 spaces.
+    content = content.replace("\t", "  ");
+
+    // Any newlines are replaced by a newline and an indent.
+    content = content.replace(System.lineSeparator(), DECORATION_INDENT);
+
+    // Now add the content.
+    sb.append(content);
 
     return sb.toString();
   }
