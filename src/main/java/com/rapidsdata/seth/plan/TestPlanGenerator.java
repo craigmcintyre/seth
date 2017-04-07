@@ -159,6 +159,46 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitLoopStatement(SethParser.LoopStatementContext ctx)
+  {
+    // Create a new plan for the loop operations to be put into and push it onto the stack.
+    // Also push the currentOpQueue, which is the queue of testOps, onto a stack too.
+    List<Operation> testOps    = new LinkedList<>();
+    List<Operation> cleanupOps = new LinkedList<>();
+    Plan plan = new Plan(testFile, testOps, cleanupOps);
+
+    planStack.push(plan);
+    currentOpQueueStack.push(testOps);
+
+    visitChildren(ctx);
+
+    long count = -1;
+
+    if (ctx.loopCount != null) {
+      count = convertToLong(ctx.loopCount);
+    }
+
+    if (count <= -1) {
+      final String msg = "Loop count must be positive: " + count;
+      throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(), null, msg);
+    }
+
+    // Rewrite the operation description so it doesn't contain all the loop operations.
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    String desc = opMetadata.getDescription();
+    desc = desc.substring(0, desc.indexOf('{') + 1) + " ... }";
+    OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
+
+    Plan loopPlan = planStack.pop();
+    currentOpQueueStack.pop();
+
+    Operation op = new LoopOp(newOpMetadata, count, plan.getTestOperations());
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
   public Void visitCreateThreadStatement(SethParser.CreateThreadStatementContext ctx)
   {
     visitChildren(ctx);
