@@ -158,6 +158,37 @@ public class TestPlanGenerator extends SethBaseVisitor
     return null;
   }
 
+  @Override
+  public Void visitCreateThreadStatement(SethParser.CreateThreadStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    int numThreads = 1;
+
+    if (ctx.threadCount != null) {
+      numThreads = convertToInt(ctx.threadCount);
+    }
+
+    if (numThreads <= 0) {
+      final String msg = "Thread count must be positive: " + numThreads;
+      throw semanticException(testFile, ctx.threadCount.getLine(), ctx.threadCount.getCharPositionInLine(), null, msg);
+    }
+
+    // Rewrite the operation description so it doesn't contain all the thread operations.
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    String desc = opMetadata.getDescription();
+    desc = desc.substring(0, desc.indexOf('{') + 1) + " ... }";
+    OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
+
+    Plan threadPlan = planStack.pop();
+    currentOpQueueStack.pop();
+
+    Operation op = new CreateThreadOp(newOpMetadata, numThreads, threadPlan);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
   /**
    * Creates a SemanticException and wraps a SethBrownBagException around it.
    * @param file the file that the error occurred in.
@@ -195,6 +226,27 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   /**
+   * Converts the text of a token into an integer.
+   * @param token the token to convert
+   * @return a int.
+   */
+  private int convertToInt(Token token)
+  {
+    String s = token.getText();
+    int val;
+
+    try {
+      val = Integer.valueOf(s);
+
+    } catch (NumberFormatException e) {
+      final String msg = "Unable to convert value to an integer: " + s;
+      throw new SethSystemException(msg, e);
+    }
+
+    return val;
+  }
+
+  /**
    * Converts the text of a token into a long.
    * @param token the token to convert
    * @return a long.
@@ -208,7 +260,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       val = Long.valueOf(s);
 
     } catch (NumberFormatException e) {
-      final String msg = "Unable to convert value to long: " + s;
+      final String msg = "Unable to convert value to a long: " + s;
       throw new SethSystemException(msg, e);
     }
 

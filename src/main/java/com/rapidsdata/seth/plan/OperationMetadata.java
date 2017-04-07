@@ -71,4 +71,14 @@ public class OperationMetadata
   {
     return phase;
   }
+
+  /**
+   * Rewrites this object with a new description.
+   * @param newDescription the new description to use in the returned instance.
+   * @return a new instance of this object.
+   */
+  public OperationMetadata rewriteWith(String newDescription)
+  {
+    return new OperationMetadata(newDescription, this.testFile, this.line, this.phase);
+  }
 }
