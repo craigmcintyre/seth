@@ -2,9 +2,7 @@
 
 package com.rapidsdata.seth.plan;
 
-import com.rapidsdata.seth.exceptions.SemanticException;
-import com.rapidsdata.seth.exceptions.SethBrownBagException;
-import com.rapidsdata.seth.exceptions.SethSystemException;
+import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
@@ -14,6 +12,7 @@ import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -129,36 +128,6 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
-  public Void visitLogStatement(SethParser.LogStatementContext ctx)
-  {
-    visitChildren(ctx);
-
-    String msg = cleanString(ctx.logStr.getText());
-    Operation op = new LogOp(opMetadataStack.pop(), msg);
-    currentOpQueueStack.peek().add(op);
-
-    return null;
-  }
-
-  @Override
-  public Void visitSleepStatement(SethParser.SleepStatementContext ctx)
-  {
-    visitChildren(ctx);
-
-    long millis = convertToLong(ctx.millis);
-
-    if (millis < 0) {
-      final String msg = "Sleep time must be positive: " + millis;
-      throw semanticException(testFile, ctx.millis.getLine(), ctx.millis.getCharPositionInLine(), null, msg);
-    }
-
-    Operation op = new SleepOp(opMetadataStack.pop(), millis);
-    currentOpQueueStack.peek().add(op);
-
-    return null;
-  }
-
-  @Override
   public Void visitLoopStatement(SethParser.LoopStatementContext ctx)
   {
     // Create a new plan for the loop operations to be put into and push it onto the stack.
@@ -229,6 +198,70 @@ public class TestPlanGenerator extends SethBaseVisitor
     return null;
   }
 
+  @Override
+  public Void visitLogStatement(SethParser.LogStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    String msg = cleanString(ctx.logStr.getText());
+    Operation op = new LogOp(opMetadataStack.pop(), msg);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitSleepStatement(SethParser.SleepStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    long millis = convertToLong(ctx.millis);
+
+    if (millis < 0) {
+      final String msg = "Sleep time must be positive: " + millis;
+      throw semanticException(testFile, ctx.millis.getLine(), ctx.millis.getCharPositionInLine(), null, msg);
+    }
+
+    Operation op = new SleepOp(opMetadataStack.pop(), millis);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitIncludeFileStmt(SethParser.IncludeFileStmtContext ctx)
+  {
+    visitChildren(ctx);
+
+    String path = cleanString(ctx.filePath.getText());
+    File file = new File(path);
+
+    TestPlanner planner = new TestPlanner();
+    Plan subPlan = null;
+
+    try {
+      subPlan = planner.newPlanFor(file);
+
+    } catch (PlanningException e) {
+      throw wrapException(e);
+
+    } catch (FileNotFoundException e) {
+      // The included file path is not found so this is a semantic exception in the current file.
+      // So convert this to a SemanticException.
+      final String msg = "Included file not found: " + path;
+      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(), null, msg);
+    }
+
+    // We can now add the operations for the subplan to the current plan.
+    // i.e., the file inclusion occurs at planning time. It is not a dynamic operation
+    // in and of itself.
+    Plan currentPlan = planStack.peek();
+    currentPlan.getTestOperations().addAll(subPlan.getTestOperations());
+    currentPlan.getCleanupOperations().addAll(subPlan.getCleanupOperations());
+
+    return null;
+  }
+
   /**
    * Creates a SemanticException and wraps a SethBrownBagException around it.
    * @param file the file that the error occurred in.
@@ -251,7 +284,27 @@ public class TestPlanGenerator extends SethBaseVisitor
       msg = String.format(format, file, line, pos, near, errorMsg);
     }
 
-    return new SethBrownBagException(new SemanticException(msg, file, line, pos, near));
+    return wrapException(new SemanticException(msg, file, line, pos, near));
+  }
+
+  /**
+   * Wraps the PlanningException in an unchecked SethBrownBagException.
+   * @param e The exception to wrap.
+   * @return The wrapped, unchecked, SethBrownBagException.
+   */
+  private SethBrownBagException wrapException(PlanningException e)
+  {
+    return new SethBrownBagException(e);
+  }
+
+  /**
+   * Wraps the FileNotFoundException in an unchecked SethBrownBagException.
+   * @param e The exception to wrap.
+   * @return The wrapped, unchecked, SethBrownBagException.
+   */
+  private SethBrownBagException wrapException(FileNotFoundException e)
+  {
+    return new SethBrownBagException(e);
   }
 
 

@@ -2,10 +2,7 @@
 
 package com.rapidsdata.seth.plan;
 
-import com.rapidsdata.seth.exceptions.SemanticException;
-import com.rapidsdata.seth.exceptions.SethBrownBagException;
-import com.rapidsdata.seth.exceptions.SethSystemException;
-import com.rapidsdata.seth.exceptions.SyntaxException;
+import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
 import org.antlr.v4.runtime.*;
@@ -27,7 +24,7 @@ public class TestPlanner
     
   }
   
-  public Plan newPlanFor(File testFile) throws FileNotFoundException, SyntaxException, SemanticException
+  public Plan newPlanFor(File testFile) throws FileNotFoundException, PlanningException
   {
     if (!testFile.exists()) {
       throw new FileNotFoundException("File not found: " + testFile.getPath());
@@ -49,30 +46,25 @@ public class TestPlanner
 
     // Parse the contents of the file.
     ParseTree tree;
-
-    try {
-      tree = parser.testFile();
-
-    } catch (SethBrownBagException e) {
-      if (e.getCause() instanceof SyntaxException) {
-        throw (SyntaxException) e.getCause();
-
-      } else {
-        throw new SethSystemException("Unhandled exception " + e.getClass().getSimpleName(), e.getCause());
-      }
-    }
-
-    // Now that we've parsed the statement into a ParseTree we now need to build
-    // the list of Operations. We use the visitor pattern for walking the ParseTree.
-    TestPlanGenerator generator = new TestPlanGenerator(parser, testFile);
     Plan plan;
 
     try {
-      plan = generator.generateFor(tree);
+      tree = parser.testFile(); // This will typically through SyntaxExceptions.
+
+      // Now that we've parsed the statement into a ParseTree we now need to build
+      // the list of Operations. We use the visitor pattern for walking the ParseTree.
+      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile);
+
+      plan = generator.generateFor(tree); // This will typically throw SemanticExceptions,
+                                          // but can also throw SyntaxExceptions from included files
+                                          // or even a FileNotFoundException for an included path.
 
     } catch (SethBrownBagException e) {
-      if (e.getCause() instanceof SemanticException) {
-        throw (SemanticException) e.getCause();
+      if (e.getCause() instanceof PlanningException) {
+        throw (PlanningException) e.getCause();
+
+      } else if (e.getCause() instanceof FileNotFoundException) {
+        throw (FileNotFoundException) e.getCause();
 
       } else {
         throw new SethSystemException("Unhandled exception " + e.getClass().getSimpleName(), e.getCause());

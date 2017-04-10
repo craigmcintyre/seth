@@ -6,6 +6,9 @@ testFile          : statements cleanupSection? ;
 
 cleanupSection    : CLEANUP statementBlock ;
 
+statementBlock    : '{' statements '}' ;
+testFileBlock     : '{' testFile '}' ;
+
 statements        : statement* ;
 statement         : sethStatement | sqlStatement ;
 
@@ -31,18 +34,16 @@ singularStatements : (  sleepStatement
                       | emptyStatement
                      ) ';' ;
 
-loopStatement     : LOOP ( '(' loopCount=INT ')' )? statementBlock ;
+loopStatement     : LOOP ( loopCount=INT )? statementBlock ;
 createThreadStatement : CREATE (THREAD | (threadCount=INT (THREADS | THREAD))) testFileBlock ;
-statementBlock    : '{' statements '}' ;
-testFileBlock     : '{' testFile '}' ;
 
-sleepStatement      : SLEEP '(' millis=INT ')' ;
-logStatement        : LOG '(' logStr=STR ')' ;
-synchroniseStmt     : (SYNCHRONISE | SYNCHRONIZE) '(' (syncName=STR ',')? syncCount=INT ')' ;
-createConnStmt      : CREATE CONNECTION '(' connName=STR (',' url=STR)? ')' ;
-useConnectionStmt   : USE CONNECTION '(' conName=STR ')' ;
-disconnectConnStmt  : DISCONNECT CONNECTION ( '(' connName=STR ')' )? ;
-includeFileStmt     : INCLUDE FILE '(' filePath=STR ')' ;
+sleepStatement      : SLEEP  millis=INT ;
+logStatement        : LOG  logStr=STR ;
+synchroniseStmt     : (SYNCHRONISE | SYNCHRONIZE) (syncName=STR ',')? syncCount=INT ;
+createConnStmt      : CREATE CONNECTION connName=STR (',' url=STR)? ;
+useConnectionStmt   : USE CONNECTION? conName=STR ;
+disconnectConnStmt  : DISCONNECT CONNECTION? ( connName=STR )? ;
+includeFileStmt     : INCLUDE FILE?  filePath=STR ;
 emptyStatement      : ;
 
 

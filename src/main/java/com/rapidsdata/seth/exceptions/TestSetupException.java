@@ -34,20 +34,10 @@ public class TestSetupException extends FailureException
   }
 
   /**
-   * Creates a FailureException from a SyntaxException.
-   * @param e The SyntaxException we encountered while parsing the test file.
+   * Creates a FailureException from a PlanningException.
+   * @param e The PlanningException we encountered while parsing the test file.
    */
-  public TestSetupException(SyntaxException e)
-  {
-    super(e.getMessage(), null /* don't print stack trace */, e.getFile(), -1, null);
-    this.error = e.getMessage();
-  }
-
-  /**
-   * Creates a FailureException from a SemanticException.
-   * @param e The SemanticException we encountered while parsing the test file.
-   */
-  public TestSetupException(SemanticException e)
+  public TestSetupException(PlanningException e)
   {
     super(e.getMessage(), null /* don't print stack trace */, e.getFile(), e.getLine(), null);
     this.error = e.getMessage();

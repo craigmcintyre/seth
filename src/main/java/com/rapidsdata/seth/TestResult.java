@@ -115,20 +115,10 @@ public class TestResult
   }
 
   /**
-   * Marks the test result as having been a failure due to a syntax error encountered.
-   * @param e The SyntaxException encountered.
+   * Marks the test result as having been a failure due to a planning error encountered.
+   * @param e The PlanningException encountered.
    */
-  public void setFailure(SyntaxException e)
-  {
-    setStatus(ResultStatus.FAILED);
-    failureException = new TestSetupException(e);
-  }
-
-  /**
-   * Marks the test result as having been a failure due to a semantic error encountered.
-   * @param e The SyntaxException encountered.
-   */
-  public void setFailure(SemanticException e)
+  public void setFailure(PlanningException e)
   {
     setStatus(ResultStatus.FAILED);
     failureException = new TestSetupException(e);

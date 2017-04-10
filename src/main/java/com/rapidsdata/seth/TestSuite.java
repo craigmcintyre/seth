@@ -5,6 +5,7 @@ package com.rapidsdata.seth;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.contexts.TestContextImpl;
+import com.rapidsdata.seth.exceptions.PlanningException;
 import com.rapidsdata.seth.exceptions.SemanticException;
 import com.rapidsdata.seth.exceptions.SyntaxException;
 import com.rapidsdata.seth.logging.TestLogger;
@@ -73,12 +74,7 @@ public class TestSuite
           logger.error(testResult.getFailureDescription());
           continue;
 
-        } catch (SyntaxException e) {
-          testResult.setFailure(e);
-          logger.error(testResult.getFailureDescription());
-          continue;
-
-        } catch (SemanticException e) {
+        } catch (PlanningException e) {
           testResult.setFailure(e);
           logger.error(testResult.getFailureDescription());
           continue;
