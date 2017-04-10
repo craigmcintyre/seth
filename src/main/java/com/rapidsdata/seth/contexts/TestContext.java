@@ -5,6 +5,7 @@ package com.rapidsdata.seth.contexts;
 import com.rapidsdata.seth.exceptions.FailureException;
 
 import java.io.File;
+import java.util.concurrent.CyclicBarrier;
 
 public interface TestContext extends AppContext
 {
@@ -54,4 +55,32 @@ public interface TestContext extends AppContext
    * @param count the number of test steps that the testing thread executed.
    */
   public void accumulateTestSteps(long count);
+
+  /** Increments a count of the number of active threads in the system. */
+  public void incrementActiveThreads();
+
+  /** Decrements a count of the number of active threads in the system. */
+  public void decrementActiveThreads();
+
+  /**
+   * Returns the number of active threads in the system.
+   * @return the number of active threads in the system.
+   */
+  public int getNumActiveThreads();
+
+  /**
+   * Returns the synchronisation barrier associated with a given name for synchronising threads on.
+   * Creates the barrier if one does not exist (threadsafe).
+   * @param name the name to associate with the synchronisation barrier.
+   * @param parties the number of threads to wait on.
+   * @return the synchronisation barrier.
+   */
+  public CyclicBarrier getOrCreateSyncObject(String name, int parties);
+
+  /**
+   * Removes the given synchronisation barrier associated with a given name.
+   * @param name  the name of the object to remove.
+   * @param barrier the actual synchronisation object to be removed.
+   */
+  public void removeSyncObject(String name, CyclicBarrier barrier);
 }

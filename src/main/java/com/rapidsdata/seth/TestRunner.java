@@ -54,6 +54,9 @@ public class TestRunner implements Runnable
     this.plan = plan;
     this.testContext = testContext;
     this.isPrimaryThread = isPrimaryThread;
+
+    // increment the count of the active threads.
+    testContext.incrementActiveThreads();
   }
 
   /**
@@ -66,6 +69,9 @@ public class TestRunner implements Runnable
     this.plan = plan;
     this.testContext = testContext;
     this.isPrimaryThread = false;
+
+    // increment the count of the active threads.
+    testContext.incrementActiveThreads();
   }
 
   /**
@@ -93,10 +99,12 @@ public class TestRunner implements Runnable
 
     } catch (TestSetupException e) {
       testContext.markAsFailed(e);
+      testContext.decrementActiveThreads();
 
       // No test operations run, so nothing to cleanup.
       return;
     }
+
 
     try {
       // Make the execution context that each operation will use.
@@ -157,6 +165,7 @@ public class TestRunner implements Runnable
 
     } finally {
       closeAllConnections();
+      testContext.decrementActiveThreads();
     }
   }
 

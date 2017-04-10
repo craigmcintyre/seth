@@ -147,7 +147,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       count = convertToLong(ctx.loopCount);
     }
 
-    if (count <= -1) {
+    if (count < -1) {
       final String msg = "Loop count must be positive: " + count;
       throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(), null, msg);
     }
@@ -199,18 +199,6 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
-  public Void visitLogStatement(SethParser.LogStatementContext ctx)
-  {
-    visitChildren(ctx);
-
-    String msg = cleanString(ctx.logStr.getText());
-    Operation op = new LogOp(opMetadataStack.pop(), msg);
-    currentOpQueueStack.peek().add(op);
-
-    return null;
-  }
-
-  @Override
   public Void visitSleepStatement(SethParser.SleepStatementContext ctx)
   {
     visitChildren(ctx);
@@ -223,6 +211,46 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     Operation op = new SleepOp(opMetadataStack.pop(), millis);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitLogStatement(SethParser.LogStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    String msg = cleanString(ctx.logStr.getText());
+    Operation op = new LogOp(opMetadataStack.pop(), msg);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitSynchroniseStmt(SethParser.SynchroniseStmtContext ctx)
+  {
+    visitChildren(ctx);
+
+    String name = null;
+
+    if (ctx.syncName != null) {
+      name = cleanString(ctx.syncName.getText());
+    }
+
+    int count = -1;
+
+    if (ctx.syncCount != null) {
+      count = convertToInt(ctx.syncCount);
+
+      if (count < 0) {
+        final String msg = "Synchronisation count must be greater than zero: " + count;
+        throw semanticException(testFile, ctx.syncCount.getLine(), ctx.syncCount.getCharPositionInLine(), null, msg);
+      }
+    }
+
+    Operation op = new SyncOp(opMetadataStack.pop(), name, count);
     currentOpQueueStack.peek().add(op);
 
     return null;

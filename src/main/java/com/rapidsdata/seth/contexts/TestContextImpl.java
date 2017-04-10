@@ -8,9 +8,10 @@ import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.logging.TestLogger;
 
 import java.io.File;
-import java.sql.Driver;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -34,6 +35,12 @@ public class TestContextImpl implements TestContext
 
   /** A condition to wait on for cleanup to start. */
   private final Condition cleanupPhase = lock.newCondition();
+
+  /** A count of the number of active threads running the current test. */
+  private final AtomicInteger numActiveThreads = new AtomicInteger(0);
+
+  /** A map of objects that threads can synchronise on. */
+  private final Map<String, CyclicBarrier> syncMap = new ConcurrentHashMap<>();
 
   /**
    * Constructor.
@@ -249,5 +256,76 @@ public class TestContextImpl implements TestContext
   public void accumulateTestSteps(long count)
   {
     testResult.accumulateSteps(count);
+  }
+
+  /**
+   * Increments a count of the number of active threads in the system.
+   */
+  @Override
+  public void incrementActiveThreads()
+  {
+    numActiveThreads.incrementAndGet();
+  }
+
+  /**
+   * Decrements a count of the number of active threads in the system.
+   */
+  @Override
+  public void decrementActiveThreads()
+  {
+    numActiveThreads.decrementAndGet();
+  }
+
+  /**
+   * Returns the number of active threads in the system.
+   * @return the number of active threads in the system.
+   */
+  @Override
+  public int getNumActiveThreads()
+  {
+    return numActiveThreads.get();
+  }
+
+  /**
+   * Returns the synchronisation barrier associated with a given name for synchronising threads on.
+   * Creates the barrier if one does not exist (threadsafe).
+   * @param name the name to associate with the synchronisation barrier.
+   * @param parties the number of threads to wait on.
+   * @return the synchronisation barrier.
+   */
+  @Override
+  public CyclicBarrier getOrCreateSyncObject(String name, int parties)
+  {
+    // is there currently a sync object with the given name?
+    CyclicBarrier barrier = syncMap.get(name);
+
+    if (barrier == null || barrier.getParties() != parties) {
+      // Create a new CyclicBarrier and save it in the sync map.
+
+      synchronized (syncMap) {
+        // We had better check under synchronisation if someone got in before us.
+        barrier = syncMap.get(name);
+
+        if (barrier == null || barrier.getParties() != parties) {
+          barrier = new CyclicBarrier(parties);
+          syncMap.put(name, barrier);
+        }
+      }
+    }
+
+    return barrier;
+  }
+
+  /**
+   * Removes the given synchronisation barrier associated with a given name.
+   * @param name  the name of the object to remove.
+   * @param barrier the actual synchronisation object to be removed.
+   */
+  @Override
+  public void removeSyncObject(String name, CyclicBarrier barrier)
+  {
+    synchronized(syncMap) {
+      syncMap.remove(name, barrier);
+    }
   }
 }

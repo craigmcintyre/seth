@@ -39,7 +39,7 @@ createThreadStatement : CREATE (THREAD | (threadCount=INT (THREADS | THREAD))) t
 
 sleepStatement      : SLEEP  millis=INT ;
 logStatement        : LOG  logStr=STR ;
-synchroniseStmt     : (SYNCHRONISE | SYNCHRONIZE) (syncName=STR ',')? syncCount=INT ;
+synchroniseStmt     : (SYNCHRONISE | SYNCHRONIZE) (syncName=STR (',' syncCount=INT)? )? ;
 createConnStmt      : CREATE CONNECTION connName=STR (',' url=STR)? ;
 useConnectionStmt   : USE CONNECTION? conName=STR ;
 disconnectConnStmt  : DISCONNECT CONNECTION? ( connName=STR )? ;

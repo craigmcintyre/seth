@@ -14,6 +14,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.util.*;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -228,6 +229,58 @@ public class ExecutionContextImpl implements ExecutionContext
   public void accumulateTestSteps(long count)
   {
     testContext.accumulateTestSteps(count);
+  }
+
+  /**
+   * Increments a count of the number of active threads in the system.
+   */
+  @Override
+  public void incrementActiveThreads()
+  {
+    testContext.incrementActiveThreads();
+  }
+
+  /**
+   * Decrements a count of the number of active threads in the system.
+   */
+  @Override
+  public void decrementActiveThreads()
+  {
+    testContext.decrementActiveThreads();
+  }
+
+  /**
+   * Returns the number of active threads in the system.
+   * @return the number of active threads in the system.
+   */
+  @Override
+  public int getNumActiveThreads()
+  {
+    return testContext.getNumActiveThreads();
+  }
+
+  /**
+   * Returns the synchronisation barrier associated with a given name for synchronising threads on.
+   * Creates the barrier if one does not exist (threadsafe).
+   * @param name     the name to associate with the synchronisation barrier.
+   * @param parties  the number of threads to wait on.
+   * @return the synchronisation barrier.
+   */
+  @Override
+  public CyclicBarrier getOrCreateSyncObject(String name, int parties)
+  {
+    return testContext.getOrCreateSyncObject(name, parties);
+  }
+
+  /**
+   * Removes the given synchronisation barrier associated with a given name.
+   * @param name  the name of the object to remove.
+   * @param barrier the actual synchronisation object to be removed.
+   */
+  @Override
+  public void removeSyncObject(String name, CyclicBarrier barrier)
+  {
+    testContext.removeSyncObject(name, barrier);
   }
 
   /**
