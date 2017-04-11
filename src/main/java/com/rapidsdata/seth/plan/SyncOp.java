@@ -89,7 +89,7 @@ public class SyncOp extends Operation
         // Only 1 thread can reset the barrier, so use the barrier as a synchronisation object.
         synchronized (barrier) {
           if (barrier.isBroken()) {
-            System.err.println("Thread " + Thread.currentThread().getId() + " resetting barrier.");
+            //System.err.println("Thread " + Thread.currentThread().getId() + " resetting barrier.");
             barrier.reset();
           }
         }
@@ -106,8 +106,8 @@ public class SyncOp extends Operation
       } catch (InterruptedException e) {
 
       } catch (BrokenBarrierException | TimeoutException e) {
-        final String msg = e.getClass().getSimpleName() + " exception in thread " + Thread.currentThread().getId();
-        System.err.println(msg);
+        //final String msg = e.getClass().getSimpleName() + " exception in thread " + Thread.currentThread().getId();
+        //System.err.println(msg);
         continue;
       }
     }

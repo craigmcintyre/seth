@@ -14,8 +14,8 @@ import org.kohsuke.args4j.ParserProperties;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * The SE Test Harness.
@@ -253,27 +254,86 @@ public class Seth {
 
       line = line.trim();
 
-      if (!line.isEmpty()) {
-        File f = new File(line);
+      if (line.isEmpty()) {
+        continue;
+      }
 
-        // If the filename is relative and our path relativity is REFERER then
-        // we need to make this filename relative to the path of the listFile
-        // that is referring to it.
-        if (!f.toPath().isAbsolute() && relativity == PathRelativity.REFERER) {
-          String parent = listFile.getParent();
+      File f = new File(line);
 
-          if (parent == null) {
-            parent = "";
-          }
+      // If the filename is relative and our path relativity is REFERER then
+      // we need to make this filename relative to the path of the listFile
+      // that is referring to it.
+      if (!f.toPath().isAbsolute() && relativity == PathRelativity.REFERER) {
+        String parent = listFile.getParent();
 
-          f = Paths.get(parent, f.getPath()).toFile();
+        if (parent == null) {
+          parent = "";
         }
 
-        files.add(f);
+        f = Paths.get(parent, f.getPath()).toFile();
       }
+
+      // Is there any file globbing in the file name? Look for globbing characters: * ? { } [ ]
+
+      if (!hasGlobbing(f)) {
+        // No globbing. Simply add this file.
+        files.add(f);
+        continue;
+      }
+
+      addGlobbedFiles(f, files);
     }
 
     return files;
+  }
+
+  /**
+   * Returns true if the given File path contains globbing characters.
+   * @param f the file path to check.
+   * @return true if the given File path contains globbing characters.
+   */
+  private boolean hasGlobbing(File f)
+  {
+    return f.getPath().matches("^.*[*?{}\\[\\]]+.*$");
+  }
+
+  /**
+   * Globs the given file path and adds File instances that match the globbing pattern
+   * to the list of Files provided.
+   * @param f the file with the path that contains globbing characters.
+   * @param files the list we wish to add matching files to.
+   */
+  private void addGlobbedFiles(File f, List<File> files)
+  {
+    // Expand any file globbing.
+    PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + f.getPath());
+
+    Path startPath;
+
+    if (f.getParent() == null) {
+      startPath = Paths.get("");
+    } else {
+      startPath = Paths.get(f.getParent());
+    }
+
+    try {
+      Files.walkFileTree(startPath, new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+          if (matcher.matches(file)) {
+            files.add(file.toFile());
+          }
+          return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+          return FileVisitResult.CONTINUE;
+        }
+      });
+    } catch (IOException e) {
+      throw new SethSystemException(e);
+    }
   }
 
   /**
