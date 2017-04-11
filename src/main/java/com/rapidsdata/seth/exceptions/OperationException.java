@@ -3,9 +3,8 @@
 package com.rapidsdata.seth.exceptions;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 
-public class TestSetupException extends FailureException
+public class OperationException extends FailureException
 {
   /** The error message encountered. */
   protected final String error;
@@ -13,34 +12,51 @@ public class TestSetupException extends FailureException
   /**
    * Creates a TestSetupException from a general error message.
    * @param msg the error message.
+   * @param testFile the file being tested.
+   */
+  public OperationException(String msg, File testFile)
+  {
+    super(msg, testFile, -1, null);
+    this.error = msg;
+  }
+
+  /**
+   * Creates a TestSetupException from a general error message.
+   * @param msg the error message.
+   * @param testFile the file being tested.
+   * @param line the line number where the error occurred.
+   * @param command the command being executed at the time of the error.
+   */
+  public OperationException(String msg, File testFile, long line, String command)
+  {
+    super(msg, testFile, line, command);
+    this.error = msg;
+  }
+
+  /**
+   * Creates a TestSetupException from a general error message.
+   * @param msg the error message.
    * @param t a chained exception.
    * @param testFile the file being tested.
    */
-  public TestSetupException(String msg, Throwable t, File testFile)
+  public OperationException(String msg, Throwable t, File testFile)
   {
     super(msg, t, testFile, -1, null);
     this.error = msg;
   }
 
   /**
-   * Creates a FailureException from a FileNotFoundException.
-   * @param e The FileNotFoundException for not finding the test file.
-   * @param testFile The test file we were trying to find.
+   * Creates a TestSetupException from a general error message.
+   * @param msg the error message.
+   * @param t a chained exception.
+   * @param testFile the file being tested.
+   * @param line the line number where the error occurred.
+   * @param command the command being executed at the time of the error.
    */
-  public TestSetupException(FileNotFoundException e, File testFile)
+  public OperationException(String msg, Throwable t, File testFile, long line, String command)
   {
-    super(e.getMessage(), e, testFile, -1, null);
-    this.error = e.getMessage();
-  }
-
-  /**
-   * Creates a FailureException from a PlanningException.
-   * @param e The PlanningException we encountered while parsing the test file.
-   */
-  public TestSetupException(PlanningException e)
-  {
-    super(e.getMessage(), null /* don't print stack trace */, e.getFile(), e.getLine(), e.getCommand());
-    this.error = e.getMessage();
+    super(msg, t, testFile, line, command);
+    this.error = msg;
   }
 
   /**

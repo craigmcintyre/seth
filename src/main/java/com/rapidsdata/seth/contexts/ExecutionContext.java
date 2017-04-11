@@ -4,6 +4,7 @@ package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.exceptions.BadConnectionNameException;
 import com.rapidsdata.seth.exceptions.ConnectionNameExistsException;
+import com.rapidsdata.seth.exceptions.DefaultConnectionNameException;
 import com.rapidsdata.seth.plan.Operation;
 
 import java.sql.Connection;
@@ -57,6 +58,15 @@ public interface ExecutionContext extends TestContext
    * @param name the name associated with the Connection object that we wish to remove.
    * @returns the Connection object that was removed.
    * @throws BadConnectionNameException if there are no connections with this name.
+   * @throws DefaultConnectionNameException if the operation occurs on the default connection.
    */
-  public Connection removeConnection(String name) throws BadConnectionNameException;
+  public Connection removeConnection(String name) throws BadConnectionNameException,
+                                                         DefaultConnectionNameException;
+
+  /**
+   * Returns true if a connection with this name currently exists, otherwise false.
+   * @param name the name of the connection we are checking for.
+   * @return true if a connection with this name currently exists, otherwise false.
+   */
+  public boolean hasConnection(String name);
 }

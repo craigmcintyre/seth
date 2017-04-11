@@ -3,10 +3,7 @@
 package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.PathRelativity;
-import com.rapidsdata.seth.exceptions.BadConnectionNameException;
-import com.rapidsdata.seth.exceptions.ConnectionNameExistsException;
-import com.rapidsdata.seth.exceptions.FailureException;
-import com.rapidsdata.seth.exceptions.SethSystemException;
+import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.plan.Operation;
 
@@ -103,6 +100,7 @@ public class ExecutionContextImpl implements ExecutionContext
     Connection conn = connectionMap.get(currentConnectionName);
 
     if (conn == null) {
+      // Should never happen.
       final String msg = "No default connection.";
       throw new SethSystemException(msg);
     }
@@ -124,6 +122,15 @@ public class ExecutionContextImpl implements ExecutionContext
     }
 
     connectionMap.put(name, connection);
+
+    // Set this connection as the default.
+    try {
+      useConnection(name);
+
+    } catch (BadConnectionNameException e) {
+      // Should never happen
+      throw new SethSystemException(e);
+    }
   }
 
   /**
@@ -133,18 +140,45 @@ public class ExecutionContextImpl implements ExecutionContext
    * @param name the name associated with the Connection object that we wish to remove.
    * @returns the Connection object that was removed.
    * @throws BadConnectionNameException if there are no connections with this name.
+   * @throws DefaultConnectionNameException if the operation occurs on the default connection.
    */
   @Override
-  public Connection removeConnection(String name) throws BadConnectionNameException
+  public Connection removeConnection(String name) throws BadConnectionNameException,
+                                                         DefaultConnectionNameException
   {
     if (!connectionMap.containsKey(name)) {
       final String msg = "There is no connection in this context called \"" + name + "\".";
       throw new BadConnectionNameException(msg);
     }
 
-    return connectionMap.remove(name);
+    if (name.equals(DEFAULT_CONNECTION_NAME)) {
+      final String msg = "Cannot drop the default connection: \"" + DEFAULT_CONNECTION_NAME + "\".";
+      throw new DefaultConnectionNameException(msg);
+    }
+
+    Connection conn = connectionMap.remove(name);
+
+    // Set the default connection as the current one.
+    try {
+      useConnection(DEFAULT_CONNECTION_NAME);
+
+    } catch (BadConnectionNameException e) {
+      // Should never happen
+      throw new SethSystemException(e);
+    }
+
+    return conn;
   }
 
+  /**
+   * Returns true if a connection with this name currently exists, otherwise false.
+   * @param name the name of the connection we are checking for.
+   * @return true if a connection with this name currently exists, otherwise false.
+   */
+  public boolean hasConnection(String name)
+  {
+    return connectionMap.containsKey(name);
+  }
 
 
   /***********************************************************************************************/

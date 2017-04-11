@@ -18,6 +18,9 @@ public abstract class PlanningException extends SethException
   /** The text of the token near where the error occurred. Can be null if not applicable. */
   private final String near;
 
+  /** The parsed command where the error occurred. Can be null if not applicable. */
+  private final String command;
+
   public PlanningException(String message, File file, int line, int pos, String near)
   {
     super(message);
@@ -25,33 +28,17 @@ public abstract class PlanningException extends SethException
     this.line = line;
     this.pos = pos;
     this.near = near;
+    this.command = null;
   }
 
-  public PlanningException(String message, File file)
+  public PlanningException(String message, File file, int line, int pos, String near, String command)
   {
     super(message);
     this.file = file;
-    this.line = -1;
-    this.pos = -1;
-    this.near = null;
-  }
-
-  public PlanningException(String message, Throwable throwable, File file, int line, int pos, String near)
-  {
-    super(message, throwable);
-    this.file = file;
     this.line = line;
     this.pos = pos;
     this.near = near;
-  }
-
-  public PlanningException(Throwable t, File file, int line, int pos, String near)
-  {
-    super(t);
-    this.file = file;
-    this.line = line;
-    this.pos = pos;
-    this.near = near;
+    this.command = command;
   }
 
 
@@ -73,5 +60,10 @@ public abstract class PlanningException extends SethException
   public String getNear()
   {
     return near;
+  }
+
+  public String getCommand()
+  {
+    return command;
   }
 }

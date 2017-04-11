@@ -29,7 +29,7 @@ singularStatements : (  sleepStatement
                       | synchroniseStmt
                       | createConnStmt
                       | useConnectionStmt
-                      | disconnectConnStmt
+                      | dropConnectionStmt
                       | includeFileStmt
                       | emptyStatement
                      ) ';' ;
@@ -41,8 +41,8 @@ sleepStatement      : SLEEP  millis=INT ;
 logStatement        : LOG  logStr=STR ;
 synchroniseStmt     : (SYNCHRONISE | SYNCHRONIZE) (syncName=STR (',' syncCount=INT)? )? ;
 createConnStmt      : CREATE CONNECTION connName=STR (',' url=STR)? ;
-useConnectionStmt   : USE CONNECTION? conName=STR ;
-disconnectConnStmt  : DISCONNECT CONNECTION? ( connName=STR )? ;
+useConnectionStmt   : USE CONNECTION? connName=STR ;
+dropConnectionStmt  : DROP CONNECTION? ( connName=STR )? ;
 includeFileStmt     : INCLUDE FILE?  filePath=STR ;
 emptyStatement      : ;
 
@@ -53,7 +53,7 @@ emptyStatement      : ;
 CLEANUP               : C L E A N U P;
 CONNECTION            : C O N N E C T I O N;
 CREATE                : C R E A T E;
-DISCONNECT            : D I S C O N N E C T;
+DROP                  : D R O P;
 FILE                  : F I L E;
 INCLUDE               : I N C L U D E;
 LOG                   : L O G;

@@ -12,6 +12,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.Stack;
 
 /** The class responsible for creating execution plans. */
 public class TestPlanner
@@ -23,8 +25,16 @@ public class TestPlanner
   {
     
   }
-  
-  public Plan newPlanFor(File testFile) throws FileNotFoundException, PlanningException
+
+  /**
+   * Parses a testfile and returns a Plan instance representing it.
+   * @param testFile The file to be parsed.
+   * @param callStack the stack of files that are currently being parsed, resulting from file inclusions.
+   * @return a Plan that can be executed.
+   * @throws FileNotFoundException if the test file doesn't exist.
+   * @throws PlanningException if there is a problem with the contents of the test file.
+   */
+  public Plan newPlanFor(File testFile, List<File> callStack) throws FileNotFoundException, PlanningException
   {
     if (!testFile.exists()) {
       throw new FileNotFoundException("File not found: " + testFile.getPath());
@@ -53,7 +63,7 @@ public class TestPlanner
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
-      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile);
+      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack);
 
       plan = generator.generateFor(tree); // This will typically throw SemanticExceptions,
                                           // but can also throw SyntaxExceptions from included files

@@ -14,6 +14,7 @@ import com.rapidsdata.seth.plan.TestPlanner;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -67,7 +68,7 @@ public class TestSuite
 
         // Parse each test file
         try {
-          plan = planner.newPlanFor(testFile);
+          plan = planner.newPlanFor(testFile, new ArrayList<File>());
 
         } catch (FileNotFoundException e) {
           testResult.setFailure(e);

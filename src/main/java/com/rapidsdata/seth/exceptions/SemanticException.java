@@ -7,8 +7,8 @@ import java.io.File;
 public class SemanticException extends PlanningException
 {
 
-  public SemanticException(String message, File file, int line, int pos, String near)
+  public SemanticException(String message, File file, int line, int pos, String command)
   {
-    super(message, file, line, pos, near);
+    super(message, file, line, pos, null, command);
   }
 }

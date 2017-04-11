@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 public class TestPlanGenerator extends SethBaseVisitor
 {
@@ -24,6 +25,9 @@ public class TestPlanGenerator extends SethBaseVisitor
 
   /** The test file we're reading. */
   private final File testFile;
+
+  /** The stack of files that are currently being parsed, resulting from file inclusions. */
+  private final List<File> callStack;
 
   /** A stack of plans. The current plan is always the head. */
   private final Deque<Plan> planStack = new LinkedList<>();
@@ -43,10 +47,11 @@ public class TestPlanGenerator extends SethBaseVisitor
    * @param parser The parser we're using to parse the test file.
    * @param testFile The test file we're reading.
    */
-  public TestPlanGenerator(SethParser parser, File testFile)
+  public TestPlanGenerator(SethParser parser, File testFile, List<File> callStack)
   {
     this.parser = parser;
     this.testFile = testFile;
+    this.callStack = callStack;
   }
 
 
@@ -149,7 +154,8 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (count < -1) {
       final String msg = "Loop count must be positive: " + count;
-      throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(), null, msg);
+      throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
     }
 
     // Rewrite the operation description so it doesn't contain all the loop operations.
@@ -180,7 +186,8 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (numThreads <= 0) {
       final String msg = "Thread count must be positive: " + numThreads;
-      throw semanticException(testFile, ctx.threadCount.getLine(), ctx.threadCount.getCharPositionInLine(), null, msg);
+      throw semanticException(testFile, ctx.threadCount.getLine(), ctx.threadCount.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
     }
 
     // Rewrite the operation description so it doesn't contain all the thread operations.
@@ -207,7 +214,8 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (millis < 0) {
       final String msg = "Sleep time must be positive: " + millis;
-      throw semanticException(testFile, ctx.millis.getLine(), ctx.millis.getCharPositionInLine(), null, msg);
+      throw semanticException(testFile, ctx.millis.getLine(), ctx.millis.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
     }
 
     Operation op = new SleepOp(opMetadataStack.pop(), millis);
@@ -246,11 +254,81 @@ public class TestPlanGenerator extends SethBaseVisitor
 
       if (count < 0) {
         final String msg = "Synchronisation count must be greater than zero: " + count;
-        throw semanticException(testFile, ctx.syncCount.getLine(), ctx.syncCount.getCharPositionInLine(), null, msg);
+        throw semanticException(testFile, ctx.syncCount.getLine(), ctx.syncCount.getCharPositionInLine(),
+                                opMetadataStack.peek().getDescription(), msg);
       }
     }
 
     Operation op = new SyncOp(opMetadataStack.pop(), name, count);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitCreateConnStmt(SethParser.CreateConnStmtContext ctx)
+  {
+    visitChildren(ctx);
+
+    String name = cleanString(ctx.connName.getText());
+
+    if (name.trim().isEmpty()) {
+      final String msg = "Connection name cannot be whitespace or empty.";
+      throw semanticException(testFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
+    }
+
+    String url = null;
+
+    if (ctx.url != null) {
+      url = cleanString(ctx.url.getText());
+
+      if (url.trim().isEmpty()) {
+        final String msg = "Connection URL cannot be whitespace or empty.";
+        throw semanticException(testFile, ctx.url.getLine(), ctx.url.getCharPositionInLine(),
+                                opMetadataStack.peek().getDescription(), msg);
+      }
+    }
+
+    Operation op = new CreateConnectionOp(opMetadataStack.pop(), name, url);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitUseConnectionStmt(SethParser.UseConnectionStmtContext ctx)
+  {
+    visitChildren(ctx);
+
+    String name = cleanString(ctx.connName.getText());
+
+    if (name.trim().isEmpty()) {
+      final String msg = "Connection name cannot be whitespace or empty.";
+      throw semanticException(testFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
+    }
+
+    Operation op = new UseConnectionOp(opMetadataStack.pop(), name);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitDropConnectionStmt(SethParser.DropConnectionStmtContext ctx)
+  {
+    visitChildren(ctx);
+
+    String name = cleanString(ctx.connName.getText());
+
+    if (name.trim().isEmpty()) {
+      final String msg = "Connection name cannot be whitespace or empty.";
+      throw semanticException(testFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
+    }
+
+    Operation op = new DropConnectionOp(opMetadataStack.pop(), name);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -262,13 +340,45 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     String path = cleanString(ctx.filePath.getText());
-    File file = new File(path);
+    File includeFile = new File(path);
+
+    // Ensure we are not including ourselves.
+    if (testFile.equals(includeFile)) {
+      final String msg = "File cannot include itself.";
+      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(),msg);
+    }
+
+    // Ensure that we do not have a circular dependency.
+    for (File parent : callStack) {
+
+      if (parent.equals(includeFile)) {
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append("Circular file inclusion detected: ");
+
+        for (File p : callStack) {
+          sb.append(p.getPath()).append(" --> ");
+        }
+
+        sb.append(testFile.getPath());
+        sb.append(" --> ");
+        sb.append(includeFile.getPath());
+
+        throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+                                opMetadataStack.peek().getDescription(), sb.toString());
+      }
+    }
+
 
     TestPlanner planner = new TestPlanner();
     Plan subPlan = null;
 
+    List<File> subCallStack = new LinkedList<>();
+    subCallStack.addAll(callStack);
+    subCallStack.add(testFile);
+
     try {
-      subPlan = planner.newPlanFor(file);
+      subPlan = planner.newPlanFor(includeFile, subCallStack);
 
     } catch (PlanningException e) {
       throw wrapException(e);
@@ -277,7 +387,8 @@ public class TestPlanGenerator extends SethBaseVisitor
       // The included file path is not found so this is a semantic exception in the current file.
       // So convert this to a SemanticException.
       final String msg = "Included file not found: " + path;
-      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(), null, msg);
+      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
     }
 
     // We can now add the operations for the subplan to the current plan.
@@ -295,24 +406,19 @@ public class TestPlanGenerator extends SethBaseVisitor
    * @param file the file that the error occurred in.
    * @param line the line that the error occurred in.
    * @param pos the position on the line that the error occurred in.
-   * @param near (optional) a description of where the error occurred.
+   * @param command the command that has the semantic error.
    * @param errorMsg an error message.
    * @return an unchecked exception ready for throwing.
    */
-  private SethBrownBagException semanticException(File file, int line, int pos, String near, String errorMsg)
+  private SethBrownBagException semanticException(File file, int line, int pos, String command, String errorMsg)
   {
     String format = "Semantic error in file %s:%d:%d near %s : %s";
     String msg;
 
-    if (near == null) {
-      format = "Semantic error in file %s:%d:%d : %s";
-      msg = String.format(format, file, line, pos, errorMsg);
+    format = "Semantic error in file %s:%d:%d : %s";
+    msg = String.format(format, file, line, pos + 1, errorMsg);
 
-    } else {
-      msg = String.format(format, file, line, pos, near, errorMsg);
-    }
-
-    return wrapException(new SemanticException(msg, file, line, pos, near));
+    return wrapException(new SemanticException(msg, file, line, pos, command));
   }
 
   /**
@@ -321,16 +427,6 @@ public class TestPlanGenerator extends SethBaseVisitor
    * @return The wrapped, unchecked, SethBrownBagException.
    */
   private SethBrownBagException wrapException(PlanningException e)
-  {
-    return new SethBrownBagException(e);
-  }
-
-  /**
-   * Wraps the FileNotFoundException in an unchecked SethBrownBagException.
-   * @param e The exception to wrap.
-   * @return The wrapped, unchecked, SethBrownBagException.
-   */
-  private SethBrownBagException wrapException(FileNotFoundException e)
   {
     return new SethBrownBagException(e);
   }
