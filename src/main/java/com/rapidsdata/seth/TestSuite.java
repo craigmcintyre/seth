@@ -11,6 +11,7 @@ import com.rapidsdata.seth.exceptions.SyntaxException;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.plan.Plan;
 import com.rapidsdata.seth.plan.TestPlanner;
+import com.rapidsdata.seth.results.ResultWriter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -27,17 +28,17 @@ public class TestSuite
   /** The application context, which contains various common bits of information applicable to all tests. */
   private final AppContext appContext;
 
-  /** The object responsible for writing
-  //private final ResultWriter resultWriter;
+  /** The object responsible for writing the final test results. */
+  private final ResultWriter resultWriter;
 
   /**
    * Constructor
    * @param appContext contains various common bits of information applicable to all tests.
    */
-  public TestSuite(AppContext appContext /*, ResultWriter resultWriter */)
+  public TestSuite(AppContext appContext , ResultWriter resultWriter )
   {
     this.appContext = appContext;
-    // this.resultWriter = resultWriter;
+    this.resultWriter = resultWriter;
   }
 
   /**
@@ -87,8 +88,10 @@ public class TestSuite
         // Make a new TestRunner to run the plan
         TestRunner testRunner = new TestRunner(plan, testContext, true);
 
-        // Run each test file and wait until it finishes.
+        // Run each test file asynchronously.
         Future<?> future = threadPool.submit(testRunner);
+
+        // Wait until the test finishes
         future.get();
 
         // Log the result of each test file
@@ -102,8 +105,8 @@ public class TestSuite
       // TODO: cause test to shutdown. Abort remaining tests.
 
     } finally {
-      // TODO: Write out the results
-
+      // Write out the results
+      resultWriter.writeResults(resultList);
     }
   }
 }

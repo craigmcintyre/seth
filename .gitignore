@@ -1,6 +1,7 @@
 # misc
 *.log
 results
+!src/main/java/com/rapidsdata/seth/results
 debug/
 
 # IntelliJ files

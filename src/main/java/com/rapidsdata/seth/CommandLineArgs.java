@@ -73,8 +73,8 @@ public class CommandLineArgs
 
   @Option(name      = "--resultformat",
           required  = false,
-          usage     = "The format that the result file will be written in. Valid values are junit.")
-  public String resultFormat = "junit";
+          usage     = "The format that the result file will be written in. Valid values are log, junit.")
+  public String resultFormat = "log";
 
   @Option(name      = "--resultname",
           required  = false,

@@ -2,14 +2,12 @@
 
 package com.rapidsdata.seth.plan;
 
-import com.rapidsdata.seth.TestRunner;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
 import com.rapidsdata.seth.logging.TestLogger;
 
 import java.util.List;
-import java.util.concurrent.Future;
 
 /**
  * An operation that runs sub-operations in a loop.
@@ -25,13 +23,13 @@ public class LoopOp extends Operation
   /**
    * Constructor
    * @param metadata The metadata about where this operation came from in the test file.
-   * @param loopCount The number of loop iterations to run. -1 means forever.
+   * @param loopCount The number of loop iterations to run. null means forever.
    * @param operations The list of operations to run.
    */
-  public LoopOp(OperationMetadata metadata, long loopCount, List<Operation> operations)
+  public LoopOp(OperationMetadata metadata, Long loopCount, List<Operation> operations)
   {
     super(metadata);
-    this.loopCount = loopCount;
+    this.loopCount = (loopCount == null ? -1 : loopCount);
     this.operations = operations;
   }
 

@@ -90,6 +90,8 @@ public class TestRunner implements Runnable
   {
     TestLogger logger = testContext.getLogger();
 
+    long stepCount = 0;
+
     // Mark the test result as having started.
     testContext.markAsStarted();
 
@@ -122,6 +124,7 @@ public class TestRunner implements Runnable
         }
 
         logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+        ++stepCount;
 
         try {
           op.execute(xContext);
@@ -166,6 +169,7 @@ public class TestRunner implements Runnable
     } finally {
       closeAllConnections();
       testContext.decrementActiveThreads();
+      testContext.accumulateTestSteps(stepCount);
     }
   }
 

@@ -175,23 +175,23 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     visitChildren(ctx);
 
-    long count = -1;
-
-    if (ctx.loopCount != null) {
-      count = convertToLong(ctx.loopCount);
-    }
-
-    if (count < -1) {
-      final String msg = "Loop count must be positive: " + count;
-      throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(),
-                              opMetadataStack.peek().getDescription(), msg);
-    }
-
     // Rewrite the operation description so it doesn't contain all the loop operations.
     OperationMetadata opMetadata = opMetadataStack.pop();
     String desc = opMetadata.getDescription();
     desc = desc.substring(0, desc.indexOf('{') + 1) + " ... }";
     OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
+
+    Long count = null;
+
+    if (ctx.loopCount != null) {
+      count = convertToLong(ctx.loopCount);
+    }
+
+    if (count != null && count < 0) {
+      final String msg = "Loop count must be positive: " + count;
+      throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(),
+                              newOpMetadata.getDescription(), msg);
+    }
 
     Plan loopPlan = planStack.pop();
     currentOpQueueStack.pop();

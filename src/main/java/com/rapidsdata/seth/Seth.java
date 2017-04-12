@@ -4,8 +4,11 @@ package com.rapidsdata.seth;
 
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.AppContextImpl;
+import com.rapidsdata.seth.exceptions.InvalidResultFormatException;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.logging.*;
+import com.rapidsdata.seth.results.ResultWriter;
+import com.rapidsdata.seth.results.ResultWriterFactory;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -140,11 +143,19 @@ public class Seth {
                                                logger,
                                                threadPool);
 
-    // Run the test suite.
-    TestSuite testSuite = new TestSuite(appContext);
-    testSuite.run();
+    // Create the ResultWriter
+    ResultWriter resultWriter;
+    try {
+      resultWriter = ResultWriterFactory.get(args, appContext);
 
-    // TODO: Print the results?
+    } catch (InvalidResultFormatException e) {
+      logger.error(e.getMessage());
+      return;
+    }
+
+    // Run the test suite.
+    TestSuite testSuite = new TestSuite(appContext, resultWriter);
+    testSuite.run();
 
     // Shut down the thread pool we created for running the tests.
     // Wait 5 seconds for it to complete and then force it to shutdown.

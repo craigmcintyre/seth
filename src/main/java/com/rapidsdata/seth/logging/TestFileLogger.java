@@ -15,7 +15,7 @@ import java.util.Calendar;
 public class TestFileLogger extends FileLogger
 {
   /** A string of spaces. */
-  private static final String DECORATION_INDENT = System.lineSeparator() + new String(new char[27]).replace('\0', ' ');
+  private static final String DECORATION_INDENT = System.lineSeparator() + new String(new char[32]).replace('\0', ' ');
 
   private static final long MILLIS_PER_MINUTE = 1000 * 60;
   private static final long MILLIS_PER_SECOND = 1000;
