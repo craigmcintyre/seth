@@ -143,7 +143,7 @@ public class TestFileLogger extends FileLogger
     StringBuilder sb = new StringBuilder(1024);
     sb.append(sdf.format(cal.getTime()))
       .append("/T+")
-      .append(String.format("%02d:%02d.%03d : ", minutes, seconds, millis));
+      .append(String.format("%02d:%02d.%03d (%03d): ", minutes, seconds, millis, Thread.currentThread().getId()));
 
     // Replace any tabs with 2 spaces.
     content = content.replace("\t", "  ");

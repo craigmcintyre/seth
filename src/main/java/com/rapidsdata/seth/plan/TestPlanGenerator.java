@@ -133,6 +133,35 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitEnclosedServerStatement(SethParser.EnclosedServerStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    // Rewrite the operation description so it doesn't contain the enclosing curly braces.
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    String desc = opMetadata.getDescription();
+    desc = desc.substring(0, desc.length() - 1);
+    OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
+
+    Operation op = new ServerOp(newOpMetadata);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitNakedServerStatement(SethParser.NakedServerStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    Operation op = new ServerOp(opMetadataStack.pop());
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+
+  @Override
   public Void visitLoopStatement(SethParser.LoopStatementContext ctx)
   {
     // Create a new plan for the loop operations to be put into and push it onto the stack.

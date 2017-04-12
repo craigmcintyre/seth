@@ -10,12 +10,13 @@ statementBlock    : '{' statements '}' ;
 testFileBlock     : '{' testFile '}' ;
 
 statements        : statement* ;
-statement         : sethStatement | sqlStatement ;
+statement         : sethStatement | serverStatement ;
 
-sqlStatement      : enclosedSqlStatement | nakedSqlStatement ;
-enclosedSqlStatement  : '{' ~('}')+ '}' ;
-nakedSqlStatement     : {_input.LT(1).getType() != CLEANUP}?  // SQL statements cannot start with CLEANUP.
-                        (~(';' | '}'))+ ';';                  // The parser gets confused without this.
+serverStatement      : enclosedServerStatement | nakedServerStatement ;
+enclosedServerStatement  : '{' ~('}')+ '}' ;
+nakedServerStatement     : {_input.LT(1).getType() != CLEANUP}?   // Server statements cannot start with CLEANUP.
+                           (~(';' | '}'))+ ';';                   // The parser gets confused without this
+                                                                  // semantic predicate.
 
 
 sethStatement     : compoundStatements | singularStatements ;
