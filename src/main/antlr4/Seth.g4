@@ -103,13 +103,15 @@ fragment DIGIT        : '0' .. '9' ;
 fragment DUBLDUBL     : '""' ;
 fragment DUBLSINGL    : '\'\'' ;
 
-ID  : (ID_LETTER (ID_LETTER | DIGIT)*) | QID ;
-QID : '"' (DUBLDUBL | ~["\r\n])* '"';
+fragment SINGLE_STR   : '\'' (DUBLSINGL | (~'\''))* '\'' ;
+fragment DOUBLE_STR   : '\"' (DUBLDUBL  | (~'\"'))* '\"' ;
+
+ID  : (ID_LETTER (ID_LETTER | DIGIT)*) ;
 
 FLT : ('+' | '-')? (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
 INT : ('+' | '-')? DIGIT+ ;
 DEC : ('+' | '-')? ( (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ) ;
-STR : '\'' (DUBLSINGL | (~'\''))* '\'' ;
+STR : SINGLE_STR | DOUBLE_STR ;
 
 // We put comments and whitespace on a hidden tokeniser channel so that we can reconstruct
 // the original statement and pass it on to the execution engine unchanged.
