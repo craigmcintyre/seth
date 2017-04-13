@@ -5,7 +5,7 @@ package com.rapidsdata.seth.results;
 import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ResultSummary
@@ -44,7 +44,7 @@ public class ResultSummary
    */
   public static ResultSummary summariseFrom(List<TestResult> results)
   {
-    List<TestResult> failedTests = new LinkedList<>();
+    List<TestResult> failedTests = new ArrayList<>(results.size());
     long numTestsExecuted  = 0;
     long numTestsValidated = 0;
     long numTestsPassed    = 0;
@@ -144,9 +144,9 @@ public class ResultSummary
 
     StringBuilder sb = new StringBuilder(1024);
 
-    sb.append("***************").append(System.lineSeparator());
-    sb.append(" Test Failures ").append(System.lineSeparator());
-    sb.append("***************");
+    sb.append("******************").append(System.lineSeparator());
+    sb.append(" Test Failures (").append(failedTests.size()).append(") ").append(System.lineSeparator());
+    sb.append("******************");
 
     for (TestResult result : failedTests) {
 

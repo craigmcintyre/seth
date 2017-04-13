@@ -5,6 +5,7 @@ package com.rapidsdata.seth.plan;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 public class LogOp extends Operation
 {
@@ -16,11 +17,22 @@ public class LogOp extends Operation
    * @param metadata The metadata about where this operation came from in the test file.
    * @param message The message to be logged.
    */
-  public LogOp(OperationMetadata metadata, String message)
+  public LogOp(OperationMetadata metadata, ExpectedResult expectedResult, String message)
   {
-    super(metadata);
+    super(metadata, expectedResult);
 
     this.message = message;
+  }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  @Override
+  public Operation rewriteWith(ExpectedResult expectedResult)
+  {
+    return new LogOp(this.metadata, expectedResult, this.message);
   }
 
   /**

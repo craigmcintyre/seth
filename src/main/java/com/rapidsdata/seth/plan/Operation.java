@@ -5,6 +5,7 @@ package com.rapidsdata.seth.plan;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.io.File;
 
@@ -13,15 +14,25 @@ public abstract class Operation
   /** The metadata about where this operation came from in the test file. */
   protected final OperationMetadata metadata;
 
+  /** The expected result for this operation. */
+  protected final ExpectedResult expectedResult;
 
   /**
    * Constructor
    * @param metadata The metadata about where this operation came from in the test file.
    */
-  public Operation(OperationMetadata metadata)
+  public Operation(OperationMetadata metadata, ExpectedResult expectedResult)
   {
     this.metadata = metadata;
+    this.expectedResult = expectedResult;
   }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  public abstract Operation rewriteWith(ExpectedResult expectedResult);
 
   /**
    * Returns the test file that this operation came from.

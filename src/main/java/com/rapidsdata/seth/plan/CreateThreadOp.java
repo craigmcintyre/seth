@@ -6,6 +6,7 @@ import com.rapidsdata.seth.TestRunner;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.util.concurrent.Future;
 
@@ -23,11 +24,22 @@ public class CreateThreadOp extends Operation
    * @param numThreads The number of threads to create.
    * @param subPlan The plan that each of the threads will execute.
    */
-  public CreateThreadOp(OperationMetadata metadata, int numThreads, Plan subPlan)
+  public CreateThreadOp(OperationMetadata metadata, ExpectedResult expectedResult, int numThreads, Plan subPlan)
   {
-    super(metadata);
+    super(metadata, expectedResult);
     this.numThreads = numThreads;
     this.subPlan = subPlan;
+  }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  @Override
+  public Operation rewriteWith(ExpectedResult expectedResult)
+  {
+    return new CreateThreadOp(this.metadata, expectedResult, this.numThreads, this.subPlan);
   }
 
   /**

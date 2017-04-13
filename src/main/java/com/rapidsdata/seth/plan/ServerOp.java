@@ -7,6 +7,7 @@ import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.OperationException;
 import com.rapidsdata.seth.exceptions.ValidationException;
 import com.rapidsdata.seth.logging.TestLogger;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -19,9 +20,20 @@ public class ServerOp extends Operation
    * Constructor
    * @param metadata The metadata about where this operation came from in the test file.
    */
-  public ServerOp(OperationMetadata metadata)
+  public ServerOp(OperationMetadata metadata, ExpectedResult expectedResult)
   {
-    super(metadata);
+    super(metadata, expectedResult);
+  }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  @Override
+  public Operation rewriteWith(ExpectedResult expectedResult)
+  {
+    return new ServerOp(this.metadata, expectedResult);
   }
 
   /**

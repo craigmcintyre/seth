@@ -7,14 +7,12 @@ import com.rapidsdata.seth.exceptions.ConnectionNameExistsException;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.OperationException;
 import com.rapidsdata.seth.exceptions.ValidationException;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+
 
 public class CreateConnectionOp extends Operation
 {
@@ -30,11 +28,23 @@ public class CreateConnectionOp extends Operation
    * @param name The name of the connectio object to use.
    * @param url The url of the connection. May be null.
    */
-  public CreateConnectionOp(OperationMetadata metadata, String name, String url)
+  public CreateConnectionOp(OperationMetadata metadata, ExpectedResult expectedResult, String name, String url)
   {
-    super(metadata);
+    super(metadata, expectedResult);
     this.name = name;
     this.url = url;
+  }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   *
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  @Override
+  public Operation rewriteWith(ExpectedResult expectedResult)
+  {
+    return new CreateConnectionOp(this.metadata, expectedResult, this.name, this.url);
   }
 
   /**

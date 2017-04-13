@@ -6,6 +6,7 @@ import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
 import com.rapidsdata.seth.logging.TestLogger;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.util.List;
 
@@ -26,11 +27,22 @@ public class LoopOp extends Operation
    * @param loopCount The number of loop iterations to run. null means forever.
    * @param operations The list of operations to run.
    */
-  public LoopOp(OperationMetadata metadata, Long loopCount, List<Operation> operations)
+  public LoopOp(OperationMetadata metadata, ExpectedResult expectedResult, Long loopCount, List<Operation> operations)
   {
-    super(metadata);
+    super(metadata, expectedResult);
     this.loopCount = (loopCount == null ? -1 : loopCount);
     this.operations = operations;
+  }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  @Override
+  public Operation rewriteWith(ExpectedResult expectedResult)
+  {
+    return new LoopOp(this.metadata, expectedResult, this.loopCount, this.operations);
   }
 
   /**

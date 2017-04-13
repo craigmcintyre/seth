@@ -6,6 +6,8 @@ import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
+import com.rapidsdata.seth.plan.expectedResults.DontCareExpectedResult;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
@@ -41,6 +43,15 @@ public class TestPlanGenerator extends SethBaseVisitor
 
   /** A stack of metadata for the current operation as seen by the parser. */
   private Deque<OperationMetadata> opMetadataStack = new LinkedList<>();
+
+  /**
+   * A flag to indicate if we just processed an include statement, since this doesn't
+   * generate an Operation.
+   */
+  private boolean gotIncludeStatement = false;
+
+  /** A stack of expected results for the current statements being processed. */
+  private Deque<ExpectedResult> expectedResultStack = new LinkedList<>();
 
   /**
    * Constructor.
@@ -127,8 +138,29 @@ public class TestPlanGenerator extends SethBaseVisitor
     OperationMetadata opMetadata = new OperationMetadata(statementText, testFile, line, phase);
 
     opMetadataStack.push(opMetadata);
+    gotIncludeStatement = false;
 
     visitChildren(ctx);
+
+    // Do we have an expected result?
+    if (ctx.expected != null) {
+
+      // We can't allow expected results on include statements since the include occurs
+      // here at plan time.
+      if (gotIncludeStatement) {
+        // We shouldn't have an expected result for an include statement.
+        final String msg = "Include statements cannot have an expected result.";
+        Token firstToken = ctx.expected.getStart();
+        throw semanticException(testFile, firstToken.getLine(), firstToken.getCharPositionInLine(), opMetadata.getDescription(), msg);
+      }
+
+      // Rewrite the operation with the expected result.
+      ExpectedResult expectedResult = expectedResultStack.pop();
+      Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
+      Operation newOp = op.rewriteWith(expectedResult);
+      currentOpQueueStack.peek().add(newOp);
+    }
+
     return null;
   }
 
@@ -143,7 +175,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     desc = desc.substring(0, desc.length() - 1);
     OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
 
-    Operation op = new ServerOp(newOpMetadata);
+    Operation op = new ServerOp(newOpMetadata, new DontCareExpectedResult(newOpMetadata));
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -154,7 +186,8 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    Operation op = new ServerOp(opMetadataStack.pop());
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    Operation op = new ServerOp(opMetadata, new DontCareExpectedResult(opMetadata));
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -196,7 +229,8 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan loopPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    Operation op = new LoopOp(newOpMetadata, count, plan.getTestOperations());
+    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata);
+    Operation op = new LoopOp(newOpMetadata, expectedResult, count, plan.getTestOperations());
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -228,7 +262,8 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan threadPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    Operation op = new CreateThreadOp(newOpMetadata, numThreads, threadPlan);
+    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata);
+    Operation op = new CreateThreadOp(newOpMetadata, expectedResult, numThreads, threadPlan);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -247,7 +282,10 @@ public class TestPlanGenerator extends SethBaseVisitor
                               opMetadataStack.peek().getDescription(), msg);
     }
 
-    Operation op = new SleepOp(opMetadataStack.pop(), millis);
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+
+    Operation op = new SleepOp(opMetadata, expectedResult, millis);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -259,7 +297,11 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     String msg = cleanString(ctx.logStr.getText());
-    Operation op = new LogOp(opMetadataStack.pop(), msg);
+
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+
+    Operation op = new LogOp(opMetadata, expectedResult, msg);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -288,7 +330,10 @@ public class TestPlanGenerator extends SethBaseVisitor
       }
     }
 
-    Operation op = new SyncOp(opMetadataStack.pop(), name, count);
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+
+    Operation op = new SyncOp(opMetadata, expectedResult, name, count);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -319,7 +364,10 @@ public class TestPlanGenerator extends SethBaseVisitor
       }
     }
 
-    Operation op = new CreateConnectionOp(opMetadataStack.pop(), name, url);
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+
+    Operation op = new CreateConnectionOp(opMetadata, expectedResult, name, url);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -338,7 +386,10 @@ public class TestPlanGenerator extends SethBaseVisitor
                               opMetadataStack.peek().getDescription(), msg);
     }
 
-    Operation op = new UseConnectionOp(opMetadataStack.pop(), name);
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+
+    Operation op = new UseConnectionOp(opMetadata, expectedResult, name);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -357,7 +408,10 @@ public class TestPlanGenerator extends SethBaseVisitor
                               opMetadataStack.peek().getDescription(), msg);
     }
 
-    Operation op = new DropConnectionOp(opMetadataStack.pop(), name);
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+
+    Operation op = new DropConnectionOp(opMetadata, expectedResult, name);
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -367,6 +421,8 @@ public class TestPlanGenerator extends SethBaseVisitor
   public Void visitIncludeFileStmt(SethParser.IncludeFileStmtContext ctx)
   {
     visitChildren(ctx);
+
+    gotIncludeStatement = true;
 
     String path = cleanString(ctx.filePath.getText());
     File includeFile = new File(path);

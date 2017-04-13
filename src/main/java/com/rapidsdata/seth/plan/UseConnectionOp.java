@@ -4,6 +4,7 @@ package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.*;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,10 +20,21 @@ public class UseConnectionOp extends Operation
    * @param metadata The metadata about where this operation came from in the test file.
    * @param name The name of the connectio object to use.
    */
-  public UseConnectionOp(OperationMetadata metadata, String name)
+  public UseConnectionOp(OperationMetadata metadata, ExpectedResult expectedResult, String name)
   {
-    super(metadata);
+    super(metadata, expectedResult);
     this.name = name;
+  }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  @Override
+  public Operation rewriteWith(ExpectedResult expectedResult)
+  {
+    return new UseConnectionOp(this.metadata, expectedResult, this.name);
   }
 
   /**

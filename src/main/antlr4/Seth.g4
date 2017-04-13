@@ -10,7 +10,7 @@ statementBlock    : '{' statements '}' ;
 testFileBlock     : '{' testFile '}' ;
 
 statements        : statement* ;
-statement         : sethStatement | serverStatement ;
+statement         : (sethStatement | serverStatement) expected=expectedResult? ;
 
 serverStatement      : enclosedServerStatement | nakedServerStatement ;
 enclosedServerStatement  : '{' ~('}')+ '}' ;
@@ -48,23 +48,108 @@ includeFileStmt     : INCLUDE FILE?  filePath=STR ;
 emptyStatement      : ;
 
 
+expectedResult      : success
+                    | mute
+                    | failure
+                    | unorderedRows
+                    | orderedRows
+                    | rowCount
+                    | affectedCount ;
+
+success             : SUCCESS ;
+mute                : MUTE ;
+failure             : failureCodeAndMsg | failureErrorCode | failureErrorMsg | failureAny;
+failureCodeAndMsg   : FAILURE ':' code=INT ',' msg=STR ;
+failureErrorCode    : FAILURE ':' code=INT ;
+failureErrorMsg     : FAILURE ':' msg=STR ;
+failureAny          : FAILURE ;
+unorderedRows       : (UNORDERED)? ROWS ':' rowDefn+ ;
+orderedRows         : ORDERED ROWS ':' rowDefn+ ;
+rowCount            : ROWS ':' count=INT ;
+affectedCount       : AFFECTED ':' count=INT ;
+
+rowDefn             : '(' columnDefn (',' columnDefn)* ')';
+columnDefn          : booleanVal
+                    | integerVal
+                    | decimalVal
+                    | floatVal
+                    | stringVal
+                    | dateVal
+                    | timeVal
+                    | timestampVal
+                    | intervalVal
+                    | nullVal
+                    | dontCareVal
+                    | dontCareOtherColumns ;
+
+booleanVal          : TRUE | FALSE ;
+integerVal          : INT ;
+decimalVal          : DEC ;
+floatVal            : FLT ;
+stringVal           : STR ;
+dateVal             : DATE STR ;
+timeVal             : TIME STR ;
+timestampVal        : TIMESTAMP STR ;
+intervalVal         : yearMonthInterval | dayTimeInterval ;
+nullVal             : NULL ;
+dontCareVal         : ASTERISK ;
+dontCareOtherColumns: ELLIPSIS ;
+
+yearMonthInterval   : INTERVAL STR
+                      (   YEAR
+                        | (YEAR TO MONTH)
+                        | MONTH
+                      );
+
+dayTimeInterval     : INTERVAL STR
+                      (   DAY
+                        | (DAY TO (HOUR | MINUTE | SECOND))
+                        | (HOUR TO (MINUTE | SECOND))
+                        | (MINUTE TO SECOND)
+                        | HOUR
+                        | MINUTE
+                        | SECOND
+                      );
+
+
 // lexer ------------------------------------------------------
 
 
+AFFECTED              : A F F E C T E D;
 CLEANUP               : C L E A N U P;
 CONNECTION            : C O N N E C T I O N;
 CREATE                : C R E A T E;
+DATE                  : D A T E;
+DAY                   : D A Y;
 DROP                  : D R O P;
+FAILURE               : F A I L U R E;
+FALSE                 : F A L S E;
 FILE                  : F I L E;
+HOUR                  : H O U R;
 INCLUDE               : I N C L U D E;
+INTERVAL              : I N T E R V A L;
 LOG                   : L O G;
 LOOP                  : L O O P;
+MINUTE                : M I N U T E;
+MONTH                 : M O N T H;
+MUTE                  : M U T E;
+NULL                  : N U L L;
+ORDERED               : O R D E R E D;
+ROWS                  : R O W S;
+SECOND                : S E C O N D;
 SLEEP                 : S L E E P;
+SUCCESS               : S U C C E S S;
 SYNCHRONISE           : S Y N C H R O N I S E;
 SYNCHRONIZE           : S Y N C H R O N I Z E;
 THREADS               : T H R E A D S;
 THREAD                : T H R E A D;
+TIMESTAMP             : T I M E S T A M P;
+TIME                  : T I M E;
+TO                    : T O;
+TRUE                  : T R U E;
+UNORDERED             : U N O R D E R E D;
 USE                   : U S E;
+YEAR                  : Y E A R;
 
 HINT_START            : '/*+';
 HINT_END              : BC_END;
@@ -118,6 +203,9 @@ STR : SINGLE_STR | DOUBLE_STR ;
 LC :      ('//' | '--') .*? ('\n' | EOF) -> channel(HIDDEN) ;
 BC :      '/*' ~('+') .*? BC_END -> channel(HIDDEN) ;   // ignore block comments but don't match SQL hints
 BC_END :  '*/';
+
+ASTERISK : '*' ;
+ELLIPSIS : '...' ;
 
 WS :      [ \t\n\r]+    -> channel(HIDDEN) ;
 

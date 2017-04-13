@@ -5,6 +5,7 @@ package com.rapidsdata.seth.plan;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.ValidationException;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -28,9 +29,9 @@ public class SyncOp extends Operation
    * @param name The name of the synchronisation object to use.
    * @param count The number of threads to wait on, or -1 if all currently active threads.
    */
-  public SyncOp(OperationMetadata metadata, String name, int count)
+  public SyncOp(OperationMetadata metadata, ExpectedResult expectedResult, String name, int count)
   {
-    super(metadata);
+    super(metadata, expectedResult);
 
     if (name == null) {
       this.name = DEFAULT_SYNC_NAME;
@@ -39,6 +40,17 @@ public class SyncOp extends Operation
     }
 
     this.count = count;
+  }
+
+  /**
+   * Rewrites the current operation with the given expected result.
+   * @param expectedResult the expected result to compare to.
+   * @return the newly rewritten, immutable Operation with the new expected result.
+   */
+  @Override
+  public Operation rewriteWith(ExpectedResult expectedResult)
+  {
+    return new SyncOp(this.metadata, expectedResult, this.name, this.count);
   }
 
   /**
