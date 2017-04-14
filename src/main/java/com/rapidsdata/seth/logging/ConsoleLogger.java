@@ -12,7 +12,7 @@ import java.io.IOException;
  */
 public class ConsoleLogger implements TestLogger
 {
-  private static final String FMT = "%-11s:  %s";
+  private static final String FMT = "%-12s:  %s";
   private static final String INDENTATION = "  ";
   private static final String NL_AND_INDENTATION = System.lineSeparator() + INDENTATION;
 
@@ -50,12 +50,12 @@ public class ConsoleLogger implements TestLogger
   public void testExecutionFinished(File testFile, TestResult result)
   {
     if (result.getStatus() == TestResult.ResultStatus.FAILED) {
-      final String msg = String.format(FMT, "Failed",
+      final String msg = String.format(FMT, "Test Failed",
           testFile.getPath() + System.lineSeparator() + indent(result.getFailureDescription()));
       System.out.println(msg);
 
     } else if (result.getStatus() == TestResult.ResultStatus.ABORTED) {
-      final String msg = String.format(FMT, "Aborted", testFile.getPath());
+      final String msg = String.format(FMT, "Test Aborted", testFile.getPath());
       System.out.println(msg);
     }
 
@@ -92,9 +92,19 @@ public class ConsoleLogger implements TestLogger
    * @param msg the error message to be logged.
    */
   @Override
+  public void warning(String msg)
+  {
+    System.out.println("Warning: " + indent(msg));
+  }
+
+  /**
+   * Log a general purpose error message.
+   * @param msg the error message to be logged.
+   */
+  @Override
   public void error(String msg)
   {
-    System.err.println(indent(msg));
+    System.err.println("Error: " + indent(msg));
   }
 
   /**

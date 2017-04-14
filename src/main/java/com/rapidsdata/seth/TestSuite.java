@@ -49,7 +49,7 @@ public class TestSuite
     // A list of results from running all the tests.
     List<TestResult> resultList = new LinkedList<>();
 
-    TestPlanner planner = new TestPlanner();
+    TestPlanner planner = new TestPlanner(appContext);
     Plan plan = null;
 
     ExecutorService threadPool = appContext.getThreadPool();

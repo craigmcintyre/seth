@@ -71,8 +71,11 @@ public class ServerOp extends Operation
       statement = connection.createStatement();
 
     } catch (SQLException e) {
-      final String msg = "Could not create a JDBC Statement.";
-      throw new OperationException(msg, e, getTestFile(), getLine(), getCommandDesc());
+      expectedResult.compareActualAsException(e);
+
+      // Since the above call returned, we must have expected this failure otherwise
+      // an exception would have been thrown. Job done.
+      return;
     }
 
     try {
@@ -80,14 +83,14 @@ public class ServerOp extends Operation
 
       if (hasResultSet) {
         rs = statement.getResultSet();
-        logger.log("Got a resultSet.");
+        expectedResult.compareActualAsResultSet(rs);
+
+      } else {
+        expectedResult.compareActualAsUpdateCount(statement.getUpdateCount());
       }
 
-      // TODO: compare to the expected result
-
     } catch (SQLException e) {
-      // TODO compare to the expected result
-      logger.error(e.getMessage());
+      expectedResult.compareActualAsException(e);
 
     } finally {
 

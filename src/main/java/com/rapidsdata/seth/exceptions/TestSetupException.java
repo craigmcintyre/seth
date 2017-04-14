@@ -82,7 +82,7 @@ public class TestSetupException extends FailureException
       }
 
       sb.append(STACK_HEADING)
-        .append(getStackTrace(getCause()));
+        .append(indent(getStackTrace(getCause())));
     }
 
     return sb.toString();

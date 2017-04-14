@@ -65,7 +65,13 @@ public class UseConnectionOp extends Operation
       xContext.useConnection(name);
 
     } catch (BadConnectionNameException e) {
-      throw new OperationException(e.getMessage(), getTestFile(), getLine(), getCommandDesc());
+      expectedResult.compareActualAsFailure(e.getMessage());
+
+      // Since the above call returned, we must have expected this failure otherwise
+      // an exception would have been thrown. Job done.
+      return;
     }
+
+    expectedResult.compareActualAsSuccess();
   }
 }

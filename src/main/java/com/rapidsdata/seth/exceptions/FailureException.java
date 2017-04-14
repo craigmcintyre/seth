@@ -22,6 +22,9 @@ public abstract class FailureException extends SethException
   protected static final String ACTUAL_HEADING    = "Actual     : ";
   protected static final String STACK_HEADING     = "StackTrace : ";
 
+  protected static final String INDENTATION = new String(new char[FILE_HEADING.length()]).replace('\0', ' ');
+  protected static final String NL_INDENTATION = System.lineSeparator() + INDENTATION;
+
 
   protected final File testFile;
   protected final long lineNumber;
@@ -149,5 +152,16 @@ public abstract class FailureException extends SethException
     PrintWriter pw = new PrintWriter(sw);
     t.printStackTrace(pw);
     return sw.toString();
+  }
+
+  /**
+   * Returns a copy of the parameter string, indented to suit the formatting of formatMessage().
+   * @param indentable The string to be indented.
+   * @return The final indented string.
+   */
+  protected String indent(String indentable)
+  {
+    String indented = indentable.replace(System.lineSeparator(), NL_INDENTATION);
+    return indented;
   }
 }

@@ -114,9 +114,21 @@ public class TestFileLogger extends FileLogger
    * @param msg the error message to be logged.
    */
   @Override
+  public void warning(String msg)
+  {
+    super.warning(msg);
+    queue.add(decorateMessage("WARNING: " + msg));
+  }
+
+  /**
+   * Log a general purpose warning message about a non-fatal event.
+   *
+   * @param msg the warning message to be logged.
+   */
+  @Override
   public void error(String msg)
   {
-    super.log(msg);
+    super.error(msg);
     queue.add(decorateMessage("ERROR: " + msg));
   }
 

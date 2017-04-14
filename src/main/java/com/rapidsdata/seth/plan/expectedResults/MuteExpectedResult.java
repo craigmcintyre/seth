@@ -9,41 +9,33 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public abstract class ExpectedResult
+/**
+ * An expected result class where we don't care whether the operation succeeded or failed
+ * and we are explicitly not going to log any command failure details.
+ * */
+public class MuteExpectedResult extends ExpectedResult
 {
-  /** The type of expected result this is. */
-  protected final ExpectedResultType type;
-
-  /** A textual description of the expected result. */
-  protected final String description;
-
-  /** The metadata about the operation that produced the actual result. */
-  protected final OperationMetadata opMetadata;
-
-  /** A container of information and objects useful to the application. */
-  protected final AppContext appContext;
-
   /**
    * Constructor
-   * @param type The type of expected result this is.
    * @param description A textual description of the expected result.
    * @param opMetadata The metadata about the operation that produced the actual result.
+   * @param appContext The application context container.
    */
-  protected ExpectedResult(ExpectedResultType type, String description, OperationMetadata opMetadata, AppContext ctx)
+  public MuteExpectedResult(String description, OperationMetadata opMetadata, AppContext appContext)
   {
-    this.type = type;
-    this.description = description;
-    this.opMetadata = opMetadata;
-    this.appContext = ctx;
+    super(ExpectedResultType.MUTE, description, opMetadata, appContext);
   }
 
   /**
-   * Returns a string description of what was actually expected from this result.
-   * @return a string description of what was actually expected from this result.
+   * Constructor for overridden classes.
+   * @param type The type of expected result this is.
+   * @param description A textual description of the expected result.
+   * @param opMetadata The metadata about the operation that produced the actual result.
+   * @param appContext The application context container.
    */
-  public String describe()
+  protected MuteExpectedResult(ExpectedResultType type, String description, OperationMetadata opMetadata, AppContext appContext)
   {
-    return description;
+    super(type, description, opMetadata, appContext);
   }
 
   /**
@@ -51,41 +43,69 @@ public abstract class ExpectedResult
    * @param rs The ResultSet to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsResultSet(ResultSet rs) throws FailureException;
+  @Override
+  public void compareActualAsResultSet(ResultSet rs) throws FailureException
+  {
+    // We don't care.
+  }
 
   /**
    * Compares the actual result, being an update count, with the expected result.
+   *
    * @param updateCount The update count to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsUpdateCount(int updateCount) throws FailureException;
+  @Override
+  public void compareActualAsUpdateCount(int updateCount) throws FailureException
+  {
+    // We don't care.
+  }
 
   /**
    * Compares the actual result, being a SQLException, with the expected result.
-   * Stack trace will not be included.
+   *
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsException(SQLException e) throws FailureException;
+  @Override
+  public void compareActualAsException(SQLException e) throws FailureException
+  {
+    // We don't care, and we are not going to log the error.
+  }
 
   /**
    * Compares the actual result, being an Exception, with the expected result.
    * Because this is a general exception, the stack trace will be included.
+   *
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsException(Exception e) throws FailureException;
+  @Override
+  public void compareActualAsException(Exception e) throws FailureException
+  {
+    // We don't care, and we are not going to log the error.
+  }
 
   /**
    * Compares the actual result, being a general purpose statement of success, with the expected result.
+   *
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsSuccess() throws FailureException;
+  @Override
+  public void compareActualAsSuccess() throws FailureException
+  {
+    // We don't care.
+  }
 
   /**
    * Compares the actual result, being a general purpose failure with an error message, with the expected result.
-   * @param msg The error message to be compared to the expected result.
+   *
+   * @param error The error message to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsFailure(String msg) throws FailureException;
+  @Override
+  public void compareActualAsFailure(String error) throws FailureException
+  {
+    // We don't care, and we are not going to log the error.
+  }
 }

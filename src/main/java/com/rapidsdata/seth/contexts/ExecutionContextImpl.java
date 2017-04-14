@@ -83,7 +83,7 @@ public class ExecutionContextImpl implements ExecutionContext
     // This doesn't need any synchronisation since an ExecutionContext is only ever
     // used by a single thread.
     if (!connectionMap.containsKey(name)) {
-      final String msg = "There is no connection in this context called \"" + name + "\".";
+      final String msg = "There is no connection in this context with this name: " + name;
       throw new BadConnectionNameException(msg);
     }
 
@@ -117,7 +117,7 @@ public class ExecutionContextImpl implements ExecutionContext
   public void addConnection(Connection connection, String name) throws ConnectionNameExistsException
   {
     if (connectionMap.containsKey(name)) {
-      final String msg = "A connection with the name \"" + name + "\" already exists in this context.";
+      final String msg = "A connection with this name already exists in this context: " + name;
       throw new ConnectionNameExistsException(msg);
     }
 
@@ -147,12 +147,12 @@ public class ExecutionContextImpl implements ExecutionContext
                                                          DefaultConnectionNameException
   {
     if (!connectionMap.containsKey(name)) {
-      final String msg = "There is no connection in this context called \"" + name + "\".";
+      final String msg = "There is no connection in this context with this name: " + name;
       throw new BadConnectionNameException(msg);
     }
 
     if (name.equals(DEFAULT_CONNECTION_NAME)) {
-      final String msg = "Cannot drop the default connection: \"" + DEFAULT_CONNECTION_NAME + "\".";
+      final String msg = "Cannot drop the default connection: " + DEFAULT_CONNECTION_NAME;
       throw new DefaultConnectionNameException(msg);
     }
 

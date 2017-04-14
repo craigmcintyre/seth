@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
@@ -18,12 +19,16 @@ import java.util.Stack;
 /** The class responsible for creating execution plans. */
 public class TestPlanner
 {
+  /** Contains various common information and objects for the application. */
+  private final AppContext appContext;
+
   /**
    * Constructor.
+   * @param appContext Contains various common information and objects for the application.
    */
-  public TestPlanner()
+  public TestPlanner(AppContext appContext)
   {
-    
+    this.appContext = appContext;
   }
 
   /**
@@ -63,7 +68,7 @@ public class TestPlanner
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
-      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack);
+      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack, appContext);
 
       plan = generator.generateFor(tree); // This will typically throw SemanticExceptions,
                                           // but can also throw SyntaxExceptions from included files

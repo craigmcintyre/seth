@@ -2,12 +2,12 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
-import com.rapidsdata.seth.plan.expectedResults.DontCareExpectedResult;
-import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
+import com.rapidsdata.seth.plan.expectedResults.*;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
@@ -18,7 +18,6 @@ import java.io.FileNotFoundException;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
 
 public class TestPlanGenerator extends SethBaseVisitor
 {
@@ -30,6 +29,9 @@ public class TestPlanGenerator extends SethBaseVisitor
 
   /** The stack of files that are currently being parsed, resulting from file inclusions. */
   private final List<File> callStack;
+
+  /** A collection of information and objects used by the application as a whole. */
+  private final AppContext appContext;
 
   /** A stack of plans. The current plan is always the head. */
   private final Deque<Plan> planStack = new LinkedList<>();
@@ -53,16 +55,20 @@ public class TestPlanGenerator extends SethBaseVisitor
   /** A stack of expected results for the current statements being processed. */
   private Deque<ExpectedResult> expectedResultStack = new LinkedList<>();
 
+  /** Description of the current expected result that is being processed. */
+  private String currentExpectedResultDesc;
+
   /**
    * Constructor.
    * @param parser The parser we're using to parse the test file.
    * @param testFile The test file we're reading.
    */
-  public TestPlanGenerator(SethParser parser, File testFile, List<File> callStack)
+  public TestPlanGenerator(SethParser parser, File testFile, List<File> callStack, AppContext appContext)
   {
     this.parser = parser;
     this.testFile = testFile;
     this.callStack = callStack;
+    this.appContext = appContext;
   }
 
 
@@ -123,7 +129,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     // typed in.
     TokenStream tokenStream = parser.getTokenStream();
     Token startToken = getStartTokenIncludingHiddenToken(ctx.getStart());
-    Token stopToken  = ctx.getStop();
+    Token stopToken  = (ctx.sethStatement() != null ? ctx.sethStatement().getStop() : ctx.serverStatement().getStop());
     String statementText = tokenStream.getText(startToken, stopToken);
 
     int line = startToken.getLine();
@@ -159,6 +165,15 @@ public class TestPlanGenerator extends SethBaseVisitor
       Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
       Operation newOp = op.rewriteWith(expectedResult);
       currentOpQueueStack.peek().add(newOp);
+
+    } else {
+      // We don't have an expected result, so lets add a "don't care" expected result.
+      if (!gotIncludeStatement) {
+        Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
+        ExpectedResult expectedResult = new DontCareExpectedResult(op.metadata, appContext);
+        Operation newOp = op.rewriteWith(expectedResult);
+        currentOpQueueStack.peek().add(newOp);
+      }
     }
 
     return null;
@@ -175,7 +190,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     desc = desc.substring(0, desc.length() - 1);
     OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
 
-    Operation op = new ServerOp(newOpMetadata, new DontCareExpectedResult(newOpMetadata));
+    Operation op = new ServerOp(newOpMetadata, new DontCareExpectedResult(newOpMetadata, appContext));
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -187,7 +202,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    Operation op = new ServerOp(opMetadata, new DontCareExpectedResult(opMetadata));
+    Operation op = new ServerOp(opMetadata, new DontCareExpectedResult(opMetadata, appContext));
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -229,7 +244,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan loopPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext);
     Operation op = new LoopOp(newOpMetadata, expectedResult, count, plan.getTestOperations());
     currentOpQueueStack.peek().add(op);
 
@@ -262,7 +277,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan threadPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext);
     Operation op = new CreateThreadOp(newOpMetadata, expectedResult, numThreads, threadPlan);
     currentOpQueueStack.peek().add(op);
 
@@ -283,7 +298,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
 
     Operation op = new SleepOp(opMetadata, expectedResult, millis);
     currentOpQueueStack.peek().add(op);
@@ -299,7 +314,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     String msg = cleanString(ctx.logStr.getText());
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
 
     Operation op = new LogOp(opMetadata, expectedResult, msg);
     currentOpQueueStack.peek().add(op);
@@ -331,7 +346,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
 
     Operation op = new SyncOp(opMetadata, expectedResult, name, count);
     currentOpQueueStack.peek().add(op);
@@ -365,7 +380,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
 
     Operation op = new CreateConnectionOp(opMetadata, expectedResult, name, url);
     currentOpQueueStack.peek().add(op);
@@ -387,7 +402,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
 
     Operation op = new UseConnectionOp(opMetadata, expectedResult, name);
     currentOpQueueStack.peek().add(op);
@@ -409,7 +424,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
 
     Operation op = new DropConnectionOp(opMetadata, expectedResult, name);
     currentOpQueueStack.peek().add(op);
@@ -455,7 +470,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
 
-    TestPlanner planner = new TestPlanner();
+    TestPlanner planner = new TestPlanner(appContext);
     Plan subPlan = null;
 
     List<File> subCallStack = new LinkedList<>();
@@ -486,6 +501,66 @@ public class TestPlanGenerator extends SethBaseVisitor
     return null;
   }
 
+
+  @Override
+  public Void visitExpectedResult(SethParser.ExpectedResultContext ctx)
+  {
+    // Save the text of the expected result specified.
+    currentExpectedResultDesc = parser.getTokenStream().getText(ctx.getStart(), ctx.getStop());
+
+    visitChildren(ctx);
+
+    currentExpectedResultDesc = null;
+    return null;
+  }
+
+  @Override
+  public Void visitSuccess(SethParser.SuccessContext ctx)
+  {
+    visitChildren(ctx);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new SuccessExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitMute(SethParser.MuteContext ctx)
+  {
+    visitChildren(ctx);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new MuteExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+
+  @Override
+  public Void visitFailureAny(SethParser.FailureAnyContext ctx)
+  {
+    visitChildren(ctx);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new FailureAnyExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+
   /**
    * Creates a SemanticException and wraps a SethBrownBagException around it.
    * @param file the file that the error occurred in.
@@ -497,11 +572,8 @@ public class TestPlanGenerator extends SethBaseVisitor
    */
   private SethBrownBagException semanticException(File file, int line, int pos, String command, String errorMsg)
   {
-    String format = "Semantic error in file %s:%d:%d near %s : %s";
-    String msg;
-
-    format = "Semantic error in file %s:%d:%d : %s";
-    msg = String.format(format, file, line, pos + 1, errorMsg);
+    final String format = "Semantic error in file %s:%d:%d : %s";
+    final String msg = String.format(format, file, line, pos + 1, errorMsg);
 
     return wrapException(new SemanticException(msg, file, line, pos, command));
   }

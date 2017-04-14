@@ -113,15 +113,14 @@ public class SyncOp extends Operation
         arrivalIndex = barrier.await(200, TimeUnit.MILLISECONDS);
 
         // We achieved synchronisation!
-        return;
+        break;
 
-      } catch (InterruptedException e) {
-
-      } catch (BrokenBarrierException | TimeoutException e) {
-        //final String msg = e.getClass().getSimpleName() + " exception in thread " + Thread.currentThread().getId();
-        //System.err.println(msg);
+      } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
+        // Try again.
         continue;
       }
     }
+
+    expectedResult.compareActualAsSuccess();
   }
 }

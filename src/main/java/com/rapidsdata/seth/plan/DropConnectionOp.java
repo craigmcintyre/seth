@@ -63,14 +63,26 @@ public class DropConnectionOp extends Operation
   {
     try {
       Connection conn = xContext.removeConnection(name);
-      conn.close();
+
+      if (!conn.isClosed()) {
+        conn.close();
+      }
 
     } catch (BadConnectionNameException | DefaultConnectionNameException e) {
-      throw new OperationException(e.getMessage(), getTestFile(), getLine(), getCommandDesc());
+      expectedResult.compareActualAsFailure(e.getMessage());
+
+      // Since the above call returned, we must have expected this failure otherwise
+      // an exception would have been thrown. Job done.
+      return;
 
     } catch (SQLException e) {
-      final String msg = "Cannot close the connection \"" + name + "\".";
-      throw new OperationException(msg, e, getTestFile(), getLine(), getCommandDesc());
+      expectedResult.compareActualAsException(e);
+
+      // Since the above call returned, we must have expected this failure otherwise
+      // an exception would have been thrown. Job done.
+      return;
     }
+
+    expectedResult.compareActualAsSuccess();
   }
 }

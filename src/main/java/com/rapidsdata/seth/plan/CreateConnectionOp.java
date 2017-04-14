@@ -3,10 +3,7 @@
 package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.contexts.ExecutionContext;
-import com.rapidsdata.seth.exceptions.ConnectionNameExistsException;
-import com.rapidsdata.seth.exceptions.FailureException;
-import com.rapidsdata.seth.exceptions.OperationException;
-import com.rapidsdata.seth.exceptions.ValidationException;
+import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.sql.Connection;
@@ -73,7 +70,11 @@ public class CreateConnectionOp extends Operation
   {
     if (xContext.hasConnection(name)) {
       final String msg = "Cannot create connection as this connection name already exists: " + name;
-      throw new OperationException(msg, getTestFile(), getLine(), getCommandDesc());
+      expectedResult.compareActualAsFailure(msg);
+
+      // Since the above call returned, we must have expected this failure otherwise
+      // an exception would have been thrown. Job done.
+      return;
     }
 
     String connUrl = this.url;
@@ -86,9 +87,13 @@ public class CreateConnectionOp extends Operation
     Connection conn;
     try {
       conn = DriverManager.getConnection(connUrl);
+
     } catch (SQLException e) {
-      final String msg = "Unable to create a connection using URL: " + connUrl;
-      throw new OperationException(msg, getTestFile(), getLine(), getCommandDesc());
+      expectedResult.compareActualAsException(e);
+
+      // Since the above call returned, we must have expected this failure otherwise
+      // an exception would have been thrown. Job done.
+      return;
     }
 
     try {
@@ -96,8 +101,9 @@ public class CreateConnectionOp extends Operation
 
     } catch (ConnectionNameExistsException e) {
       // Should never happen because connections are not shared.
-      final String msg = "Cannot create connection as this connection name already exists: " + name;
-      throw new OperationException(msg, getTestFile(), getLine(), getCommandDesc());
+      throw new SethSystemException(e);
     }
+
+    expectedResult.compareActualAsSuccess();
   }
 }

@@ -43,6 +43,12 @@ public interface TestLogger extends Closeable
   public void log(String msg);
 
   /**
+   * Log a general purpose warning message about a non-fatal event.
+   * @param msg the warning message to be logged.
+   */
+  public void warning(String msg);
+
+  /**
    * Log a general purpose error message.
    * @param msg the message to be logged.
    */

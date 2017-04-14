@@ -5,10 +5,12 @@ package com.rapidsdata.seth.plan;
 import com.rapidsdata.seth.TestRunner;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
+import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.exceptions.ValidationException;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 
 public class CreateThreadOp extends Operation
 {
@@ -69,10 +71,26 @@ public class CreateThreadOp extends Operation
       TestRunner runner = new TestRunner(subPlan, xContext);
 
       // Launch it!
-      Future<?> future = xContext.getThreadPool().submit(runner);
+      Future<?> future;
+
+      try {
+        future = xContext.getThreadPool().submit(runner);
+
+      } catch (RejectedExecutionException e) {
+        expectedResult.compareActualAsException(e);
+
+        // Since the above call returned, we must have expected this failure otherwise
+        // an exception would have been thrown. Job done.
+        return;
+
+      } catch (NullPointerException e) {
+        throw new SethSystemException(e);
+      }
 
       // Save the future so that our own TestRunner will wait for this child thread to complete.
       xContext.registerFuture(future);
     }
+
+    expectedResult.compareActualAsSuccess();
   }
 }

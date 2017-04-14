@@ -93,9 +93,9 @@ public class ResultSummary
     StringBuilder sb = new StringBuilder(1024);
 
     sb.append(System.lineSeparator());
-    sb.append("**************").append(System.lineSeparator());
-    sb.append(" Test Results ").append(System.lineSeparator());
-    sb.append("**************").append(System.lineSeparator());
+    sb.append("*************************").append(System.lineSeparator());
+    sb.append(" Summary Of Test Results ").append(System.lineSeparator());
+    sb.append("*************************").append(System.lineSeparator());
     sb.append(System.lineSeparator());
 
     sb.append(String.format("Tests Executed : %4d", numTestsExecuted)).append(System.lineSeparator());
@@ -144,9 +144,9 @@ public class ResultSummary
 
     StringBuilder sb = new StringBuilder(1024);
 
-    sb.append("******************").append(System.lineSeparator());
-    sb.append(" Test Failures (").append(failedTests.size()).append(") ").append(System.lineSeparator());
-    sb.append("******************");
+    sb.append("******************************").append(System.lineSeparator());
+    sb.append(" Summary Of Test Failures (").append(failedTests.size()).append(")").append(System.lineSeparator());
+    sb.append("******************************");
 
     for (TestResult result : failedTests) {
 
