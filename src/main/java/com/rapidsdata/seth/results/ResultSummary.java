@@ -144,9 +144,9 @@ public class ResultSummary
 
     StringBuilder sb = new StringBuilder(1024);
 
-    sb.append("******************************").append(System.lineSeparator());
-    sb.append(" Summary Of Test Failures (").append(failedTests.size()).append(")").append(System.lineSeparator());
-    sb.append("******************************");
+    sb.append("**********************************").append(System.lineSeparator());
+    sb.append(" Summary Of All Test Failures (").append(failedTests.size()).append(")").append(System.lineSeparator());
+    sb.append("**********************************");
 
     for (TestResult result : failedTests) {
 

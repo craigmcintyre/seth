@@ -544,6 +544,57 @@ public class TestPlanGenerator extends SethBaseVisitor
     return null;
   }
 
+  @Override
+  public Void visitFailureCodeAndMsg(SethParser.FailureCodeAndMsgContext ctx)
+  {
+    visitChildren(ctx);
+
+    int errCode = convertToInt(ctx.code);
+    String errMsg = cleanString(ctx.msg.getText());
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new FailureErrorCodeAndMsgExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode, errMsg);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitFailureErrorCode(SethParser.FailureErrorCodeContext ctx)
+  {
+    visitChildren(ctx);
+
+    int errCode = convertToInt(ctx.code);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new FailureErrorCodeExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitFailureErrorMsg(SethParser.FailureErrorMsgContext ctx)
+  {
+    visitChildren(ctx);
+
+    String errMsg = cleanString(ctx.msg.getText());
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new FailureErrorMsgExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    expectedResultStack.push(er);
+
+    return null;
+  }
 
   @Override
   public Void visitFailureAny(SethParser.FailureAnyContext ctx)
