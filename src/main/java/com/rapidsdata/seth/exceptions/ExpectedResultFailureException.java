@@ -67,11 +67,11 @@ public class ExpectedResultFailureException extends FailureException
     }
 
     sb.append(EXPECTED_HEADING);
-    sb.append(expectedResult.describe());
+    sb.append(indent(expectedResult.describe()));
 
     sb.append(System.lineSeparator());
     sb.append(ACTUAL_HEADING);
-    sb.append(actualResultDesc);
+    sb.append(indent(actualResultDesc));
 
 
     if (getCause() != null) {

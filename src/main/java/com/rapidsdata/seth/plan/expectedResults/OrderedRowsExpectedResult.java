@@ -9,19 +9,29 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
-/** An expected result class where we the operation to have succeeded. */
-public class SuccessExpectedResult extends ExpectedResult
+import static com.rapidsdata.seth.plan.expectedResults.Utils.describeCurrentRow;
+
+/** An expected result class where we expect the operation to have returned an ordered set of rows. */
+public class OrderedRowsExpectedResult extends ExpectedResult
 {
+  private final List<ExpectedRow> expectedRows;
+
   /**
    * Constructor
    * @param description A textual description of the expected result.
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
+   * @param expectedRows The list of rows expected to be returned by the operation.
    */
-  public SuccessExpectedResult(String description, OperationMetadata opMetadata, AppContext appContext)
+  public OrderedRowsExpectedResult(String description,
+                                   OperationMetadata opMetadata,
+                                   AppContext appContext,
+                                   List<ExpectedRow> expectedRows)
   {
-    super(ExpectedResultType.SUCCESS, description, opMetadata, appContext);
+    super(ExpectedResultType.ORDERED_ROWS, description, opMetadata, appContext);
+    this.expectedRows = expectedRows;
   }
 
   /**
@@ -32,7 +42,42 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
-    // A ResultSet is success.
+    try {
+      for (ExpectedRow expectedRow : expectedRows) {
+        if (!rs.next()) {
+          String actualResultDesc = "No more actual rows to compare to expected row: " + expectedRow.toString();
+          throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+        }
+
+        if (!expectedRow.compareTo(rs)) {
+          String actualResultDesc = "Actual row does not match expected row." + System.lineSeparator() +
+                                    "Actual Row  : " + describeCurrentRow(rs) + System.lineSeparator() +
+                                    "Expected Row: " + expectedRow.toString();
+          throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+        }
+      }
+
+      // Are there more actual rows compared to expected rows?
+      StringBuilder sb = null;
+      while (rs.next()) {
+        if (sb == null) {
+          sb = new StringBuilder(1024);
+          sb.append("There are more actual rows than expected rows: ");
+        }
+
+        sb.append(System.lineSeparator());
+        sb.append("Additional Row: ");
+        sb.append(describeCurrentRow(rs));
+      }
+
+      if (sb != null) {
+        throw new ExpectedResultFailureException(opMetadata, sb.toString(), this);
+      }
+
+    } catch (SQLException e) {
+      String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+      throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    }
   }
 
   /**
@@ -44,7 +89,9 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
-    // An update count is success.
+    // Not what was expected.
+    String actualResultDesc = "An update count was received";
+    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
   }
 
   /**
@@ -84,7 +131,8 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsSuccess() throws FailureException
   {
-    // A general purpose notification of success is success.
+    String actualResultDesc = "success";
+    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
   }
 
   /**

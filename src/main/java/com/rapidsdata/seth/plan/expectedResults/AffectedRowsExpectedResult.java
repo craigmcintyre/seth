@@ -11,32 +11,42 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /** An expected result class where we the operation to have succeeded. */
-public class SuccessExpectedResult extends ExpectedResult
+public class AffectedRowsExpectedResult extends ExpectedResult
 {
+  private final long affectedRowCount;
+
   /**
    * Constructor
    * @param description A textual description of the expected result.
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
+   * @param affectedRowCount The expected number of rows affected by the operation.
    */
-  public SuccessExpectedResult(String description, OperationMetadata opMetadata, AppContext appContext)
+  public AffectedRowsExpectedResult(String description,
+                                    OperationMetadata opMetadata,
+                                    AppContext appContext,
+                                    long affectedRowCount)
   {
-    super(ExpectedResultType.SUCCESS, description, opMetadata, appContext);
+    super(ExpectedResultType.AFFECTED_ROWS, description, opMetadata, appContext);
+    this.affectedRowCount = affectedRowCount;
   }
 
   /**
-   * Compares the actual result, being a ResultSet, with the expected result.
+   * Compares the actual result, being a ResultSet, with the expected result and throws an
+   * exception if they are not compatible.
    * @param rs The ResultSet to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
-    // A ResultSet is success.
+    String actualResultDesc = "A ResultSet was received.";
+    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
   }
 
   /**
-   * Compares the actual result, being an update count, with the expected result.
+   * Compares the actual result, being an update count, with the expected result and throws an
+   * exception if they are not compatible.
    *
    * @param updateCount The update count to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
@@ -44,11 +54,15 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
-    // An update count is success.
+    if (affectedRowCount != updateCount) {
+      String actualResultDesc = "affected: " + updateCount;
+      throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    }
   }
 
   /**
-   * Compares the actual result, being a SQLException, with the expected result.
+   * Compares the actual result, being a SQLException, with the expected result and throws an
+   * exception if they are not compatible.
    *
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
@@ -62,7 +76,8 @@ public class SuccessExpectedResult extends ExpectedResult
   }
 
   /**
-   * Compares the actual result, being an Exception, with the expected result.
+   * Compares the actual result, being an Exception, with the expected result and throws an
+   * exception if they are not compatible.
    * Because this is a general exception, the stack trace will be included.
    *
    * @param e The exception to be compared to the expected result.
@@ -77,18 +92,21 @@ public class SuccessExpectedResult extends ExpectedResult
   }
 
   /**
-   * Compares the actual result, being a general purpose statement of success, with the expected result.
+   * Compares the actual result, being a general purpose statement of success, with the expected
+   * result and throws an exception if they are not compatible.
    *
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
   public void assertActualAsSuccess() throws FailureException
   {
-    // A general purpose notification of success is success.
+    String actualResultDesc = "success";
+    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
   }
 
   /**
-   * Compares the actual result, being a general purpose failure with an error message, with the expected result.
+   * Compares the actual result, being a general purpose failure with an error message,
+   * with the expected result and throws an exception if they are not compatible..
    *
    * @param msg The error message to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.

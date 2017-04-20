@@ -135,7 +135,7 @@ public abstract class FailureException extends SethException
       }
 
       sb.append(COMMAND_HEADING)
-        .append(command);
+        .append(indent(command));
     }
 
     return sb;

@@ -6,10 +6,6 @@ import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
 public class UseConnectionOp extends Operation
 {
   /** The name of the connection object to use. */
@@ -65,13 +61,13 @@ public class UseConnectionOp extends Operation
       xContext.useConnection(name);
 
     } catch (BadConnectionNameException e) {
-      expectedResult.compareActualAsFailure(e.getMessage());
+      expectedResult.assertActualAsFailure(e.getMessage());
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
       return;
     }
 
-    expectedResult.compareActualAsSuccess();
+    expectedResult.assertActualAsSuccess();
   }
 }

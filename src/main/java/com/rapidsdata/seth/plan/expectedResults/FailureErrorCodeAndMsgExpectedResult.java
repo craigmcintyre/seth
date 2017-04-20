@@ -42,7 +42,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsResultSet(ResultSet rs) throws FailureException
+  public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
     // We expected failure, not a result set.
     String actualResultDesc = "A ResultSet was received";
@@ -56,7 +56,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsUpdateCount(int updateCount) throws FailureException
+  public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     // We expected failure, not an update count.
     String actualResultDesc = "An update count was received";
@@ -70,7 +70,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsException(SQLException e) throws FailureException
+  public void assertActualAsException(SQLException e) throws FailureException
   {
     if (e.getErrorCode() != expectedErrCode) {
       throw new ExpectedResultFailureException(opMetadata, "Error code: " + e.getErrorCode(), this);
@@ -95,13 +95,13 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsException(Exception e) throws FailureException
+  public void assertActualAsException(Exception e) throws FailureException
   {
     // actual == expected iff the error message of the expected result is a leading substring
     // of the error message of the actual.
 
     if (e instanceof SQLException) {
-      compareActualAsException((SQLException) e);
+      assertActualAsException((SQLException) e);
     }
 
     String actualResultDesc = "Exception type: " + e.getClass().getName() + " (has no error code)";
@@ -114,7 +114,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsSuccess() throws FailureException
+  public void assertActualAsSuccess() throws FailureException
   {
     // We expected failure, not a general purpose success.
     String actualResultDesc = "success";
@@ -128,7 +128,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsFailure(String msg) throws FailureException
+  public void assertActualAsFailure(String msg) throws FailureException
   {
     String actualResultDesc = "Error message only: " + msg;
     throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);

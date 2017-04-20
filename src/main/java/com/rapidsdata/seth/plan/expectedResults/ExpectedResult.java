@@ -51,14 +51,14 @@ public abstract class ExpectedResult
    * @param rs The ResultSet to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsResultSet(ResultSet rs) throws FailureException;
+  public abstract void assertActualAsResultSet(ResultSet rs) throws FailureException;
 
   /**
    * Compares the actual result, being an update count, with the expected result.
    * @param updateCount The update count to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsUpdateCount(int updateCount) throws FailureException;
+  public abstract void assertActualAsUpdateCount(long updateCount) throws FailureException;
 
   /**
    * Compares the actual result, being a SQLException, with the expected result.
@@ -66,7 +66,7 @@ public abstract class ExpectedResult
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsException(SQLException e) throws FailureException;
+  public abstract void assertActualAsException(SQLException e) throws FailureException;
 
   /**
    * Compares the actual result, being an Exception, with the expected result.
@@ -74,18 +74,18 @@ public abstract class ExpectedResult
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsException(Exception e) throws FailureException;
+  public abstract void assertActualAsException(Exception e) throws FailureException;
 
   /**
    * Compares the actual result, being a general purpose statement of success, with the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsSuccess() throws FailureException;
+  public abstract void assertActualAsSuccess() throws FailureException;
 
   /**
    * Compares the actual result, being a general purpose failure with an error message, with the expected result.
    * @param msg The error message to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void compareActualAsFailure(String msg) throws FailureException;
+  public abstract void assertActualAsFailure(String msg) throws FailureException;
 }

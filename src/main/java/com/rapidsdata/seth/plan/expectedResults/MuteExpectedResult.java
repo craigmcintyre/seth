@@ -44,7 +44,7 @@ public class MuteExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsResultSet(ResultSet rs) throws FailureException
+  public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
     // We don't care.
   }
@@ -56,7 +56,7 @@ public class MuteExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsUpdateCount(int updateCount) throws FailureException
+  public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     // We don't care.
   }
@@ -68,7 +68,7 @@ public class MuteExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsException(SQLException e) throws FailureException
+  public void assertActualAsException(SQLException e) throws FailureException
   {
     // We don't care, and we are not going to log the error.
   }
@@ -81,7 +81,7 @@ public class MuteExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsException(Exception e) throws FailureException
+  public void assertActualAsException(Exception e) throws FailureException
   {
     // We don't care, and we are not going to log the error.
   }
@@ -92,7 +92,7 @@ public class MuteExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsSuccess() throws FailureException
+  public void assertActualAsSuccess() throws FailureException
   {
     // We don't care.
   }
@@ -104,7 +104,7 @@ public class MuteExpectedResult extends ExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsFailure(String error) throws FailureException
+  public void assertActualAsFailure(String error) throws FailureException
   {
     // We don't care, and we are not going to log the error.
   }

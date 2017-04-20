@@ -7,7 +7,6 @@ import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DropConnectionOp extends Operation
@@ -69,20 +68,20 @@ public class DropConnectionOp extends Operation
       }
 
     } catch (BadConnectionNameException | DefaultConnectionNameException e) {
-      expectedResult.compareActualAsFailure(e.getMessage());
+      expectedResult.assertActualAsFailure(e.getMessage());
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
       return;
 
     } catch (SQLException e) {
-      expectedResult.compareActualAsException(e);
+      expectedResult.assertActualAsException(e);
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
       return;
     }
 
-    expectedResult.compareActualAsSuccess();
+    expectedResult.assertActualAsSuccess();
   }
 }

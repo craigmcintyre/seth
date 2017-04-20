@@ -15,9 +15,14 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TestPlanGenerator extends SethBaseVisitor
 {
@@ -57,6 +62,15 @@ public class TestPlanGenerator extends SethBaseVisitor
 
   /** Description of the current expected result that is being processed. */
   private String currentExpectedResultDesc;
+
+  /** A list of row definitions expected to be returned from an operation. */
+  private List<ExpectedRow> expectedRowList;
+
+  /** A list of expected column definitions for a single expected row. */
+  private ArrayList<ExpectedColumnType> columnDefs;
+
+  /** A list of expected column values for a single expected row. */
+  private ArrayList<Object> columnVals;
 
   /**
    * Constructor.
@@ -611,6 +625,580 @@ public class TestPlanGenerator extends SethBaseVisitor
     return null;
   }
 
+  @Override
+  public Void visitOrderedRows(SethParser.OrderedRowsContext ctx)
+  {
+    this.expectedRowList = new ArrayList<>();
+
+    visitChildren(ctx);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new OrderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList);
+    expectedResultStack.push(er);
+
+    this.expectedRowList = null;
+
+    return null;
+  }
+
+//  @Override
+//  public Void visitUnorderedRows(SethParser.UnorderedRowsContext ctx)
+//  {
+//    this.expectedRowList = new ArrayList<>();
+//
+//    visitChildren(ctx);
+//
+//    // Get the metadata for the last statement that was added.
+//    List<Operation> opList = currentOpQueueStack.peek();
+//    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+//
+//    Set<ExpectedRow> expectedRowStack = new HashSet<>();
+//    expectedRowStack.addAll(this.expectedRowList);
+//    this.expectedRowList = null;
+//
+//    ExpectedResult er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowStack);
+//    expectedResultStack.push(er);
+//
+//    return null;
+//  }
+
+  @Override
+  public Void visitAffectedRowsCount(SethParser.AffectedRowsCountContext ctx)
+  {
+    visitChildren(ctx);
+
+    long affectedRowCount = convertToLong(ctx.count);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new AffectedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, affectedRowCount);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitRowDefn(SethParser.RowDefnContext ctx)
+  {
+    this.columnDefs = new ArrayList<ExpectedColumnType>();
+    this.columnVals = new ArrayList<Object>();
+
+    visitChildren(ctx);
+
+    ExpectedRow expectedRow = new ExpectedRow(columnDefs, columnVals);
+    this.expectedRowList.add(expectedRow);
+
+    this.columnDefs = null;
+    this.columnVals = null;
+
+    return null;
+  }
+
+  @Override
+  public Void visitBooleanVal(SethParser.BooleanValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.BOOLEAN);
+    this.columnVals.add(ctx.TRUE() != null);
+
+    return null;
+  }
+
+  @Override
+  public Void visitIntegerVal(SethParser.IntegerValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.INTEGER);
+
+    long val = convertToLong(ctx.INT().getSymbol());
+    this.columnVals.add(val);
+
+    return null;
+  }
+
+  @Override
+  public Void visitDecimalVal(SethParser.DecimalValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.DECIMAL);
+
+    BigDecimal val = convertToBigDecimal(ctx.DEC().getSymbol());
+    this.columnVals.add(val);
+
+    return null;
+  }
+
+  @Override
+  public Void visitFloatVal(SethParser.FloatValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.FLOAT);
+
+    // We internally store floats as strings to we can extract the required precision
+    // needed for comparisons.
+    String val = ctx.FLT().getText();
+    this.columnVals.add(val);
+
+    return null;
+  }
+
+  @Override
+  public Void visitStringVal(SethParser.StringValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.STRING);
+
+    String val = cleanString(ctx.STR().getText());
+    this.columnVals.add(val);
+
+    return null;
+  }
+
+  @Override
+  public Void visitDateVal(SethParser.DateValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.DATE);
+
+    Token strToken = ctx.STR().getSymbol();
+    String strVal = cleanString(strToken.getText());
+
+    try {
+      LocalDate localDate = LocalDate.parse(strVal);
+      this.columnVals.add(localDate);
+
+    } catch (DateTimeParseException e) {
+      final String errMsg = "Unable to parse date string: '" + strVal + "'. Must be 'yyyy-mm-dd'.";
+      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+    }
+
+    return null;
+  }
+
+  @Override
+  public Void visitTimeVal(SethParser.TimeValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.TIME);
+
+    Token strToken = ctx.STR().getSymbol();
+    String strVal = cleanString(strToken.getText());
+
+    try {
+      LocalTime localTime = LocalTime.parse(strVal);
+      this.columnVals.add(localTime);
+
+    } catch (DateTimeParseException e) {
+      final String errMsg = "Unable to parse time string: '" + strVal + "'. Must be 'hh:mm:dd'.";
+      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+    }
+
+    return null;
+  }
+
+  @Override
+  public Void visitTimestampVal(SethParser.TimestampValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.TIMESTAMP);
+
+    Token strToken = ctx.STR().getSymbol();
+    String strVal = cleanString(strToken.getText());
+
+    try {
+      LocalDateTime localDateTime = Timestamp.valueOf(strVal).toLocalDateTime();
+      this.columnVals.add(localDateTime);
+
+    } catch (IllegalArgumentException e) {
+      final String errMsg = "Unable to parse timestamp string: '" + strVal + "'. Must be 'yyyy-mm-dd hh:mm:ss[.fff...]'.";
+      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+    }
+
+    return null;
+  }
+
+  @Override
+  public Void visitYearMonthInterval(SethParser.YearMonthIntervalContext ctx)
+  {
+    visitChildren(ctx);
+
+    Token strToken = ctx.STR().getSymbol();
+    String strVal = cleanString(strToken.getText()).trim();
+
+    // There can be a sign outside of the interval string as well as one inside.
+    // This initially caters for the sign outside of the interval string.
+    boolean isMinus = ctx.minus != null;
+
+    if (strVal.startsWith("-")) {
+      isMinus = !isMinus;
+    }
+
+    // Validate the string syntax
+    if (!strVal.matches("\\s*[+-]?\\s*\\d+(-\\d+)?")) {
+      final String msg = "Invalid year-month interval format.";
+      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+    }
+
+    Period period = Period.ZERO;
+    long val;
+
+    try {
+
+      if (ctx.m != null) {
+        // month only
+        val = Long.valueOf(strVal);
+
+        if (val < 0 || val > 11) {
+          final String msg = "Interval month value must be between [0,11].";
+          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+        }
+
+        if (isMinus) {
+          val = -val;
+        }
+        period = period.plusMonths(val);
+
+      } else {
+        // Could be year only or year-month
+        Pattern p = Pattern.compile("\\d+");
+        Matcher m = p.matcher(strVal);
+
+        if (!m.find()) {
+          final String msg = "Invalid interval year value.";
+          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+        }
+
+        // We've got the years
+        val = Long.valueOf(m.group());
+        period = period.plusYears(val);
+
+        // Is there a months component too?
+        if (ctx.y2m != null) {
+          if (!m.find()) {
+            final String msg = "Invalid interval month value.";
+            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+          }
+
+          val = Long.valueOf(m.group());
+
+          if (val < 0 || val > 11) {
+            final String msg = "Interval month value must be between [0,11].";
+            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+          }
+
+          period = period.plusMonths(val);
+        }
+      }
+
+    } catch (NumberFormatException e) {
+      final String msg = "Unable to convert value to a long: " + strVal;
+      throw new SethSystemException(msg, e);
+    }
+
+    this.columnDefs.add(ExpectedColumnType.INTERVAL);
+    this.columnVals.add(period);
+
+    return null;
+  }
+
+  @Override
+  public Void visitDayTimeInterval(SethParser.DayTimeIntervalContext ctx)
+  {
+    visitChildren(ctx);
+
+    Token strToken = ctx.STR().getSymbol();
+    String strVal = cleanString(strToken.getText()).trim();
+
+    // There can be a sign outside of the interval string as well as one inside.
+    // This initially caters for the sign outside of the interval string.
+    boolean isMinus = ctx.minus != null;
+
+    if (strVal.startsWith("-")) {
+      isMinus = !isMinus;
+    }
+
+    // Validate the string syntax
+    final String[] formats = {
+        "\\s*[+-]?\\s*\\d+( \\d+(:\\d+(:\\d+(\\.\\d+)?)?)?)?",  // day-time or day or hour or minute.
+        "\\s*[+-]?\\s*\\d+(:\\d+(:\\d+(\\.\\d+)?)?)?",          // hour to minute or hour to second.
+        "\\s*[+-]?\\s*\\d+(:\\d+(\\.\\d+)?)?",                  // minute to second.
+        "\\s*[+-]?\\s*\\d+(\\.\\d+)?",                          // second only.
+    };
+    if (!strVal.matches(formats[0]) &&
+        !strVal.matches(formats[1]) &&
+        !strVal.matches(formats[2]) &&
+        !strVal.matches(formats[3])) {
+      final String msg = "Invalid day-time interval format.";
+      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+    }
+
+    Duration duration = Duration.ZERO;
+    long val;
+
+    Pattern p = Pattern.compile("\\d+");
+    Matcher m = p.matcher(strVal);
+
+    try {
+
+      if (!m.find()) {
+        final String msg = "Invalid day-time interval value.";
+        throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      }
+
+      // Read the first value.
+      val = Long.valueOf(m.group());
+
+      if (isMinus) {
+        val = -val;
+      }
+
+      if (ctx.d != null) {
+        // days only
+        duration = duration.plusDays(val);
+
+      } else if (ctx.h != null) {
+        // hours only
+        duration = duration.plusHours(val);
+
+      } else if (ctx.m != null) {
+        // minutes only
+        duration = duration.plusMinutes(val);
+
+      } else if (ctx.s != null) {
+        // seconds only
+        duration = duration.plusSeconds(val);
+
+        // fractional seconds
+        if (m.find()) {
+          String s = strVal.substring(m.start(), m.end());
+          int numDigits = s.length();
+
+          // read the fractional seconds
+          val = Long.valueOf(m.group());
+
+          if (isMinus) {
+            val = -val;
+          }
+
+          // Convert to nanoseconds
+          val = val * (long) Math.pow(10, 9 - numDigits);
+          duration = duration.plusNanos(val);
+        }
+
+      } else if (ctx.d2h != null || ctx.d2m != null || ctx.d2s != null) {
+        // day to hour
+        duration = duration.plusDays(val);
+
+        if (!m.find()) {
+          final String msg = "Missing hour field in day-time interval value.";
+          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+        }
+
+        // read the hour
+        val = Long.valueOf(m.group());
+
+        if (isMinus) {
+          val = -val;
+        }
+
+        duration = duration.plusHours(val);
+
+        if (ctx.d2m != null || ctx.d2s != null) {
+          if (!m.find()) {
+            final String msg = "Missing minute field in day-time interval value.";
+            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+          }
+
+          // read the minute
+          val = Long.valueOf(m.group());
+
+          if (isMinus) {
+            val = -val;
+          }
+
+          duration = duration.plusMinutes(val);
+
+          if (ctx.d2s != null) {
+            if (!m.find()) {
+              final String msg = "Missing second field in day-time interval value.";
+              throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+            }
+
+            // read the second
+            val = Long.valueOf(m.group());
+
+            if (isMinus) {
+              val = -val;
+            }
+
+            duration = duration.plusSeconds(val);
+
+            // fractional seconds
+            if (m.find()) {
+              String s = strVal.substring(m.start(), m.end());
+              int numDigits = s.length();
+
+              // read the fractional seconds
+              val = Long.valueOf(m.group());
+
+              if (isMinus) {
+                val = -val;
+              }
+
+              // Convert to nanoseconds
+              val = val * (long) Math.pow(10, 9 - numDigits);
+              duration = duration.plusNanos(val);
+            }
+          }
+        }
+
+      } else if (ctx.h2m != null || ctx.h2s != null) {
+        // hours to minutes or hours to seconds.
+        duration = duration.plusHours(val);
+
+        if (!m.find()) {
+          final String msg = "Missing minute field in day-time interval value.";
+          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+        }
+
+        // read the minute
+        val = Long.valueOf(m.group());
+
+        if (isMinus) {
+          val = -val;
+        }
+
+        duration = duration.plusMinutes(val);
+
+        if (ctx.h2s != null) {
+          if (!m.find()) {
+            final String msg = "Missing second field in day-time interval value.";
+            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+          }
+
+          // read the second
+          val = Long.valueOf(m.group());
+
+          if (isMinus) {
+            val = -val;
+          }
+
+          duration = duration.plusSeconds(val);
+
+          // fractional seconds
+          if (m.find()) {
+            String s = strVal.substring(m.start(), m.end());
+            int numDigits = s.length();
+
+            // read the fractional seconds
+            val = Long.valueOf(m.group());
+
+            if (isMinus) {
+              val = -val;
+            }
+
+            // Convert to nanoseconds
+            val = val * (long) Math.pow(10, 9 - numDigits);
+            duration = duration.plusNanos(val);
+          }
+        }
+
+      } else if (ctx.m2s != null) {
+        // minutes to seconds.
+        duration = duration.plusMinutes(val);
+
+        if (!m.find()) {
+          final String msg = "Missing seconds field in day-time interval value.";
+          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
+        }
+
+        // read the seconds
+        val = Long.valueOf(m.group());
+
+        if (isMinus) {
+          val = -val;
+        }
+
+        duration = duration.plusSeconds(val);
+
+        // fractional seconds
+        if (m.find()) {
+          String s = strVal.substring(m.start(), m.end());
+          int numDigits = s.length();
+
+          // read the fractional seconds
+          val = Long.valueOf(m.group());
+
+          if (isMinus) {
+            val = -val;
+          }
+
+          // Convert to nanoseconds
+          val = val * (long) Math.pow(10, 9 - numDigits);
+          duration = duration.plusNanos(val);
+        }
+
+      } else {
+        throw new SethSystemException("Shouldn't get here.");
+      }
+
+    } catch (NumberFormatException e) {
+      final String msg = "Unable to convert value to a long: " + strVal;
+      throw new SethSystemException(msg, e);
+    }
+
+    this.columnDefs.add(ExpectedColumnType.INTERVAL);
+    this.columnVals.add(duration);
+
+    return null;
+  }
+
+  @Override
+  public Void visitNullVal(SethParser.NullValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.TIMESTAMP);
+    this.columnVals.add(null);
+
+    return null;
+  }
+
+  @Override
+  public Void visitDontCareVal(SethParser.DontCareValContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.DONT_CARE);
+    this.columnVals.add(null);
+
+    return null;
+  }
+
+  @Override
+  public Void visitIgnoreRemainingColumns(SethParser.IgnoreRemainingColumnsContext ctx)
+  {
+    visitChildren(ctx);
+
+    this.columnDefs.add(ExpectedColumnType.IGNORE_REMAINING);
+    this.columnVals.add(null);
+
+    return null;
+  }
+
 
   /**
    * Creates a SemanticException and wraps a SethBrownBagException around it.
@@ -686,6 +1274,48 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     } catch (NumberFormatException e) {
       final String msg = "Unable to convert value to a long: " + s;
+      throw new SethSystemException(msg, e);
+    }
+
+    return val;
+  }
+
+  /**
+   * Converts the text of a token into a BigDecimal.
+   * @param token the token to convert
+   * @return a BigDecimal.
+   */
+  private BigDecimal convertToBigDecimal(Token token)
+  {
+    String s = token.getText();
+    BigDecimal val;
+
+    try {
+      val = new BigDecimal(s);
+
+    } catch (NumberFormatException e) {
+      final String msg = "Unable to convert value to a BigDecimal: " + s;
+      throw new SethSystemException(msg, e);
+    }
+
+    return val;
+  }
+
+  /**
+   * Converts the text of a token into a double.
+   * @param token the token to convert
+   * @return a double.
+   */
+  private double convertToDouble(Token token)
+  {
+    String s = token.getText();
+    double val;
+
+    try {
+      val = Double.valueOf(s);
+
+    } catch (NumberFormatException e) {
+      final String msg = "Unable to convert value to a double: " + s;
       throw new SethSystemException(msg, e);
     }
 

@@ -5,9 +5,7 @@ package com.rapidsdata.seth;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.contexts.TestContextImpl;
-import com.rapidsdata.seth.exceptions.PlanningException;
-import com.rapidsdata.seth.exceptions.SemanticException;
-import com.rapidsdata.seth.exceptions.SyntaxException;
+import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.plan.Plan;
 import com.rapidsdata.seth.plan.TestPlanner;
@@ -80,6 +78,11 @@ public class TestSuite
           testResult.setFailure(e);
           logger.error(testResult.getFailureDescription());
           continue;
+
+        } catch (Exception e) {
+          // Remove the last result as it is probably incomplete.
+          resultList.remove(resultList.size() - 1);
+          throw e;
         }
 
         // Make a new test context for executing this test.

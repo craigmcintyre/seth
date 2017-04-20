@@ -4,7 +4,6 @@ package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
-import com.rapidsdata.seth.exceptions.OperationException;
 import com.rapidsdata.seth.exceptions.ValidationException;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
@@ -71,7 +70,7 @@ public class ServerOp extends Operation
       statement = connection.createStatement();
 
     } catch (SQLException e) {
-      expectedResult.compareActualAsException(e);
+      expectedResult.assertActualAsException(e);
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
@@ -83,14 +82,14 @@ public class ServerOp extends Operation
 
       if (hasResultSet) {
         rs = statement.getResultSet();
-        expectedResult.compareActualAsResultSet(rs);
+        expectedResult.assertActualAsResultSet(rs);
 
       } else {
-        expectedResult.compareActualAsUpdateCount(statement.getUpdateCount());
+        expectedResult.assertActualAsUpdateCount(statement.getUpdateCount());
       }
 
     } catch (SQLException e) {
-      expectedResult.compareActualAsException(e);
+      expectedResult.assertActualAsException(e);
 
     } finally {
 

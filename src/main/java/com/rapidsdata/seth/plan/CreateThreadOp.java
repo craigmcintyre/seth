@@ -77,7 +77,7 @@ public class CreateThreadOp extends Operation
         future = xContext.getThreadPool().submit(runner);
 
       } catch (RejectedExecutionException e) {
-        expectedResult.compareActualAsException(e);
+        expectedResult.assertActualAsException(e);
 
         // Since the above call returned, we must have expected this failure otherwise
         // an exception would have been thrown. Job done.
@@ -91,6 +91,6 @@ public class CreateThreadOp extends Operation
       xContext.registerFuture(future);
     }
 
-    expectedResult.compareActualAsSuccess();
+    expectedResult.assertActualAsSuccess();
   }
 }

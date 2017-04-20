@@ -60,6 +60,6 @@ public class LogOp extends Operation
   public void execute(ExecutionContext xContext) throws FailureException
   {
     xContext.getLogger().log(message);
-    expectedResult.compareActualAsSuccess();
+    expectedResult.assertActualAsSuccess();
   }
 }

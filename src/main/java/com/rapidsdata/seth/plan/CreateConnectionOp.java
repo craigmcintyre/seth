@@ -70,7 +70,7 @@ public class CreateConnectionOp extends Operation
   {
     if (xContext.hasConnection(name)) {
       final String msg = "Cannot create connection as this connection name already exists: " + name;
-      expectedResult.compareActualAsFailure(msg);
+      expectedResult.assertActualAsFailure(msg);
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
@@ -89,7 +89,7 @@ public class CreateConnectionOp extends Operation
       conn = DriverManager.getConnection(connUrl);
 
     } catch (SQLException e) {
-      expectedResult.compareActualAsException(e);
+      expectedResult.assertActualAsException(e);
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
@@ -104,6 +104,6 @@ public class CreateConnectionOp extends Operation
       throw new SethSystemException(e);
     }
 
-    expectedResult.compareActualAsSuccess();
+    expectedResult.assertActualAsSuccess();
   }
 }

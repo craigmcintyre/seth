@@ -34,7 +34,7 @@ public class DontCareExpectedResult extends MuteExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsException(SQLException e) throws FailureException
+  public void assertActualAsException(SQLException e) throws FailureException
   {
     // We don't care, but we should log the error.
     // Use the ExpectedResultFailureException to format a nice warning message for us.
@@ -53,7 +53,7 @@ public class DontCareExpectedResult extends MuteExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsException(Exception e) throws FailureException
+  public void assertActualAsException(Exception e) throws FailureException
   {
     // We don't care, but we should log the error.
     // Use the ExpectedResultFailureException to format a nice warning message for us.
@@ -71,7 +71,7 @@ public class DontCareExpectedResult extends MuteExpectedResult
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void compareActualAsFailure(String error) throws FailureException
+  public void assertActualAsFailure(String error) throws FailureException
   {
     // We don't care, but we should log the error.
     // Use the ExpectedResultFailureException to format a nice warning message for us.

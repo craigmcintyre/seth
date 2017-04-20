@@ -54,7 +54,7 @@ expectedResult      : success
                     | unorderedRows
                     | orderedRows
                     | rowCount
-                    | affectedCount ;
+                    | affectedRowsCount ;
 
 success             : SUCCESS ;
 mute                : MUTE ;
@@ -66,7 +66,7 @@ failureAny          : FAILURE ;
 unorderedRows       : (UNORDERED)? ROWS ':' rowDefn+ ;
 orderedRows         : ORDERED ROWS ':' rowDefn+ ;
 rowCount            : ROWS ':' count=INT ;
-affectedCount       : AFFECTED ':' count=INT ;
+affectedRowsCount   : AFFECTED ':' count=INT ;
 
 rowDefn             : '(' columnDefn (',' columnDefn)* ')';
 columnDefn          : booleanVal
@@ -80,7 +80,7 @@ columnDefn          : booleanVal
                     | intervalVal
                     | nullVal
                     | dontCareVal
-                    | dontCareOtherColumns ;
+                    | ignoreRemainingColumns ;
 
 booleanVal          : TRUE | FALSE ;
 integerVal          : INT ;
@@ -93,22 +93,22 @@ timestampVal        : TIMESTAMP STR ;
 intervalVal         : yearMonthInterval | dayTimeInterval ;
 nullVal             : NULL ;
 dontCareVal         : ASTERISK ;
-dontCareOtherColumns: ELLIPSIS ;
+ignoreRemainingColumns: ELLIPSIS ;
 
-yearMonthInterval   : INTERVAL STR
-                      (   YEAR
-                        | (YEAR TO MONTH)
-                        | MONTH
+yearMonthInterval   : INTERVAL ('+' | minus='-')? STR
+                      (   y=YEAR
+                        | y2m=YEAR TO MONTH
+                        | m=MONTH
                       );
 
-dayTimeInterval     : INTERVAL STR
-                      (   DAY
-                        | (DAY TO (HOUR | MINUTE | SECOND))
-                        | (HOUR TO (MINUTE | SECOND))
-                        | (MINUTE TO SECOND)
-                        | HOUR
-                        | MINUTE
-                        | SECOND
+dayTimeInterval     : INTERVAL ('+' | minus='-')? STR
+                      (   d=DAY
+                        | (DAY TO (d2h=HOUR | d2m=MINUTE | d2s=SECOND))
+                        | (HOUR TO (h2m=MINUTE | h2s=SECOND))
+                        | (m2s=MINUTE TO SECOND)
+                        | h=HOUR
+                        | m=MINUTE
+                        | s=SECOND
                       );
 
 
@@ -189,7 +189,7 @@ fragment DUBLDUBL     : '""' ;
 fragment DUBLSINGL    : '\'\'' ;
 
 fragment SINGLE_STR   : '\'' (DUBLSINGL | (~'\''))* '\'' ;
-fragment DOUBLE_STR   : '\"' (DUBLDUBL  | (~'\"'))* '\"' ;
+fragment DOUBLE_STR   : '\"' (DUBLDUBL  | (~'"'))* '\"' ;
 
 ID  : (ID_LETTER (ID_LETTER | DIGIT)*) ;
 

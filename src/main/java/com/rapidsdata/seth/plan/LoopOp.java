@@ -89,6 +89,6 @@ public class LoopOp extends Operation
       }
     }
 
-    expectedResult.compareActualAsSuccess();
+    expectedResult.assertActualAsSuccess();
   }
 }
