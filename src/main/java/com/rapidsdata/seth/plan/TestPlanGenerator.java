@@ -221,7 +221,6 @@ public class TestPlanGenerator extends SethBaseVisitor
     return null;
   }
 
-
   @Override
   public Void visitLoopStatement(SethParser.LoopStatementContext ctx)
   {
@@ -234,13 +233,23 @@ public class TestPlanGenerator extends SethBaseVisitor
     planStack.push(plan);
     currentOpQueueStack.push(testOps);
 
-    visitChildren(ctx);
-
     // Rewrite the operation description so it doesn't contain all the loop operations.
     OperationMetadata opMetadata = opMetadataStack.pop();
     String desc = opMetadata.getDescription();
     desc = desc.substring(0, desc.indexOf('{') + 1) + " ... }";
     OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
+    opMetadataStack.push(newOpMetadata);
+
+    visitChildren(ctx);
+
+    return null;
+  }
+
+
+  @Override
+  public Void visitCountedLoopStatement(SethParser.CountedLoopStatementContext ctx)
+  {
+    visitChildren(ctx);
 
     Long count = null;
 
@@ -248,17 +257,62 @@ public class TestPlanGenerator extends SethBaseVisitor
       count = convertToLong(ctx.loopCount);
     }
 
+    OperationMetadata opMetadata = opMetadataStack.pop();
+
     if (count != null && count < 0) {
       final String msg = "Loop count must be positive: " + count;
       throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(),
-                              newOpMetadata.getDescription(), msg);
+                              opMetadata.getDescription(), msg);
     }
 
     Plan loopPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext);
-    Operation op = new LoopOp(newOpMetadata, expectedResult, count, plan.getTestOperations());
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    Operation op = new CountedLoopOp(opMetadata, expectedResult, count, loopPlan.getTestOperations());
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitTimedLoopStatement(SethParser.TimedLoopStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    OperationMetadata opMetadata = opMetadataStack.pop();
+
+    long count = convertToLong(ctx.count);
+
+    if (count < 0) {
+      final String msg = "Loop time must be positive: " + count;
+      throw semanticException(testFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(),
+                              opMetadata.getDescription(), msg);
+    }
+
+    Duration duration;
+
+    if (ctx.HOURS() != null) {
+      duration = Duration.ofHours(count);
+
+    } else if (ctx.MINUTES() != null) {
+      duration = Duration.ofMinutes(count);
+
+    } else if (ctx.SECONDS() != null) {
+      duration = Duration.ofSeconds(count);
+
+    } else if (ctx.MILLISECONDS() != null) {
+      duration = Duration.ofMillis(count);
+
+    } else {
+      throw new SethSystemException("Unhandled time unit.");
+    }
+
+    Plan loopPlan = planStack.pop();
+    currentOpQueueStack.pop();
+
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    Operation op = new TimedLoopOp(opMetadata, expectedResult, duration.toMillis(), loopPlan.getTestOperations());
     currentOpQueueStack.peek().add(op);
 
     return null;

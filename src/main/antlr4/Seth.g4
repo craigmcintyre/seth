@@ -35,7 +35,9 @@ singularStatements : (  sleepStatement
                       | emptyStatement
                      ) ';' ;
 
-loopStatement     : LOOP ( loopCount=INT )? statementBlock ;
+loopStatement       : LOOP  (countedLoopStatement | timedLoopStatement);
+timedLoopStatement  : FOR count=INT (HOURS | MINUTES | SECONDS | MILLISECONDS) statementBlock;
+countedLoopStatement: ( loopCount=INT )? statementBlock;
 createThreadStatement : CREATE (THREAD | (threadCount=INT (THREADS | THREAD))) testFileBlock ;
 
 sleepStatement      : SLEEP  millis=INT ;
@@ -125,17 +127,22 @@ DROP                  : D R O P;
 FAILURE               : F A I L U R E;
 FALSE                 : F A L S E;
 FILE                  : F I L E;
+FOR                   : F O R;
+HOURS                 : H O U R S;
 HOUR                  : H O U R;
 INCLUDE               : I N C L U D E;
 INTERVAL              : I N T E R V A L;
 LOG                   : L O G;
 LOOP                  : L O O P;
+MILLISECONDS          : M I L L I S E C O N D S;
+MINUTES               : M I N U T E S;
 MINUTE                : M I N U T E;
 MONTH                 : M O N T H;
 MUTE                  : M U T E;
 NULL                  : N U L L;
 ORDERED               : O R D E R E D;
 ROWS                  : R O W S;
+SECONDS               : S E C O N D S;
 SECOND                : S E C O N D;
 SLEEP                 : S L E E P;
 SUCCESS               : S U C C E S S;
@@ -189,7 +196,7 @@ fragment DUBLDUBL     : '""' ;
 fragment DUBLSINGL    : '\'\'' ;
 
 fragment SINGLE_STR   : '\'' (DUBLSINGL | (~'\''))* '\'' ;
-fragment DOUBLE_STR   : '\"' (DUBLDUBL  | (~'"'))* '\"' ;
+fragment DOUBLE_STR   : '"'  (DUBLDUBL  | (~'"'))* '"' ;
 
 ID  : (ID_LETTER (ID_LETTER | DIGIT)*) ;
 

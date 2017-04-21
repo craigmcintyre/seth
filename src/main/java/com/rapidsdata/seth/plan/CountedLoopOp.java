@@ -11,9 +11,9 @@ import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 import java.util.List;
 
 /**
- * An operation that runs sub-operations in a loop.
+ * An operation that runs sub-operations in a loop for a certain number of iterations.
  */
-public class LoopOp extends Operation
+public class CountedLoopOp extends Operation
 {
   /** The number of loop iterations to run. -1 means forever. */
   private final long loopCount;
@@ -27,7 +27,7 @@ public class LoopOp extends Operation
    * @param loopCount The number of loop iterations to run. null means forever.
    * @param operations The list of operations to run.
    */
-  public LoopOp(OperationMetadata metadata, ExpectedResult expectedResult, Long loopCount, List<Operation> operations)
+  public CountedLoopOp(OperationMetadata metadata, ExpectedResult expectedResult, Long loopCount, List<Operation> operations)
   {
     super(metadata, expectedResult);
     this.loopCount = (loopCount == null ? -1 : loopCount);
@@ -42,7 +42,7 @@ public class LoopOp extends Operation
   @Override
   public Operation rewriteWith(ExpectedResult expectedResult)
   {
-    return new LoopOp(this.metadata, expectedResult, this.loopCount, this.operations);
+    return new CountedLoopOp(this.metadata, expectedResult, this.loopCount, this.operations);
   }
 
   /**
