@@ -13,6 +13,8 @@ import com.rapidsdata.seth.results.ResultWriter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -101,15 +103,34 @@ public class TestSuite
         logger.testExecutionFinished(testFile, testResult);
       }
     } catch (ExecutionException e) {
-      // TODO: Thrown if the execution of a sub-task throws an exception.
-      // Can we catch a SethSystemException with this?
+      // Thrown if the execution of a sub-task throws an exception.
+      String stackTrace = "Unexpected internal exception encountered -" + System.lineSeparator() +
+                          getStackTrace(e);
+      logger.error(stackTrace);
+      resultList.remove(resultList.size() - 1);
 
     } catch (InterruptedException e) {
       // TODO: cause test to shutdown. Abort remaining tests.
 
     } finally {
       // Write out the results
-      resultWriter.writeResults(resultList);
+      if (!resultList.isEmpty()) {
+        resultWriter.writeResults(resultList);
+      }
     }
+  }
+
+
+  /**
+   * Returns the stack trace of an exception as a string.
+   * @param t the Throwable to get the stack trace of.
+   * @return the stack trace of an exception as a string.
+   */
+  protected String getStackTrace(Throwable t)
+  {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    t.printStackTrace(pw);
+    return sw.toString();
   }
 }

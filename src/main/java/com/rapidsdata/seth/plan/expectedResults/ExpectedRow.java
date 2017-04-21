@@ -96,7 +96,6 @@ public class ExpectedRow
           break;
 
         case FLOAT:
-          double expectedDouble = (double) expectedVal;
           // Only compare floating points up to the level of precision specified in the expected value
           ComparableFloat cf = (ComparableFloat) expectedVal;
           if (wasNull || !cf.comparesTo(rs.getString(rsIndex))) {
@@ -194,7 +193,7 @@ public class ExpectedRow
           break;
 
         case FLOAT:
-          // Floats are stored as strings so we can retain the precision.
+          // Floats are stored as ComparableFloat objects so we can retain the precision.
           sb.append(val.toString());
           break;
 
@@ -225,138 +224,27 @@ public class ExpectedRow
 
         case TIMESTAMP:
           LocalDateTime localDateTime = (LocalDateTime) val;
-          DateTimeFormatter dtf = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss[.nnnnnnnnn]");
+          DateTimeFormatter dtf = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
           sb.append("TIMESTAMP '");
           sb.append(localDateTime.format(dtf));
+
+          if (localDateTime.getNano() != 0) {
+            sb.append('.');
+
+            // Don't show trailing zeros of fractional seconds.
+            long fractionalSecs = localDateTime.getNano();
+            while (fractionalSecs % 10 == 0) {
+              fractionalSecs = fractionalSecs / 10;
+            }
+
+            sb.append(fractionalSecs);
+          }
+
           sb.append("'");
           break;
 
         case INTERVAL:
-          String intervalType;
-
-          sb.append("INTERVAL ");
-
-          if (val instanceof Period) {
-            Period period = (Period) val;
-
-            if (period.getYears() < 0 || period.getMonths() < 0) {
-              sb.append('-');
-            }
-
-            sb.append("'");
-
-            if (period.getYears() != 0 && period.getMonths() != 0) {
-              intervalType = "YEARS TO MONTHS";
-              sb.append(Math.abs(period.getYears()));
-              sb.append('-');
-              sb.append(Math.abs(period.getMonths()));
-
-            } else if (period.getMonths() != 0) {
-              intervalType = "MONTHS";
-              sb.append(Math.abs(period.getMonths()));
-
-            } else {
-              intervalType = "YEARS";
-              sb.append(Math.abs(period.getYears()));
-            }
-
-          } else if (val instanceof Duration) {
-            Duration duration = (Duration) val;
-
-            long days = duration.toDays();
-            duration = duration.minusDays(days);
-            long hours = duration.toHours();
-            duration = duration.minusHours(hours);
-            long minutes = duration.toMinutes();
-            duration = duration.minusMinutes(minutes);
-            long seconds = ((duration.getSeconds() * 1000000000) + duration.getNano()) / 1000000000;
-            long nanos   = ((duration.getSeconds() * 1000000000) + duration.getNano()) % 1000000000;
-
-            if (days < 0 || hours < 0 || minutes < 0 || seconds < 0 || nanos < 0) {
-              sb.append('-');
-            }
-
-            sb.append("'");
-
-            if (days != 0) {
-              intervalType = "DAYS";
-              sb.append(String.format("%02d", Math.abs(days)));
-
-              if (hours != 0 || minutes != 0 || seconds != 0 || nanos != 0) {
-                intervalType = "DAYS TO HOURS";
-                sb.append(" ");
-                sb.append(String.format("%02d", Math.abs(hours)));
-
-                if (minutes != 0 || seconds != 0 || nanos != 0) {
-                  intervalType = "DAYS TO MINUTES";
-                  sb.append(":");
-                  sb.append(String.format("%02d", Math.abs(minutes)));
-
-                  if (seconds != 0 || nanos != 0) {
-                    intervalType = "DAYS TO SECONDS";
-                    sb.append(":");
-                    sb.append(String.format("%02d", Math.abs(seconds)));
-
-                    if (nanos != 0) {
-                      sb.append(".");
-                      sb.append(String.format("%09d", Math.abs(nanos)));
-                    }
-                  }
-                }
-              }
-
-            } else if (hours != 0) {
-              intervalType = "HOURS";
-              sb.append(String.format("%02d", Math.abs(hours)));
-
-              if (minutes != 0 || seconds != 0 || nanos != 0) {
-                intervalType = "HOURS TO MINUTES";
-                sb.append(":");
-                sb.append(String.format("%02d", Math.abs(minutes)));
-
-                if (seconds != 0 || nanos != 0) {
-                  intervalType = "HOURS TO SECONDS";
-                  sb.append(":");
-                  sb.append(String.format("%02d", Math.abs(seconds)));
-
-                  if (nanos != 0) {
-                    sb.append(".");
-                    sb.append(String.format("%09d", Math.abs(nanos)));
-                  }
-                }
-              }
-
-            } else if (minutes != 0) {
-              intervalType = "MINUTES";
-              sb.append(String.format("%02d", Math.abs(minutes)));
-
-              if (seconds != 0 || nanos != 0) {
-                intervalType = "MINUTES TO SECONDS";
-                sb.append(":");
-                sb.append(String.format("%02d", Math.abs(seconds)));
-
-                if (nanos != 0) {
-                  sb.append(".");
-                  sb.append(String.format("%09d", Math.abs(nanos)));
-                }
-              }
-
-            } else {
-              // seconds
-              intervalType = "SECONDS";
-              sb.append(String.format("%02d", Math.abs(seconds)));
-
-              if (nanos != 0) {
-                sb.append(".");
-                sb.append(String.format("%09d", Math.abs(nanos)));
-              }
-            }
-
-          } else {
-            throw new SethSystemException("Unrecognised interval type: " + val.getClass().getName());
-          }
-          sb.append("' ");
-          sb.append(intervalType);
+          formatInterval(sb, val);
           break;
 
         default:
@@ -372,5 +260,167 @@ public class ExpectedRow
     sb.append(')');
 
     return sb.toString();
+  }
+
+  /**
+   * Formats an interval type to a string and writes it to the StringBuilder parameter.
+   * @param sb where the interval type is to be rendered to.
+   * @param val the interval value.
+   */
+  private void formatInterval(StringBuilder sb, Object val)
+  {
+    String intervalType;
+
+    sb.append("INTERVAL ");
+
+    if (val instanceof Period) {
+      Period period = (Period) val;
+      intervalType = formatPeriodInterval(sb, period);
+
+    } else if (val instanceof Duration) {
+      Duration duration = (Duration) val;
+      intervalType = formatDurationInterval(sb, duration);
+
+    } else {
+      throw new SethSystemException("Unrecognised interval type: " + val.getClass().getName());
+    }
+    sb.append("' ");
+    sb.append(intervalType);
+  }
+
+  /**
+   * Formats a Period interval type to a string and writes it to the StringBuilder parameter.
+   * @param sb where the interval type is to be rendered to.
+   * @param period The Period interval value to render.
+   * @return The exact type of SQL interval that was rendered (e.g. YEARS TO MONTHS, MONTHS, ...).
+   */
+  private String formatPeriodInterval(StringBuilder sb, Period period)
+  {
+    if (period.getYears() < 0 || period.getMonths() < 0) {
+      sb.append('-');
+    }
+
+    sb.append("'");
+
+    String intervalType;
+
+    if (period.getYears() != 0 && period.getMonths() != 0) {
+      intervalType = "YEARS TO MONTHS";
+      sb.append(Math.abs(period.getYears()));
+      sb.append('-');
+      sb.append(Math.abs(period.getMonths()));
+
+    } else if (period.getMonths() != 0) {
+      intervalType = "MONTHS";
+      sb.append(Math.abs(period.getMonths()));
+
+    } else {
+      intervalType = "YEARS";
+      sb.append(Math.abs(period.getYears()));
+    }
+
+    return intervalType;
+  }
+
+  /**
+   * Formats a Duration interval type to a string and writes it to the StringBuilder parameter.
+   * @param sb where the interval type is to be rendered to.
+   * @param duration The Duration interval value to render.
+   * @return The exact type of SQL interval that was rendered (e.g. DAYS TO MINUTES, SECONDS, ...).
+   */
+  private String formatDurationInterval(StringBuilder sb, Duration duration)
+  {
+    String intervalType;
+
+    long days = duration.toDays();
+    duration = duration.minusDays(days);
+    long hours = duration.toHours();
+    duration = duration.minusHours(hours);
+    long minutes = duration.toMinutes();
+    duration = duration.minusMinutes(minutes);
+    long seconds = ((duration.getSeconds() * 1000000000) + duration.getNano()) / 1000000000;
+    long nanos   = ((duration.getSeconds() * 1000000000) + duration.getNano()) % 1000000000;
+
+    if (days < 0 || hours < 0 || minutes < 0 || seconds < 0 || nanos < 0) {
+      sb.append('-');
+    }
+
+    sb.append("'");
+
+    if (days != 0) {
+      intervalType = "DAYS";
+      sb.append(String.format("%02d", Math.abs(days)));
+
+      if (hours != 0 || minutes != 0 || seconds != 0 || nanos != 0) {
+        intervalType = "DAYS TO HOURS";
+        sb.append(" ");
+        sb.append(String.format("%02d", Math.abs(hours)));
+
+        if (minutes != 0 || seconds != 0 || nanos != 0) {
+          intervalType = "DAYS TO MINUTES";
+          sb.append(":");
+          sb.append(String.format("%02d", Math.abs(minutes)));
+
+          if (seconds != 0 || nanos != 0) {
+            intervalType = "DAYS TO SECONDS";
+            sb.append(":");
+            sb.append(String.format("%02d", Math.abs(seconds)));
+
+            if (nanos != 0) {
+              sb.append(".");
+              sb.append(String.format("%09d", Math.abs(nanos)));
+            }
+          }
+        }
+      }
+
+    } else if (hours != 0) {
+      intervalType = "HOURS";
+      sb.append(String.format("%02d", Math.abs(hours)));
+
+      if (minutes != 0 || seconds != 0 || nanos != 0) {
+        intervalType = "HOURS TO MINUTES";
+        sb.append(":");
+        sb.append(String.format("%02d", Math.abs(minutes)));
+
+        if (seconds != 0 || nanos != 0) {
+          intervalType = "HOURS TO SECONDS";
+          sb.append(":");
+          sb.append(String.format("%02d", Math.abs(seconds)));
+
+          if (nanos != 0) {
+            sb.append(".");
+            sb.append(String.format("%09d", Math.abs(nanos)));
+          }
+        }
+      }
+
+    } else if (minutes != 0) {
+      intervalType = "MINUTES";
+      sb.append(String.format("%02d", Math.abs(minutes)));
+
+      if (seconds != 0 || nanos != 0) {
+        intervalType = "MINUTES TO SECONDS";
+        sb.append(":");
+        sb.append(String.format("%02d", Math.abs(seconds)));
+
+        if (nanos != 0) {
+          sb.append(".");
+          sb.append(String.format("%09d", Math.abs(nanos)));
+        }
+      }
+
+    } else {
+      // seconds
+      intervalType = "SECONDS";
+      sb.append(String.format("%02d", Math.abs(seconds)));
+
+      if (nanos != 0) {
+        sb.append(".");
+        sb.append(String.format("%09d", Math.abs(nanos)));
+      }
+    }
+
+    return intervalType;
   }
 }

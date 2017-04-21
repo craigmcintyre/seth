@@ -690,6 +690,19 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     visitChildren(ctx);
 
+    // check if there are any "IGNORE_REMAINING" column definitions. There can only be a
+    // maximum of one of these and it must be the last column definition in the list.
+    for (int i = 0; i < columnDefs.size(); i++) {
+      ExpectedColumnType type = columnDefs.get(i);
+
+      if (type == ExpectedColumnType.IGNORE_REMAINING && i != columnDefs.size() - 1) {
+        final String msg = "The '...' column definition can only be specified as the last " +
+                           "definition for row.";
+        Token token = ctx.columnDefn().get(i).ignoreRemainingColumns().ELLIPSIS().getSymbol();
+        throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      }
+    }
+
     ExpectedRow expectedRow = new ExpectedRow(columnDefs, columnVals);
     this.expectedRowList.add(expectedRow);
 
@@ -746,7 +759,17 @@ public class TestPlanGenerator extends SethBaseVisitor
     // We internally store floats as strings to we can extract the required precision
     // needed for comparisons.
     String val = ctx.FLT().getText();
-    this.columnVals.add(val);
+    ComparableFloat comparableFloat;
+
+    try {
+      comparableFloat = new ComparableFloat(val);
+
+    } catch (NumberFormatException e) {
+      // This shouldn't happen - the parser should pick up any syntax error.
+      throw new SethSystemException(e);
+    }
+
+    this.columnVals.add(comparableFloat);
 
     return null;
   }
@@ -1171,7 +1194,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.TIMESTAMP);
+    this.columnDefs.add(ExpectedColumnType.NULL);
     this.columnVals.add(null);
 
     return null;

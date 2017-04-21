@@ -11,7 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-import static com.rapidsdata.seth.plan.expectedResults.Utils.describeCurrentRow;
+import static com.rapidsdata.seth.plan.expectedResults.ResultSetFormatter.describeCurrentRow;
 
 /** An expected result class where we expect the operation to have returned an ordered set of rows. */
 public class OrderedRowsExpectedResult extends ExpectedResult
@@ -51,8 +51,9 @@ public class OrderedRowsExpectedResult extends ExpectedResult
 
         if (!expectedRow.compareTo(rs)) {
           String actualResultDesc = "Actual row does not match expected row." + System.lineSeparator() +
-                                    "Actual Row  : " + describeCurrentRow(rs) + System.lineSeparator() +
-                                    "Expected Row: " + expectedRow.toString();
+                                    "Expected Row: " + expectedRow.toString() + System.lineSeparator() +
+                                    "Actual Row  : " + describeCurrentRow(rs);
+
           throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
         }
       }

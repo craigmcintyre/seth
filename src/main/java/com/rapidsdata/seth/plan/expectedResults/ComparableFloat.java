@@ -2,8 +2,6 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
-import com.rapidsdata.seth.exceptions.SethSystemException;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -25,19 +23,36 @@ import java.math.RoundingMode;
  */
 public class ComparableFloat
 {
-  private final String originalValue;
-  private final int properPrecision;
+  private final String      originalValue;
+  private final int         properPrecision;
   private final MathContext mathContext;
-  private final BigDecimal expectedBigDecimal;
+  private final BigDecimal  expectedBigDecimal;
 
-  public ComparableFloat(String value)
+  /**
+   * Constructor
+   * @param value the string representation of the floating point number. Necessary so we can
+   *              capture the amount of precision it was specified with.
+   * @throws NumberFormatException
+   */
+  public ComparableFloat(String value) throws NumberFormatException
   {
+    // Check that we've got a valid floating point number.
+    Double.parseDouble(value);
+
     this.originalValue = value;
-    this.properPrecision = getNumSignificantDigits(value);
+    this.properPrecision = getPrecision(value);
     this.mathContext = new MathContext(properPrecision, RoundingMode.DOWN);
     this.expectedBigDecimal = new BigDecimal(value, mathContext);
   }
 
+  /**
+   * Compares floating point number represented by the string parameter to the
+   * floating point number in this object. The numbers are compared up to the
+   * level of precision in this ComparableFloat object.
+   * @param actualValue the number to be compared to the ComparableFloat.
+   * @return true if the numbers are equal, up to the precision of this ComparableFloat,
+   *         or false if they are not equal.
+   */
   public boolean comparesTo(String actualValue)
   {
     BigDecimal actualBigDecimal;
@@ -52,21 +67,14 @@ public class ComparableFloat
     return comparesTo(actualBigDecimal);
   }
 
-  public boolean comparesTo(double actualValue)
-  {
-    BigDecimal actualBigDecimal;
-
-    try {
-      actualBigDecimal = new BigDecimal(actualValue, mathContext);
-
-    } catch (NumberFormatException e) {
-      return false;
-    }
-
-    return comparesTo(actualBigDecimal);
-  }
-
-  public boolean comparesTo(BigDecimal actualBigDecimal)
+  /**
+   * Compares the BigDecimal parameter to this floating point number, up to the precision
+   * of this floating point number.
+   * @param actualBigDecimal the number to be compared.
+   * @return true if the numbers are equal, up to the precision of this floating point number,
+   *         or false if they are not equal.
+   */
+  private boolean comparesTo(BigDecimal actualBigDecimal)
   {
     actualBigDecimal = actualBigDecimal.setScale(expectedBigDecimal.scale(), BigDecimal.ROUND_DOWN);
     boolean result = expectedBigDecimal.equals(actualBigDecimal);
@@ -74,7 +82,32 @@ public class ComparableFloat
   }
 
 
-  private int getNumSignificantDigits(String value)
+  /**
+   * Returns the amount of precision specified in a floating point number.
+   * e.g.
+   *         Value     Precision    Comment
+   *   -----------     ---------    -------
+   *        0              1        Only one digit of precision specified.
+   *        1              1
+   *       10              2        In this case the zero is significant.
+   *      100              3
+   *        1.0            2        The ".0" is significant.
+   *        1.00           3        The trailing zeros are significant.
+   *        1e0            1        The "e0" doesn't add to the precision. Only the number before it is significant.
+   *        1e1            1        Even though this is value 10, it was written with less precision.
+   *        1.0e0          2
+   *       11e-1           2
+   *        0.1            2
+   *        0.100          4        The trailing zeros are significant.
+   *        0.01           3
+   *        0.0011         5
+   *        1e-2           1
+   *        6.022e23       4        Really large number, but not much precision.
+   *
+   * @param value the string representation of a floating point number.
+   * @return the number of digits of precision in this number.
+   */
+  private int getPrecision(String value)
   {
     BigDecimal input = new BigDecimal(value);
 
@@ -82,7 +115,7 @@ public class ComparableFloat
 
     value = value.trim();
 
-    // We try to take advantage of the BigDecimal class, however it doesnt seem to report
+    // We try to take advantage of the BigDecimal class, however it doesn't seem to report
     // the right precision when the following conditions occur:
     //   - the value does not contain an exponent,
     //   - the value does a decimal place, and
@@ -105,56 +138,71 @@ public class ComparableFloat
     }
 
     // Using BigDecimal to help us with precision.
-    if (input.scale() < 0) {
+    if (input.scale() <= 0) {
       sigDigits = input.precision();
 
-    } else if (input.scale() == 0) {
-      sigDigits = input.precision();
-
-    } else {
+    } else if ( input.scale() > 0 && input.abs().compareTo(BigDecimal.ONE) == -1) {
+      // Values between -1 and +1.
       sigDigits = input.scale() + 1; // +1 because the leading 0 is still part of the precision.
+
+    } else { // scale > 0
+      sigDigits = input.precision();
     }
 
     return sigDigits;
   }
 
+  @Override
+  public String toString()
+  {
+    return this.originalValue;
+  }
+
   public static void main(String[] args)
   {
-    //testPrecision();
-    //System.out.println();
-    //System.out.println();
+    testPrecision();
+    System.out.println();
+    System.out.println();
     testComparison();
   }
 
+  /**
+   * Checks that the precision of floating point strings is as expected.
+   */
   private static void testPrecision()
   {
     Object[][] vals = {
-        {"1",       1 },
-        {"10",      2 },
-        {"100",     3 },
-        {"100.",    3 },
-        {"10000.",  5 },
-        {"1000000.",7 },
-        {"1000000", 7 },
-        {"10000.0", 6 },
-        {"10000.1", 6 },
-        {"100.0",   4 },
-        {"100.00",  5 },
-        {"1e3",     1 },
-        {"1.e3",    1 },
-        {"1.0e3",   2 },
-        {"1.00e3",  3 },
-        {"1.1e3",   2 },
-        {"10e2",    2 },
-        {"0",       1 },
-        {"0.1",     2 },
-        {"0.01",    3 },
-        {"0.010",   4 },
-        {"0.0100",  5 },
-        {"1e-1",    2 },
-        {"1e-2",    3 },
-        {"10e-2",   3 },
-        {"1.0e-2",  4 },
+        {"1",        1 },
+        {"10",       2 },
+        {"100",      3 },
+        {"100.",     3 },
+        {"10000.",   5 },
+        {"1000000.", 7 },
+        {"1000000",  7 },
+        {"10000.0",  6 },
+        {"10000.1",  6 },
+        {"100.0",    4 },
+        {"100.00",   5 },
+        {"1e3",      1 },
+        {"1.e3",     1 },
+        {"1.0e3",    2 },
+        {"1.00e3",   3 },
+        {"1.1e3",    2 },
+        {"10e2",     2 },
+        {"0",        1 },
+        {"0.1",      2 },
+        {"0.01",     3 },
+        {"0.010",    4 },
+        {"0.0100",   5 },
+        {"10.0100",  6 },
+        {"42.10e0",  4 },
+        {"42.100e0", 5 },
+        {"0042.10e0",4 },
+        {"42000.0e0",6 },
+        {"1e-1",     2 },
+        {"1e-2",     3 },
+        {"10e-2",    3 },
+        {"1.0e-2",   4 },
     };
 
     for (int i=0; i<vals.length; i++) {
@@ -166,7 +214,7 @@ public class ComparableFloat
 
       final String msg;
 
-      String fmt = "%s: %8s : expected = %d, actual = %d, scale = %2d, properPrecision = %2d, plain = %8s, toString = %8s";
+      String fmt = "%s: %10s : expected = %d, actual = %d, scale = %2d, properPrecision = %2d, plain = %10s, toString = %10s";
 
       if (expectedSigDigs == actualSigDigs) {
         msg = String.format(fmt, "PASS", value, expectedSigDigs, actualSigDigs, cf.expectedBigDecimal.scale(),
@@ -180,6 +228,9 @@ public class ComparableFloat
     }
   }
 
+  /**
+   * Tests that two floating point numbers compare in expected ways.
+   */
   private static void testComparison()
   {
     Object[][] vals = {

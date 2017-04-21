@@ -9,7 +9,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 
-public class Utils
+public class ResultSetFormatter
 {
 
   public static String describeCurrentRow(ResultSet rs) throws SQLException
@@ -60,7 +60,13 @@ public class Utils
        case Types.DOUBLE:
        case Types.FLOAT:
        case Types.REAL:
-         sb.append(rs.getDouble(colIndex));
+         String s = String.valueOf(rs.getDouble(colIndex));
+         sb.append(s);
+
+         // Give it an exponent if it doesn't have one.
+         if (!s.contains("e") && !s.contains("E")) {
+           sb.append("e0");
+         }
          break;
 
        case Types.JAVA_OBJECT:
