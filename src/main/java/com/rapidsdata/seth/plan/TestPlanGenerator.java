@@ -663,6 +663,28 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitRowCount(SethParser.RowCountContext ctx)
+  {
+    visitChildren(ctx);
+
+    long expectedRowCount = convertToLong(ctx.count);
+
+    if (expectedRowCount < 0) {
+      final String msg = "The expected row count must be >= 0.";
+      throw semanticException(testFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(), currentExpectedResultDesc, msg);
+    }
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new RowCountExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowCount);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
   public Void visitAffectedRowsCount(SethParser.AffectedRowsCountContext ctx)
   {
     visitChildren(ctx);
