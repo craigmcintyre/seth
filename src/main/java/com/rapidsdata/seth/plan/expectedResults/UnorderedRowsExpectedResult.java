@@ -9,11 +9,15 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
-
-/** An expected result class where we expect the operation to have returned an ordered set of rows. */
-public class OrderedRowsExpectedResult extends ExpectedResult
+/**
+ * An expected result class where we expect the operation to have returned a set of rows
+ * that is probably not in the same order as they are specified here.
+ */
+public class UnorderedRowsExpectedResult extends ExpectedResult
 {
   private final List<ExpectedRow> expectedRows;
 
@@ -24,12 +28,12 @@ public class OrderedRowsExpectedResult extends ExpectedResult
    * @param appContext The application context container.
    * @param expectedRows The list of rows expected to be returned by the operation.
    */
-  public OrderedRowsExpectedResult(String description,
-                                   OperationMetadata opMetadata,
-                                   AppContext appContext,
-                                   List<ExpectedRow> expectedRows)
+  public UnorderedRowsExpectedResult(String description,
+                                     OperationMetadata opMetadata,
+                                     AppContext appContext,
+                                     List<ExpectedRow> expectedRows)
   {
-    super(ExpectedResultType.ORDERED_ROWS, description, opMetadata, appContext);
+    super(ExpectedResultType.UNORDERED_ROWS, description, opMetadata, appContext);
     this.expectedRows = expectedRows;
   }
 
@@ -41,38 +45,74 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
+    // Make a copy of the expected row list so we can remove entries from it as we match them.
+    List<ExpectedRow> remainingExpectedRows = new LinkedList<ExpectedRow>(expectedRows);
+
     try {
-      for (ExpectedRow expectedRow : expectedRows) {
-        if (!rs.next()) {
-          String actualResultDesc = "No more actual rows to compare to expected row: " + expectedRow.toString();
-          throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
-        }
-
-        if (!expectedRow.compareTo(rs)) {
-          String actualResultDesc = "Actual row does not match expected row." + System.lineSeparator() +
-                                    "Expected Row: " + expectedRow.toString() + System.lineSeparator() +
-                                    "Actual Row  : " + ResultSetFormatter.describeCurrentRow(rs);
-
-          throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
-        }
-      }
-
-      // Are there more actual rows compared to expected rows?
-      StringBuilder sb = null;
+      // For each actual row
       while (rs.next()) {
-        if (sb == null) {
-          sb = new StringBuilder(1024);
+
+        // Have we run out of expected rows to compare actual rows to?
+        if (remainingExpectedRows.isEmpty()) {
+          // We've got an actual row but no more expected rows.
+          StringBuilder sb = new StringBuilder(1024);
           sb.append("There are more actual rows than expected rows: ");
+
+          do {
+            sb.append(System.lineSeparator());
+            sb.append("Additional Row: ");
+            sb.append(ResultSetFormatter.describeCurrentRow(rs));
+
+          } while (rs.next());
+
+          throw new ExpectedResultFailureException(opMetadata, sb.toString(), this);
         }
 
-        sb.append(System.lineSeparator());
-        sb.append("Additional Row: ");
-        sb.append(ResultSetFormatter.describeCurrentRow(rs));
+
+        Iterator<ExpectedRow> erIterator = remainingExpectedRows.iterator();
+        boolean gotMatch = false;
+
+        // For each expected row remaining
+        while (erIterator.hasNext()) {
+          ExpectedRow expectedRow = erIterator.next();
+
+          // Compare the current actual row to this expected row.
+          if (expectedRow.compareTo(rs)) {
+            // We got a match! Remove this expected row.
+            erIterator.remove();
+            gotMatch = true;
+            break;
+          }
+
+          // No match for this expected and actual row. Try another expected row.
+        }
+
+        if (gotMatch) {
+          continue;
+        }
+
+        // Actual row doesn't match any expected rows.
+        String actualResultDesc = "Actual row does not match any expected rows." + System.lineSeparator() +
+                                  "Actual Row  : " + ResultSetFormatter.describeCurrentRow(rs);
+        throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
       }
 
-      if (sb != null) {
-        throw new ExpectedResultFailureException(opMetadata, sb.toString(), this);
+      // Are there any expected rows left over?
+      if (!remainingExpectedRows.isEmpty()) {
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append("No more actual rows to compare to remaining expected rows: ");
+
+        for (ExpectedRow expectedRow : remainingExpectedRows) {
+          sb.append(System.lineSeparator());
+          sb.append("Expected Row: ");
+          sb.append(expectedRow.toString());
+        }
+
+        String actualResultDesc = sb.toString();
+        throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
       }
+
+      // All good!
 
     } catch (SQLException e) {
       String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();

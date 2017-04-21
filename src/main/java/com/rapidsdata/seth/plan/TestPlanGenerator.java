@@ -18,7 +18,6 @@ import java.io.FileNotFoundException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -644,26 +643,24 @@ public class TestPlanGenerator extends SethBaseVisitor
     return null;
   }
 
-//  @Override
-//  public Void visitUnorderedRows(SethParser.UnorderedRowsContext ctx)
-//  {
-//    this.expectedRowList = new ArrayList<>();
-//
-//    visitChildren(ctx);
-//
-//    // Get the metadata for the last statement that was added.
-//    List<Operation> opList = currentOpQueueStack.peek();
-//    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
-//
-//    Set<ExpectedRow> expectedRowStack = new HashSet<>();
-//    expectedRowStack.addAll(this.expectedRowList);
-//    this.expectedRowList = null;
-//
-//    ExpectedResult er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowStack);
-//    expectedResultStack.push(er);
-//
-//    return null;
-//  }
+  @Override
+  public Void visitUnorderedRows(SethParser.UnorderedRowsContext ctx)
+  {
+    this.expectedRowList = new ArrayList<>();
+
+    visitChildren(ctx);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList);
+    expectedResultStack.push(er);
+
+    this.expectedRowList = null;
+
+    return null;
+  }
 
   @Override
   public Void visitAffectedRowsCount(SethParser.AffectedRowsCountContext ctx)
