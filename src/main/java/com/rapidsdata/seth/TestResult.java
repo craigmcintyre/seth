@@ -140,6 +140,10 @@ public class TestResult
     }
 
     if (this.status.hasFinished()) {
+      if (newStatus == ResultStatus.ABORTED) {
+        return;
+      }
+
       final String msg = "Cannot set a ResultStatus to " + newStatus.name() +
                          " when the test already has a completed test status (" +
                          this.status.name() + ").";

@@ -55,6 +55,8 @@ public class TestSuite
     ExecutorService threadPool = appContext.getThreadPool();
     TestLogger logger = appContext.getLogger();
 
+    TestContext testContext = null;
+
     try {
 
       // Iterate each test file
@@ -88,7 +90,7 @@ public class TestSuite
         }
 
         // Make a new test context for executing this test.
-        TestContext testContext = new TestContextImpl(appContext, testFile, testResult);
+        testContext = new TestContextImpl(appContext, testFile, testResult);
 
         // Make a new TestRunner to run the plan
         TestRunner testRunner = new TestRunner(plan, testContext, true);
@@ -101,6 +103,8 @@ public class TestSuite
 
         // Log the result of each test file
         logger.testExecutionFinished(testFile, testResult);
+
+        testContext = null;
       }
     } catch (ExecutionException e) {
       // Thrown if the execution of a sub-task throws an exception.
@@ -110,7 +114,9 @@ public class TestSuite
       resultList.remove(resultList.size() - 1);
 
     } catch (InterruptedException e) {
-      // TODO: cause test to shutdown. Abort remaining tests.
+      if (testContext != null) {
+        testContext.abortTest();
+      }
 
     } finally {
       // Write out the results
