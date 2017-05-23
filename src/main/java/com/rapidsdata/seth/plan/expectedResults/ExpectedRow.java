@@ -305,17 +305,17 @@ public class ExpectedRow
     String intervalType;
 
     if (period.getYears() != 0 && period.getMonths() != 0) {
-      intervalType = "YEARS TO MONTHS";
+      intervalType = "YEAR TO MONTH";
       sb.append(Math.abs(period.getYears()));
       sb.append('-');
       sb.append(Math.abs(period.getMonths()));
 
     } else if (period.getMonths() != 0) {
-      intervalType = "MONTHS";
+      intervalType = "MONTH";
       sb.append(Math.abs(period.getMonths()));
 
     } else {
-      intervalType = "YEARS";
+      intervalType = "YEAR";
       sb.append(Math.abs(period.getYears()));
     }
 
@@ -348,21 +348,21 @@ public class ExpectedRow
     sb.append("'");
 
     if (days != 0) {
-      intervalType = "DAYS";
+      intervalType = "DAY";
       sb.append(String.format("%02d", Math.abs(days)));
 
       if (hours != 0 || minutes != 0 || seconds != 0 || nanos != 0) {
-        intervalType = "DAYS TO HOURS";
+        intervalType = "DAY TO HOUR";
         sb.append(" ");
         sb.append(String.format("%02d", Math.abs(hours)));
 
         if (minutes != 0 || seconds != 0 || nanos != 0) {
-          intervalType = "DAYS TO MINUTES";
+          intervalType = "DAY TO MINUTE";
           sb.append(":");
           sb.append(String.format("%02d", Math.abs(minutes)));
 
           if (seconds != 0 || nanos != 0) {
-            intervalType = "DAYS TO SECONDS";
+            intervalType = "DAY TO SECOND";
             sb.append(":");
             sb.append(String.format("%02d", Math.abs(seconds)));
 
@@ -375,16 +375,16 @@ public class ExpectedRow
       }
 
     } else if (hours != 0) {
-      intervalType = "HOURS";
+      intervalType = "HOUR";
       sb.append(String.format("%02d", Math.abs(hours)));
 
       if (minutes != 0 || seconds != 0 || nanos != 0) {
-        intervalType = "HOURS TO MINUTES";
+        intervalType = "HOUR TO MINUTE";
         sb.append(":");
         sb.append(String.format("%02d", Math.abs(minutes)));
 
         if (seconds != 0 || nanos != 0) {
-          intervalType = "HOURS TO SECONDS";
+          intervalType = "HOUR TO SECOND";
           sb.append(":");
           sb.append(String.format("%02d", Math.abs(seconds)));
 
@@ -396,11 +396,11 @@ public class ExpectedRow
       }
 
     } else if (minutes != 0) {
-      intervalType = "MINUTES";
+      intervalType = "MINUTE";
       sb.append(String.format("%02d", Math.abs(minutes)));
 
       if (seconds != 0 || nanos != 0) {
-        intervalType = "MINUTES TO SECONDS";
+        intervalType = "MINUTE TO SECOND";
         sb.append(":");
         sb.append(String.format("%02d", Math.abs(seconds)));
 
@@ -412,7 +412,7 @@ public class ExpectedRow
 
     } else {
       // seconds
-      intervalType = "SECONDS";
+      intervalType = "SECOND";
       sb.append(String.format("%02d", Math.abs(seconds)));
 
       if (nanos != 0) {
