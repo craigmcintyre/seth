@@ -134,15 +134,7 @@
                 <version>2.4.3</version>
                 <configuration>
                     <shadedArtifactAttached>false</shadedArtifactAttached>
-                    <minimizeJar>true</minimizeJar> <!-- http://stackoverflow.com/questions/8817257/minimize-an-uber-jar-correctly-using-shade-plugin -->
-                    <filters>
-                        <filter>
-                            <artifact>org.slf4j:slf4j-api</artifact>
-                            <includes>
-                                <include>**</include>
-                            </includes>
-                        </filter>
-                    </filters>
+                    <minimizeJar>false</minimizeJar> <!-- http://stackoverflow.com/questions/8817257/minimize-an-uber-jar-correctly-using-shade-plugin -->
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                     </transformers>
