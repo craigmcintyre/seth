@@ -189,7 +189,7 @@ public class Seth {
     cal.setTimeInMillis(jvmStartTime);
 
     final String msg = "Application started at " + sdf.format(cal.getTime()) + ".";
-    logger.log(msg);
+    logger.log(msg, false);
   }
 
 

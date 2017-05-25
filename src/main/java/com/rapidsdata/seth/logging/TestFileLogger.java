@@ -109,6 +109,19 @@ public class TestFileLogger extends FileLogger
   }
 
   /**
+   * Log a general purpose message.
+   *
+   * @param msg the message to be logged.
+   * @param indent indent the message for easier reading relative to the current test?
+   */
+  @Override
+  public void log(String msg, boolean indent)
+  {
+    super.log(msg, indent);
+    queue.add(decorateMessage(msg));
+  }
+
+  /**
    * Log a general purpose error message.
    *
    * @param msg the error message to be logged.

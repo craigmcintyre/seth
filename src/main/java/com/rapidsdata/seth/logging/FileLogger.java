@@ -110,6 +110,17 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
   }
 
   /**
+   * Log a general purpose message.
+   * @param msg the message to be logged.
+   * @param indent indent the message for easier reading relative to the current test?
+   */
+  @Override
+  public void log(String msg, boolean indent)
+  {
+    super.log(msg, indent);
+  }
+
+  /**
    * Log a general purpose warning message about a non-fatal event.
    * @param msg the warning message to be logged.
    */

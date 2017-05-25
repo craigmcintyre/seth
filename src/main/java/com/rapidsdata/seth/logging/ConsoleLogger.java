@@ -84,7 +84,21 @@ public class ConsoleLogger implements TestLogger
   @Override
   public void log(String msg)
   {
-    System.out.println(indent(msg));
+    log(msg, true);
+  }
+
+  /**
+   * Log a general purpose message.
+   *
+   * @param msg the message to be logged.
+   * @param indent indent the message for easier reading relative to the current test?
+   */
+  @Override
+  public void log(String msg, boolean indent)
+  {
+    String loggable = (indent ? indent(msg): msg);
+
+    System.out.println(loggable);
   }
 
   /**
