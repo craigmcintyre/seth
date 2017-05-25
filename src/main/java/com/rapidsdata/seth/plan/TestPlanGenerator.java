@@ -199,8 +199,8 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     // Rewrite the operation description so it doesn't contain the enclosing curly braces.
     OperationMetadata opMetadata = opMetadataStack.pop();
-    String desc = opMetadata.getDescription();
-    desc = desc.substring(0, desc.length() - 1);
+    String desc = opMetadata.getDescription().trim();
+    desc = desc.substring(1, desc.length() - 1);
     OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
 
     Operation op = new ServerOp(newOpMetadata, new DontCareExpectedResult(newOpMetadata, appContext));
@@ -1442,9 +1442,8 @@ public class TestPlanGenerator extends SethBaseVisitor
         return tokenStream.get(index + 1);
       }
 
-      // Stop if we hit a carriage return. We don't want to include comments on the line before.
-      if (token.getType() == SethLexer.WS &&
-          token.getText().contains("\n")) {
+      // If this token is on a line before the start token then don't include it.
+      if (token.getLine() < startToken.getLine()) {
         return tokenStream.get(index + 1);
       }
 
