@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
@@ -16,6 +17,8 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.*;
 import java.time.format.DateTimeParseException;
@@ -543,6 +546,19 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<File> subCallStack = new LinkedList<>();
     subCallStack.addAll(callStack);
     subCallStack.add(testFile);
+
+    // We need to resolve the included file if it is not an absolute path
+    // and we are resolving relative locations to the current test file.
+    if (!includeFile.isAbsolute() && appContext.getPathRelativity() == PathRelativity.REFERER) {
+
+      String parent = testFile.getParent();
+
+      if (parent == null) {
+        parent = "";
+      }
+
+      includeFile = Paths.get(parent, includeFile.getPath()).toFile();
+    }
 
     try {
       subPlan = planner.newPlanFor(includeFile, subCallStack);

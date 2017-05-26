@@ -73,25 +73,33 @@ public class TimedLoopOp extends Operation
 
     final long endTime = System.currentTimeMillis() + durationMs;
 
-    while (System.currentTimeMillis() < endTime) {
-      for (Operation op : operations) {
-        // Check if a failure occurred in another thread and we have to stop running the test.
-        if (!xContext.continueTesting()) {
-          return;
-        }
+    try {
 
-        logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+      while (System.currentTimeMillis() < endTime) {
+        for (Operation op : operations) {
+          // Check if a failure occurred in another thread and we have to stop running the test.
+          if (!xContext.continueTesting()) {
+            return;
+          }
 
-        try {
-          op.execute(xContext);
+          logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+          ++count;
 
-        } catch (FailureException e) {
-          xContext.markAsFailed(e);
-          return;
+          try {
+            op.execute(xContext);
+
+          } catch (FailureException e) {
+            xContext.markAsFailed(e);
+            return;
+          }
         }
       }
-    }
 
-    expectedResult.assertActualAsSuccess();
+      expectedResult.assertActualAsSuccess();
+
+    } finally {
+      // Accumulate the number of operation steps we executed.
+      xContext.accumulateTestSteps(count);
+    }
   }
 }

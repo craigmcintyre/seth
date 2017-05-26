@@ -68,27 +68,35 @@ public class CountedLoopOp extends Operation
   public void execute(ExecutionContext xContext) throws FailureException
   {
     final TestLogger logger = xContext.getLogger();
-    long count = 0;
+    long loopIteration = 0;
+    long statementCount = 0;
 
-    while (loopCount == -1 || count++ < loopCount) {
-      for (Operation op : operations) {
-        // Check if a failure occurred in another thread and we have to stop running the test.
-        if (!xContext.continueTesting()) {
-          return;
-        }
+    try {
+      while (loopCount == -1 || loopIteration++ < loopCount) {
+        for (Operation op : operations) {
+          // Check if a failure occurred in another thread and we have to stop running the test.
+          if (!xContext.continueTesting()) {
+            return;
+          }
 
-        logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+          logger.testStepExecuting(op.getTestFile(), op.toString(), op.getLine());
+          ++statementCount;
 
-        try {
-          op.execute(xContext);
+          try {
+            op.execute(xContext);
 
-        } catch (FailureException e) {
-          xContext.markAsFailed(e);
-          return;
+          } catch (FailureException e) {
+            xContext.markAsFailed(e);
+            return;
+          }
         }
       }
-    }
 
     expectedResult.assertActualAsSuccess();
+
+    } finally {
+      // Accumulate the number of operation steps we executed.
+      xContext.accumulateTestSteps(statementCount);
+    }
   }
 }
