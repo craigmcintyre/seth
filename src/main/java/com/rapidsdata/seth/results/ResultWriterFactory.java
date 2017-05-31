@@ -4,6 +4,7 @@ package com.rapidsdata.seth.results;
 
 import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.contexts.AppContext;
+import com.rapidsdata.seth.exceptions.FeatureNotImplementedException;
 import com.rapidsdata.seth.exceptions.InvalidResultFormatException;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 
@@ -47,8 +48,9 @@ public class ResultWriterFactory
 
     switch (format) {
       case JUNIT:
-        resultWriter = new JUnitResultWriter(context, args.resultDir, args.resultName);
-        break;
+        throw new FeatureNotImplementedException("JUnit test result format is not yet implemented.");
+        //resultWriter = new JUnitResultWriter(context, args.resultDir, args.resultName);
+        //break;
 
       case LOG:
         resultWriter = new LoggableResultWriter(context);
