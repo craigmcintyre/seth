@@ -38,10 +38,13 @@ public class DontCareExpectedResult extends MuteExpectedResult
   {
     // We don't care, but we should log the error.
     // Use the ExpectedResultFailureException to format a nice warning message for us.
-    String actualResult = e.getClass().getSimpleName() + ": " + e.getMessage();
-
-    final String msg = "Command returned exception" + System.lineSeparator() +
-        (new ExpectedResultFailureException(opMetadata, actualResult, this)).getMessage();
+    final String commentDesc = "An unexpected exception was returned.";
+    final String actualResult = e.getClass().getSimpleName() + ": " + e.getMessage();
+    final ExpectedResultFailureException erfe = new ExpectedResultFailureException(opMetadata,
+                                                                                   commentDesc,
+                                                                                   actualResult,
+                                                                                   this);
+    final String msg = "Command returned exception" + System.lineSeparator() + erfe.getMessage();
     appContext.getLogger().warning(msg);
   }
 
@@ -57,10 +60,14 @@ public class DontCareExpectedResult extends MuteExpectedResult
   {
     // We don't care, but we should log the error.
     // Use the ExpectedResultFailureException to format a nice warning message for us.
-    String actualResult = e.getClass().getSimpleName() + ": " + e.getMessage();
+    final String commentDesc = "An unexpected exception was returned.";
+    final String actualResult = e.getClass().getSimpleName() + ": " + e.getMessage();
+    final ExpectedResultFailureException erfe = new ExpectedResultFailureException(opMetadata,
+                                                                                   commentDesc,
+                                                                                   actualResult,
+                                                                                   this);
 
-    final String msg = "Command returned exception" + System.lineSeparator() +
-        (new ExpectedResultFailureException(opMetadata, actualResult, this, e)).getMessage();
+    final String msg = "Command returned exception" + System.lineSeparator() + erfe.getMessage();
     appContext.getLogger().warning(msg);
   }
 
@@ -75,8 +82,13 @@ public class DontCareExpectedResult extends MuteExpectedResult
   {
     // We don't care, but we should log the error.
     // Use the ExpectedResultFailureException to format a nice warning message for us.
-    final String logMsg = "Command returned error" + System.lineSeparator() +
-        (new ExpectedResultFailureException(opMetadata, error, this)).getMessage();
+    final String commentDesc = "An unexpected error message was returned.";
+    final String actualResult = error;
+    final ExpectedResultFailureException erfe = new ExpectedResultFailureException(opMetadata,
+                                                                                   commentDesc,
+                                                                                   actualResult,
+                                                                                   this);
+    final String logMsg = "Command returned error" + System.lineSeparator() + erfe.getMessage();
 
     appContext.getLogger().warning(logMsg);
   }

@@ -57,8 +57,9 @@ public class SuccessExpectedResult extends ExpectedResult
   public void assertActualAsException(SQLException e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An exception was received instead of a successful execution.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -72,8 +73,9 @@ public class SuccessExpectedResult extends ExpectedResult
   public void assertActualAsException(Exception e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this, e);
+    final String commentDesc = "An exception was received instead of a successful execution.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
   }
 
   /**
@@ -97,7 +99,8 @@ public class SuccessExpectedResult extends ExpectedResult
   public void assertActualAsFailure(String msg) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An error message was received instead of a successful execution.";
+    final String actualResultDesc = "Error message: " + msg;
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 }

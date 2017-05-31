@@ -33,8 +33,9 @@ public class FailureAnyExpectedResult extends ExpectedResult
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
     // We expected failure, not a result set.
-    String actualResultDesc = "A ResultSet was received";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "A ResultSet was received instead of any failure condition.";
+    final String actualResultDesc = "A ResultSet";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -47,8 +48,9 @@ public class FailureAnyExpectedResult extends ExpectedResult
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     // We expected failure, not an update count.
-    String actualResultDesc = "An update count was received";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An affected row count was received instead of any failure condition.";
+    final String actualResultDesc = "An affected row count";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -85,8 +87,9 @@ public class FailureAnyExpectedResult extends ExpectedResult
   public void assertActualAsSuccess() throws FailureException
   {
     // We expected failure, not a general purpose success.
-    String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "The operation succeeded instead of any failure condition being returned.";
+    final String actualResultDesc = "success";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**

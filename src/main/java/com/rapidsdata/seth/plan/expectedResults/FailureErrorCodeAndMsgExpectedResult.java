@@ -45,8 +45,9 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
     // We expected failure, not a result set.
-    String actualResultDesc = "A ResultSet was received";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "A ResultSet was returned instead of an error code and message.";
+    final String actualResultDesc = "A ResultSet";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -59,8 +60,9 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     // We expected failure, not an update count.
-    String actualResultDesc = "An update count was received";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An affected row count was returned instead of an error code and message.";
+    final String actualResultDesc = "An update count was received";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -73,7 +75,9 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   public void assertActualAsException(SQLException e) throws FailureException
   {
     if (e.getErrorCode() != expectedErrCode) {
-      throw new ExpectedResultFailureException(opMetadata, "Error code: " + e.getErrorCode(), this);
+      final String commentDesc = "A different error code was returned than was expected.";
+      final String actualDesc = "Error code: " + e.getErrorCode();
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
     }
 
     // Compare the actual error message up to the length of the expected error message. i.e.
@@ -81,7 +85,9 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
     // of actualErrorMsg.
     if (!e.getMessage().startsWith(expectedErrMsg)) {
       // The error messages differ.
-      throw new ExpectedResultFailureException(opMetadata, "Error message: " + e.getMessage(), this);
+      final String commentDesc = "A different error message was returned than was expected.";
+      final String actualDesc = "Error message: " + e.getMessage();
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
     }
 
     // otherwise all is ok.
@@ -104,8 +110,9 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
       assertActualAsException((SQLException) e);
     }
 
-    String actualResultDesc = "Exception type: " + e.getClass().getName() + " (has no error code)";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An exception was returned instead of an error code and message.";
+    final String actualResultDesc = "Exception type: " + e.getClass().getName() + " (has no error code)";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -117,8 +124,9 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   public void assertActualAsSuccess() throws FailureException
   {
     // We expected failure, not a general purpose success.
-    String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "The operation succeeeded instead of returning an error code.";
+    final String actualResultDesc = "success";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -130,7 +138,8 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsFailure(String msg) throws FailureException
   {
-    String actualResultDesc = "Error message only: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An error message was returned instead of an error code.";
+    final String actualResultDesc = "Error message only: " + msg;
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 }

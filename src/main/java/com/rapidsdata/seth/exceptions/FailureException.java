@@ -18,6 +18,7 @@ public abstract class FailureException extends SethException
   protected static final String LINE_HEADING      = "Line       : ";
   protected static final String COMMAND_HEADING   = "Command    : ";
   protected static final String ERROR_HEADING     = "Error      : ";
+  protected static final String COMMENT_HEADING   = "Comment    : ";
   protected static final String EXPECTED_HEADING  = "Expected   : ";
   protected static final String ACTUAL_HEADING    = "Actual     : ";
   protected static final String STACK_HEADING     = "StackTrace : ";

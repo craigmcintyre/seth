@@ -55,17 +55,10 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
         // Have we run out of expected rows to compare actual rows to?
         if (remainingExpectedRows.isEmpty()) {
           // We've got an actual row but no more expected rows.
-          StringBuilder sb = new StringBuilder(1024);
-          sb.append("There are more actual rows than expected rows: ");
+          final String comment = "There were more actual rows returned than expected rows.";
+          final String actual  = ResultSetFormatter.describeCurrentRow(rs);
 
-          do {
-            sb.append(System.lineSeparator());
-            sb.append("Additional Row: ");
-            sb.append(ResultSetFormatter.describeCurrentRow(rs));
-
-          } while (rs.next());
-
-          throw new ExpectedResultFailureException(opMetadata, sb.toString(), this);
+          throw new ExpectedResultFailureException(opMetadata, comment, actual, this);
         }
 
 
@@ -92,31 +85,32 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
         }
 
         // Actual row doesn't match any expected rows.
-        String actualResultDesc = "Actual row does not match any expected rows." + System.lineSeparator() +
-                                  "Actual Row  : " + ResultSetFormatter.describeCurrentRow(rs);
-        throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+        final String commentDesc = "The actual row does not match any expected rows.";
+        final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
       }
 
       // Are there any expected rows left over?
       if (!remainingExpectedRows.isEmpty()) {
         StringBuilder sb = new StringBuilder(1024);
-        sb.append("No more actual rows to compare to remaining expected rows: ");
+        sb.append("There are no more actual rows to compare to the remaining expected rows:");
 
         for (ExpectedRow expectedRow : remainingExpectedRows) {
           sb.append(System.lineSeparator());
-          sb.append("Expected Row: ");
           sb.append(expectedRow.toString());
         }
 
-        String actualResultDesc = sb.toString();
-        throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+        final String commentDesc = sb.toString();
+        final String actualDesc = "<no remaining rows>";
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
       }
 
       // All good!
 
     } catch (SQLException e) {
-      String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+      final String commentDesc = "An exception was received instead of returning a ResultSet.";
+      final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
     }
   }
 
@@ -130,8 +124,9 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = "An update count was received";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An affected row count was received instead of a ResultSet.";
+    final String actualResultDesc = "Affected row count: " + updateCount;
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -144,8 +139,9 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsException(SQLException e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An exception was received instead of a ResultSet.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -159,8 +155,9 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsException(Exception e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this, e);
+    final String commentDesc = "An exception was received instead of a ResultSet.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
   }
 
   /**
@@ -171,8 +168,9 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsSuccess() throws FailureException
   {
-    String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "The operation did not return a ResultSet as expected.";
+    final String actualResultDesc = "success";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -185,7 +183,8 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsFailure(String msg) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An error message was received instead of a ResultSet.";
+    final String actualResultDesc = "Error message: " + msg;
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 }

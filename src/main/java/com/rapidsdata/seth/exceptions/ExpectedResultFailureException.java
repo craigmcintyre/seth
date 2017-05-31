@@ -10,6 +10,9 @@ import java.io.File;
 /** A test failure resulting from the fact that the actual result didn't match the expected result. */
 public class ExpectedResultFailureException extends FailureException
 {
+  /** A description of what went wrong. Optional. */
+  protected final String commentDesc;
+
   /** A description of the actual result encountered. */
   protected final String actualResultDesc;
 
@@ -17,17 +20,20 @@ public class ExpectedResultFailureException extends FailureException
   protected final ExpectedResult expectedResult;
 
   public ExpectedResultFailureException(OperationMetadata opMetadata,
+                                        String commentDesc,
                                         String actualResultDesc,
                                         ExpectedResult expectedResult)
   {
     super("Actual result does not compare to the expected result.", opMetadata.getTestFile(),
           opMetadata.getLine(), opMetadata.getDescription());
 
+    this.commentDesc = commentDesc;
     this.actualResultDesc = actualResultDesc;
     this.expectedResult = expectedResult;
   }
 
   public ExpectedResultFailureException(OperationMetadata opMetadata,
+                                        String commentDesc,
                                         String actualResultDesc,
                                         ExpectedResult expectedResult,
                                         Throwable throwable)
@@ -35,6 +41,7 @@ public class ExpectedResultFailureException extends FailureException
     super("Actual result does not compare to the expected result.", throwable,
         opMetadata.getTestFile(), opMetadata.getLine(), opMetadata.getDescription());
 
+    this.commentDesc = commentDesc;
     this.actualResultDesc = actualResultDesc;
     this.expectedResult = expectedResult;
   }
@@ -66,12 +73,20 @@ public class ExpectedResultFailureException extends FailureException
       sb.append(System.lineSeparator());
     }
 
+    if (commentDesc != null) {
+      sb.append(COMMENT_HEADING);
+      sb.append(indent(commentDesc));
+      sb.append(System.lineSeparator());
+    }
+
     sb.append(EXPECTED_HEADING);
     sb.append(indent(expectedResult.describe()));
 
-    sb.append(System.lineSeparator());
-    sb.append(ACTUAL_HEADING);
-    sb.append(indent(actualResultDesc));
+    if (actualResultDesc != null) {
+      sb.append(System.lineSeparator());
+      sb.append(ACTUAL_HEADING);
+      sb.append(indent(actualResultDesc));
+    }
 
 
     if (getCause() != null) {

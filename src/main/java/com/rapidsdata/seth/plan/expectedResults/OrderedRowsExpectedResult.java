@@ -44,39 +44,42 @@ public class OrderedRowsExpectedResult extends ExpectedResult
     try {
       for (ExpectedRow expectedRow : expectedRows) {
         if (!rs.next()) {
-          String actualResultDesc = "No more actual rows to compare to expected row: " + expectedRow.toString();
-          throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+          final String commentDesc = "There are no more actual rows to compare to the expected row: " + expectedRow.toString();
+          final String actualResultDesc = "<no remaining rows>";
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
         }
 
         if (!expectedRow.compareTo(rs)) {
-          String actualResultDesc = "Actual row does not match expected row." + System.lineSeparator() +
-                                    "Expected Row: " + expectedRow.toString() + System.lineSeparator() +
-                                    "Actual Row  : " + ResultSetFormatter.describeCurrentRow(rs);
+          final String commentDesc = "The actual row does not match the expected row: " + expectedRow.toString();
+          final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs);
 
-          throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
         }
       }
 
       // Are there more actual rows compared to expected rows?
       StringBuilder sb = null;
+      final String commentDesc = "There are more actual rows than expected rows.";
+
       while (rs.next()) {
         if (sb == null) {
           sb = new StringBuilder(1024);
-          sb.append("There are more actual rows than expected rows: ");
         }
 
-        sb.append(System.lineSeparator());
-        sb.append("Additional Row: ");
+        if (sb.length() > 0) {
+          sb.append(System.lineSeparator());
+        }
         sb.append(ResultSetFormatter.describeCurrentRow(rs));
       }
 
       if (sb != null) {
-        throw new ExpectedResultFailureException(opMetadata, sb.toString(), this);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, sb.toString(), this);
       }
 
     } catch (SQLException e) {
-      String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+      final String commentDesc = "An exception was received instead of a ResultSet.";
+      final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
     }
   }
 
@@ -90,8 +93,9 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = "An update count was received";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An affected row count was received instead of a ResultSet.";
+    final String actualResultDesc = "affected: " + updateCount;
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -104,8 +108,9 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsException(SQLException e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An exception was received instead of a ResultSet.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -119,8 +124,9 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsException(Exception e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this, e);
+    final String commentDesc = "An exception was received instead of a ResultSet.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
   }
 
   /**
@@ -131,8 +137,9 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsSuccess() throws FailureException
   {
-    String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "The operation did not return a ResultSet as was expected.";
+    final String actualResultDesc = "success";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -145,7 +152,8 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsFailure(String msg) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An error message was received instead of a ResultSet.";
+    final String actualResultDesc = "Error message: " + msg;
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 }

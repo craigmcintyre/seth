@@ -40,8 +40,9 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
-    String actualResultDesc = "A ResultSet was received.";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "A ResultSet was received instead of an affected row count.";
+    final String actualDesc = "A ResultSet";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
   }
 
   /**
@@ -55,8 +56,9 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     if (affectedRowCount != updateCount) {
-      String actualResultDesc = "affected: " + updateCount;
-      throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+      final String commentDesc = "A different affected row count got returned.";
+      final String actualResultDesc = "affected: " + updateCount;
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
     }
   }
 
@@ -71,8 +73,9 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   public void assertActualAsException(SQLException e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An exception was received instead of an affected row count.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -87,8 +90,9 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   public void assertActualAsException(Exception e) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this, e);
+    final String commentDesc = "An exception was received instead of an affected row count.";
+    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
   }
 
   /**
@@ -100,8 +104,9 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsSuccess() throws FailureException
   {
-    String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "The operation did not return an affected row count.";
+    final String actualResultDesc = "success";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
   /**
@@ -115,7 +120,8 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   public void assertActualAsFailure(String msg) throws FailureException
   {
     // Not what was expected.
-    String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, actualResultDesc, this);
+    final String commentDesc = "An error message was received instead of an affected row count.";
+    final String actualResultDesc = "Error message: " + msg;
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 }
