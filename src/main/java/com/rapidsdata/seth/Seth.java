@@ -5,6 +5,7 @@ package com.rapidsdata.seth;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.AppContextImpl;
 import com.rapidsdata.seth.exceptions.InvalidResultFormatException;
+import com.rapidsdata.seth.exceptions.SethBrownBagException;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.logging.*;
 import com.rapidsdata.seth.results.ResultWriter;
@@ -16,6 +17,8 @@ import org.kohsuke.args4j.ParserProperties;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.management.ManagementFactory;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -93,7 +96,14 @@ public class Seth {
     }
 
     Seth seth = new Seth(args, logger);
-    seth.run();
+
+    try {
+      seth.run();
+
+    } catch (SethBrownBagException e) {
+      String msg = getStackTraceFrom(e);
+      seth.logger.log(msg, false);
+    }
   }
 
   /**
@@ -118,7 +128,7 @@ public class Seth {
     List<File> testFiles = buildTestList(args);
 
     if (testFiles.isEmpty()) {
-      logger.log("There are no test files to execute!");
+      logger.log("There are no test files to execute!", false);
       return;
     }
 
@@ -359,5 +369,18 @@ public class Seth {
       final String msg = "Could not clean the result directory, " + resultDir.getPath() + ".";
       throw new SethSystemException(msg, e);
     }
+  }
+
+  /**
+   * Returns the stack trace of an exception as a string.
+   * @param t the Throwable to get the stack trace of.
+   * @return the stack trace of an exception as a string.
+   */
+  protected static String getStackTraceFrom(Throwable t)
+  {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    t.printStackTrace(pw);
+    return sw.toString();
   }
 }

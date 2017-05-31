@@ -96,28 +96,32 @@ public class CommandLineArgs
       Driver driver = DriverManager.getDriver(url);
 
     } catch (SQLException e) {
-      final String msg = "Could not load the JDBC driver for the url \"" + url +
-                         "\". Please check that this url is correct and that the appropriate " +
-                         "JDBC driver is included in the class path.\nThe current classpath is: " +
-                         ManagementFactory.getRuntimeMXBean().getClassPath();
+      final String msg = "Could not load the JDBC driver for the url \"" + url +"\"." +
+                         System.lineSeparator() + "Please check that this url is correct " +
+                         "and that the appropriate JDBC driver is included in the classpath." +
+                         System.lineSeparator() + "The current classpath is: " +
+                         ManagementFactory.getRuntimeMXBean().getClassPath() + System.lineSeparator();
       throw new CmdLineException(parser, msg, e);
     }
 
     // Cannot specify -f and a set of test files. Must be one or the other.
     if (listFile != null && testFiles != null && !testFiles.isEmpty()) {
-      final String msg = "Cannot specify both -f <listFile> as well as a set of test files to run.";
+      final String msg = "Cannot specify both -f <listFile> as well as a set of test files to run." +
+                         System.lineSeparator();
       throw new CmdLineException(parser, msg, null);
     }
 
     // Check if no test files and no listfile has been specified.
     if (listFile == null && testFiles == null) {
-      final String msg = "No test files have been specified.";
+      final String msg = "No test files have been specified." +
+                         System.lineSeparator();
       throw new CmdLineException(parser, msg, null);
     }
 
     // --resultdir must be created if it doesn't exist.
     if (!resultDir.exists() && !resultDir.mkdirs()) {
-      final String msg = "Unable to create the resultdir directory at " + resultDir.getPath() + ".";
+      final String msg = "Unable to create the resultdir directory at " + resultDir.getPath() +
+                         "." + System.lineSeparator();
       throw new CmdLineException(parser, msg, null);
     }
 

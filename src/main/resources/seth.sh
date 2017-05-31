@@ -2,7 +2,7 @@
 
 # Get the relative path to this file.
 DIR=$(dirname "$0")
-CLASSPATH='.:*:${DIR}:${DIR}/*'
+CLASSPATH=".:*:${DIR}:${DIR}/*"
 
 # The path to the se-shell
 SE_PATH="../OS X/Build/Products/Debug/SE"

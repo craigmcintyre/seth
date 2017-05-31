@@ -45,7 +45,9 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
     }
 
     writerThread = new WriterThread(writer);
-    new Thread(writerThread).start();
+    Thread t = new Thread(writerThread);
+    t.setDaemon(true); // So this thread doesn't prevent the application from exiting.
+    t.start();
   }
 
   /**
