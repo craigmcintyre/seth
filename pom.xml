@@ -121,7 +121,7 @@
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <pushChanges>true</pushChanges>
+                    <pushChanges>false</pushChanges>
                     <resume>false</resume>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
                 </configuration>
