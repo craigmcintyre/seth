@@ -53,6 +53,6 @@ public class LoggableResultWriter implements ResultWriter
   protected void writeSummary(ResultSummary summary)
   {
     // Write them to the logger.
-    context.getLogger().log(summary.toString());
+    context.getLogger().log(summary.toString(), false);
   }
 }
