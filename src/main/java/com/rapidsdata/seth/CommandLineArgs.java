@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth;
 
+import com.rapidsdata.seth.exceptions.InvalidResultFormatException;
+import com.rapidsdata.seth.results.ResultWriterFactory;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -119,7 +121,12 @@ public class CommandLineArgs
       throw new CmdLineException(parser, msg, null);
     }
 
-    // TODO: --resultformat must be valid
+    // --resultformat must be valid
+    try {
+      ResultWriterFactory.validate(resultFormat);
+    } catch (InvalidResultFormatException e) {
+      throw new CmdLineException(parser, e);
+    }
 
   }
 

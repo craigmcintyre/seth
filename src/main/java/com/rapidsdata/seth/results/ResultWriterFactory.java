@@ -32,19 +32,38 @@ public class ResultWriterFactory
     }
   }
 
+  /**
+   * Validates that a string describing a result format is indeed valid and supported.
+   * @param resultFormat
+   * @throws InvalidResultFormatException
+   */
+  public static void validate(String resultFormat) throws InvalidResultFormatException
+  {
+    ResultFormat format = formatStringToEnum(resultFormat);
+
+    switch (format) {
+      case JUNIT:
+        throw new FeatureNotImplementedException("JUnit test result format is not yet implemented.");
+
+      default:
+        break;
+    }
+
+  }
+
+  /**
+   * Creates a ResultWriter instance given the description of the type of ResultWriter requested
+   * from the command line arguments.
+   * @param args
+   * @param context
+   * @return a ResultWriter instance of the appropriate type.
+   * @throws InvalidResultFormatException
+   */
   public static ResultWriter get(CommandLineArgs args, AppContext context) throws InvalidResultFormatException
   {
     ResultWriter resultWriter;
-    ResultFormat format;
+    ResultFormat format = formatStringToEnum(args.resultFormat);
 
-    try {
-      format = ResultFormat.valueOf(args.resultFormat.toUpperCase());
-
-    } catch (IllegalFormatException e) {
-      final String msg = "Invalid test result format: " + args.resultFormat +
-                         ". Valid values are: " + ResultFormat.asStringList() + ".";
-      throw new InvalidResultFormatException(msg);
-    }
 
     switch (format) {
       case JUNIT:
@@ -63,4 +82,32 @@ public class ResultWriterFactory
     return resultWriter;
   }
 
+  /**
+   * Converts a string describing a result file format to a ResultFormat enum.
+   * @param formatStr
+   * @return the ResultFormat enum.
+   * @throws InvalidResultFormatException
+   */
+  private static ResultFormat formatStringToEnum(String formatStr) throws InvalidResultFormatException
+  {
+    ResultFormat format;
+
+    if (formatStr == null || formatStr.trim().isEmpty()) {
+      final String msg = "Test result format cannot be null or empty. Valid values are: " +
+                         ResultFormat.asStringList() + ".";
+      throw new InvalidResultFormatException(msg);
+    }
+
+    // Convert string to enum
+    try {
+      format = ResultFormat.valueOf(formatStr.trim().toUpperCase());
+
+    } catch (IllegalArgumentException e) {
+      final String msg = "Invalid test result format: " + formatStr +
+                         ". Valid values are: " + ResultFormat.asStringList() + ".";
+      throw new InvalidResultFormatException(msg);
+    }
+
+    return format;
+  }
 }
