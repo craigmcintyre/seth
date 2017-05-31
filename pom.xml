@@ -138,6 +138,16 @@
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                     </transformers>
+                    <filters>
+                        <filter>
+                            <artifact>com.rapidsdata:seth:*</artifact>
+                            <excludes>
+                                <exclude>seth.sh</exclude>
+                                <exclude>rapidsse-jdbc-*-sources.jar</exclude>
+                                <exclude>log4j.properties</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <executions>
                     <execution>
