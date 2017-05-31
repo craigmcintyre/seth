@@ -138,7 +138,6 @@ public class Seth {
     AppContext appContext = new AppContextImpl(jvmStartTime,
                                                testFiles,
                                                args.url,
-                                               args.doValidate,
                                                args.relativity,
                                                logger,
                                                threadPool);

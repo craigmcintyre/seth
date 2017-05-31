@@ -21,9 +21,6 @@ public class AppContextImpl implements AppContext
   /** The url that the JDBC driver should use. */
   private final String url;
 
-  /** If true then we don't run the test, just validate them. If false, we run the tests. */
-  private final boolean onlyValidate;
-
   /**
    * Are relative paths given to an INCLUDE statement relative to the path of the test file
    * or relative to the current working directory?
@@ -40,7 +37,6 @@ public class AppContextImpl implements AppContext
   public AppContextImpl(long appStartTime,
                         List<File> testFiles,
                         String url,
-                        boolean onlyValidate,
                         PathRelativity pathRelativity,
                         TestLogger logger,
                         ExecutorService threadPool)
@@ -48,7 +44,6 @@ public class AppContextImpl implements AppContext
     this.appStartTime = appStartTime;
     this.testFiles = testFiles;
     this.url = url;
-    this.onlyValidate = onlyValidate;
     this.pathRelativity = pathRelativity;
     this.logger = logger;
     this.threadPool = threadPool;
@@ -82,17 +77,6 @@ public class AppContextImpl implements AppContext
   public String getUrl()
   {
     return url;
-  }
-
-  /**
-   * If true then the test files will only be validated and not executed.
-   * If false then the test files will be executed in full.
-   * @return whether to only validate or to fully execute the test files.
-   */
-  @Override
-  public boolean onlyValidateTestFiles()
-  {
-    return onlyValidate;
   }
 
   /**

@@ -37,21 +37,6 @@ public class DropConnectionOp extends Operation
   }
 
   /**
-   * Validates the operation.
-   * This does not execute the operation, but it ensures that the operation is semantically correct.
-   * e.g., an INCLUDE statement can find the file it is including, the statement has the correct
-   * expected result, etc.
-   *
-   * @param xContext The execution context, which encapsulates any necessary parameters.
-   * @throws ValidationException if the validation fails.
-   */
-  @Override
-  public void validate(ExecutionContext xContext) throws ValidationException
-  {
-    // TODO: Validate the expected result type.
-  }
-
-  /**
    * Executes the operation.
    * @param xContext The execution context, which encapsulates any necessary parameters.
    * @throws FailureException if an error occurs during the execution. e.g., if the

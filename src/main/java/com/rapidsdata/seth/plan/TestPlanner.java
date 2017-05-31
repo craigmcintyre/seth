@@ -14,7 +14,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.Stack;
 
 /** The class responsible for creating execution plans. */
 public class TestPlanner

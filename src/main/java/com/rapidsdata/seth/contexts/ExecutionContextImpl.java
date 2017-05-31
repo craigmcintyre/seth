@@ -348,17 +348,6 @@ public class ExecutionContextImpl implements ExecutionContext
   }
 
   /**
-   * If true then the test files will only be validated and not executed.
-   * If false then the test files will be executed in full.
-   * @return whether to only validate or to fully execute the test files.
-   */
-  @Override
-  public boolean onlyValidateTestFiles()
-  {
-    return testContext.onlyValidateTestFiles();
-  }
-
-  /**
    * Returns how we are to treat relative paths.
    * @return how we are to treat relative paths.
    */

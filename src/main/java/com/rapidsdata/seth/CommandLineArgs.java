@@ -38,11 +38,6 @@ public class CommandLineArgs
           usage     = "The path to the text file containing the list of test files to be run.")
   public File listFile = null;
 
-  @Option(name      = "--validate",
-          required  = false,
-          usage     = "Validates each test file can be parsed and prints its actions but does not run the tests.")
-  public boolean doValidate = false;
-
   @Option(name      = "--clean",
           required  = false,
           usage     = "Removes all files and subdirectories from the resultdir before running the test. Default is not to do this.")

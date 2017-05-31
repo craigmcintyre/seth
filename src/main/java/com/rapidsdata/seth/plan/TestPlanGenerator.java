@@ -6,7 +6,6 @@ import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
-import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
 import com.rapidsdata.seth.plan.expectedResults.*;
 import org.antlr.v4.runtime.Parser;
