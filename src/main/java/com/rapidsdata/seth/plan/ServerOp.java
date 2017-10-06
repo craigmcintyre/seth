@@ -63,7 +63,8 @@ public class ServerOp extends Operation
     }
 
     try {
-      boolean hasResultSet = statement.execute(metadata.getDescription());
+      String cmd = metadata.getDescription();
+      boolean hasResultSet = statement.execute(cmd);
 
       if (hasResultSet) {
         rs = statement.getResultSet();
