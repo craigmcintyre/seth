@@ -12,11 +12,12 @@ import java.sql.SQLException;
 
 /**
  * An expected result class where we expect the operation to have failed with a particular
- * error code.
+ * error message. The expected error message is only compared against the trailing end
+ * (suffix) of the actual error message, that way the expected error message can leave off
+ * any leading dynamic error string components such as names.
  */
-public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
+public class FailureErrorMsgSuffixExpectedResult extends ExpectedResult
 {
-  protected final int expectedErrCode;
   protected final String expectedErrMsg;
 
   /**
@@ -24,15 +25,12 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
    * @param description A textual description of the expected result.
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
-   * @param expectedErrCode the error code that is expected to be received.
    * @param expectedErrMsg the error message that is expected to be received.
    */
-  public FailureErrorCodeAndMsgExpectedResult(String description, OperationMetadata opMetadata,
-                                              AppContext appContext, int expectedErrCode,
-                                              String expectedErrMsg)
+  public FailureErrorMsgSuffixExpectedResult(String description, OperationMetadata opMetadata,
+                                             AppContext appContext, String expectedErrMsg)
   {
-    super(ExpectedResultType.FAILURE_CODE_AND_MSG, description, opMetadata, appContext);
-    this.expectedErrCode = expectedErrCode;
+    super(ExpectedResultType.FAILURE_MSG_SUFFIX, description, opMetadata, appContext);
     this.expectedErrMsg = expectedErrMsg;
   }
 
@@ -45,7 +43,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
     // We expected failure, not a result set.
-    final String commentDesc = "A ResultSet was returned instead of an error code and message.";
+    final String commentDesc = "A ResultSet was received instead of an error message.";
     final String actualResultDesc = "A ResultSet";
     throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
@@ -60,8 +58,8 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
     // We expected failure, not an update count.
-    final String commentDesc = "An affected row count was returned instead of an error code and message.";
-    final String actualResultDesc = "An update count was received";
+    final String commentDesc = "A affected row count was received instead of an error message.";
+    final String actualResultDesc = "An affected row count was received";
     throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
 
@@ -74,23 +72,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsException(SQLException e) throws FailureException
   {
-    if (e.getErrorCode() != expectedErrCode) {
-      final String commentDesc = "A different error code was returned than was expected.";
-      final String actualDesc = "Error code: " + e.getErrorCode();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
-    }
-
-    // Compare the actual error message up to the length of the expected error message. i.e.
-    // actualErrorMsg == expectedErrorMsg iff expectedErrorMsg is a leading substring
-    // of actualErrorMsg.
-    if (!e.getMessage().startsWith(expectedErrMsg)) {
-      // The error messages differ.
-      final String commentDesc = "A different error message was returned than was expected.";
-      final String actualDesc = "Error message: " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
-    }
-
-    // otherwise all is ok.
+    assertActualAsException((Exception) e);
   }
 
   /**
@@ -106,13 +88,14 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
     // actual == expected iff the error message of the expected result is a leading substring
     // of the error message of the actual.
 
-    if (e instanceof SQLException) {
-      assertActualAsException((SQLException) e);
+    if (!e.getMessage().endsWith(expectedErrMsg)) {
+      // The error messages differ.
+      final String commentDesc = "A different error message was received than was expected.";
+      final String actualDesc = "Error message: " + e.getMessage();
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
     }
 
-    final String commentDesc = "An exception was returned instead of an error code and message.";
-    final String actualResultDesc = "Exception type: " + e.getClass().getName() + " (has no error code)";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    // All ok.
   }
 
   /**
@@ -124,7 +107,7 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   public void assertActualAsSuccess() throws FailureException
   {
     // We expected failure, not a general purpose success.
-    final String commentDesc = "The operation succeeeded instead of returning an error code.";
+    final String commentDesc = "The operation succeeded instead of returning an error message.";
     final String actualResultDesc = "success";
     throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
   }
@@ -138,8 +121,16 @@ public class FailureErrorCodeAndMsgExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsFailure(String msg) throws FailureException
   {
-    final String commentDesc = "An error message was returned instead of an error code.";
-    final String actualResultDesc = "Error message only: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    // actual == expected iff the error message of the expected result is a leading substring
+    // of the error message of the actual.
+
+    if (!msg.endsWith(expectedErrMsg)) {
+      // The error messages differ.
+      final String commentDesc = "A different error message was received than was expected.";
+      final String actualDesc = "failure: '" + msg + "'";
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
+    }
+
+    // All ok.
   }
 }

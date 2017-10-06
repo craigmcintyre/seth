@@ -16,7 +16,7 @@ import java.sql.SQLException;
  * expected error message, that way the expected error message can leave off any dynamic
  * error string components such as names.
  */
-public class FailureErrorMsgExpectedResult extends ExpectedResult
+public class FailureErrorMsgPrefixExpectedResult extends ExpectedResult
 {
   protected final String expectedErrMsg;
 
@@ -27,10 +27,10 @@ public class FailureErrorMsgExpectedResult extends ExpectedResult
    * @param appContext The application context container.
    * @param expectedErrMsg the error message that is expected to be received.
    */
-  public FailureErrorMsgExpectedResult(String description, OperationMetadata opMetadata,
-                                       AppContext appContext, String expectedErrMsg)
+  public FailureErrorMsgPrefixExpectedResult(String description, OperationMetadata opMetadata,
+                                             AppContext appContext, String expectedErrMsg)
   {
-    super(ExpectedResultType.FAILURE_MSG, description, opMetadata, appContext);
+    super(ExpectedResultType.FAILURE_MSG_PREFIX, description, opMetadata, appContext);
     this.expectedErrMsg = expectedErrMsg;
   }
 

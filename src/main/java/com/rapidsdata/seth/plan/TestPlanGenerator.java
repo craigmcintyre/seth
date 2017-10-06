@@ -16,7 +16,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.*;
@@ -627,7 +626,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
-  public Void visitFailureCodeAndMsg(SethParser.FailureCodeAndMsgContext ctx)
+  public Void visitFailureCodeAndMsgPrefix(SethParser.FailureCodeAndMsgPrefixContext ctx)
   {
     visitChildren(ctx);
 
@@ -638,7 +637,25 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorCodeAndMsgExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode, errMsg);
+    ExpectedResult er = new FailureErrorCodeAndMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode, errMsg);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitFailureCodeAndMsgSuffix(SethParser.FailureCodeAndMsgSuffixContext ctx)
+  {
+    visitChildren(ctx);
+
+    int errCode = convertToInt(ctx.code);
+    String errMsg = cleanString(ctx.msg.getText());
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new FailureErrorCodeAndMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -662,7 +679,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
-  public Void visitFailureErrorMsg(SethParser.FailureErrorMsgContext ctx)
+  public Void visitFailureErrorMsgPrefix(SethParser.FailureErrorMsgPrefixContext ctx)
   {
     visitChildren(ctx);
 
@@ -672,7 +689,24 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorMsgExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    ExpectedResult er = new FailureErrorMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitFailureErrorMsgSuffix(SethParser.FailureErrorMsgSuffixContext ctx)
+  {
+    visitChildren(ctx);
+
+    String errMsg = cleanString(ctx.msg.getText());
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new FailureErrorMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
     expectedResultStack.push(er);
 
     return null;
