@@ -61,13 +61,19 @@ expectedResult      : success
 success             : SUCCESS ;
 mute                : MUTE ;
 failure             : failureCodeAndMsg | failureErrorCode | failureErrorMsg | failureAny;
-failureCodeAndMsg   : failureCodeAndMsgPrefix | failureCodeAndMsgSuffix ;
+
+failureCodeAndMsg   : failureCodeAndMsgPrefix | failureCodeAndMsgSuffix | failureCodeAndMsgSubset;
 failureCodeAndMsgPrefix : FAILURE (PREFIX)? ':' code=INT ',' msg=STR ;
 failureCodeAndMsgSuffix : FAILURE SUFFIX ':' code=INT ',' msg=STR ;
+failureCodeAndMsgSubset : FAILURE CONTAINS ':' code=INT ',' msg=STR ;
+
 failureErrorCode    : FAILURE ':' code=INT ;
-failureErrorMsg     : failureErrorMsgPrefix | failureErrorMsgSuffix;
+
+failureErrorMsg     : failureErrorMsgPrefix | failureErrorMsgSuffix | failureErrorMsgSubset;
 failureErrorMsgPrefix : FAILURE (PREFIX)? ':' msg=STR ;
 failureErrorMsgSuffix : FAILURE SUFFIX ':' msg=STR ;
+failureErrorMsgSubset : FAILURE CONTAINS ':' msg=STR ;
+
 failureAny          : FAILURE ;
 unorderedRows       : (UNORDERED)? ROWS ':' rowDefn+ ;
 orderedRows         : ORDERED ROWS ':' rowDefn+ ;
@@ -124,6 +130,7 @@ dayTimeInterval     : INTERVAL ('+' | minus='-')? STR
 AFFECTED              : A F F E C T E D;
 CLEANUP               : C L E A N U P;
 CONNECTION            : C O N N E C T I O N;
+CONTAINS              : C O N T A I N S;
 CREATE                : C R E A T E;
 DATE                  : D A T E;
 DAY                   : D A Y;
