@@ -85,7 +85,9 @@ public class TestSuite
 
         } catch (Exception e) {
           // Remove the last result as it is probably incomplete.
-          resultList.remove(resultList.size() - 1);
+          if (resultList.size() > 0) {
+            resultList.remove(resultList.size() - 1);
+          }
           throw e;
         }
 

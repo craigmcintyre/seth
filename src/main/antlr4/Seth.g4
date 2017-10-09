@@ -56,7 +56,10 @@ expectedResult      : success
                     | unorderedRows
                     | orderedRows
                     | rowCount
-                    | affectedRowsCount ;
+                    | affectedRowsCount
+                    | resultFile ;
+
+resultFile          : RESULT FILE? ':' filePath=STR ;
 
 success             : SUCCESS ;
 mute                : MUTE ;
@@ -153,6 +156,7 @@ MUTE                  : M U T E;
 NULL                  : N U L L;
 ORDERED               : O R D E R E D;
 PREFIX                : P R E F I X;
+RESULT                : R E S U L T;
 ROWS                  : R O W S;
 SECONDS               : S E C O N D S;
 SECOND                : S E C O N D;

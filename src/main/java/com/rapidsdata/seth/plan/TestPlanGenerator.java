@@ -85,13 +85,30 @@ public class TestPlanGenerator extends SethBaseVisitor
     this.appContext = appContext;
   }
 
+  /**
+   * Constructor.
+   * @param parser The parser we're using to parse the test file.
+   * @param testFile The test file we're reading.
+   */
+  public TestPlanGenerator(SethParser parser,
+                           File testFile,
+                           List<File> callStack,
+                           AppContext appContext,
+                           Deque<List<Operation>> currentOpQueueStack)
+  {
+    this.parser = parser;
+    this.testFile = testFile;
+    this.callStack = callStack;
+    this.appContext = appContext;
+    this.currentOpQueueStack = currentOpQueueStack;
+  }
 
   /**
    * Turns a parsed plan tree into a list of StatementOps.
    * @param tree the parsed plan tree.
    * @return a list of StatementOps representing the operations to be executed.
    */
-  public Plan generateFor(ParseTree tree)
+  public Plan generatePlanFor(ParseTree tree)
   {
     visit(tree);
 
@@ -100,6 +117,20 @@ public class TestPlanGenerator extends SethBaseVisitor
     currentOpQueueStack.pop();
 
     return plan;
+  }
+
+  /**
+   * Turns a parsed plan tree into a list of StatementOps.
+   * @param tree the parsed plan tree.
+   * @return a list of StatementOps representing the operations to be executed.
+   */
+  public ExpectedResult generateExpectedResultFor(ParseTree tree)
+  {
+    visit(tree);
+
+    // The latest expected result is the one at the head of the top of the expectedResultStack.
+    ExpectedResult er = expectedResultStack.pop();
+    return er;
   }
 
   @Override
@@ -592,6 +623,80 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     currentExpectedResultDesc = null;
+    return null;
+  }
+
+  @Override
+  public Void visitResultFile(SethParser.ResultFileContext ctx)
+  {
+    visitChildren(ctx);
+
+    String path = cleanString(ctx.filePath.getText());
+    File includeFile = new File(path);
+
+    // Ensure we are not including ourselves.
+    if (testFile.equals(includeFile)) {
+      final String msg = "File cannot include itself.";
+      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(),msg);
+    }
+
+    // Ensure that we do not have a circular dependency.
+    for (File parent : callStack) {
+
+      if (parent.equals(includeFile)) {
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append("Circular file inclusion detected: ");
+
+        for (File p : callStack) {
+          sb.append(p.getPath()).append(" --> ");
+        }
+
+        sb.append(testFile.getPath());
+        sb.append(" --> ");
+        sb.append(includeFile.getPath());
+
+        throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+                                opMetadataStack.peek().getDescription(), sb.toString());
+      }
+    }
+
+
+    TestPlanner planner = new TestPlanner(appContext);
+    ExpectedResult er = null;
+
+    List<File> subCallStack = new LinkedList<>();
+    subCallStack.addAll(callStack);
+    subCallStack.add(testFile);
+
+    // We need to resolve the included file if it is not an absolute path
+    // and we are resolving relative locations to the current test file.
+    if (!includeFile.isAbsolute() && appContext.getPathRelativity() == PathRelativity.REFERER) {
+
+      String parent = testFile.getParent();
+
+      if (parent == null) {
+        parent = "";
+      }
+
+      includeFile = Paths.get(parent, includeFile.getPath()).toFile();
+    }
+
+    try {
+      er = planner.newExpectedResultFor(includeFile, subCallStack, currentOpQueueStack);
+
+    } catch (PlanningException e) {
+      throw wrapException(e);
+
+    } catch (FileNotFoundException e) {
+      // The included file path is not found so this is a semantic exception in the current file.
+      // So convert this to a SemanticException.
+      final String msg = "Included file not found: " + path;
+      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+                              opMetadataStack.peek().getDescription(), msg);
+    }
+
+    expectedResultStack.push(er);
     return null;
   }
 

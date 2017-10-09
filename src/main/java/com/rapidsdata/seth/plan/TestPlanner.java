@@ -6,6 +6,7 @@ import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
+import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Deque;
 import java.util.List;
 
 /** The class responsible for creating execution plans. */
@@ -63,13 +65,13 @@ public class TestPlanner
     Plan plan;
 
     try {
-      tree = parser.testFile(); // This will typically through SyntaxExceptions.
+      tree = parser.testFile(); // This will typically throw SyntaxExceptions.
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
       TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack, appContext);
 
-      plan = generator.generateFor(tree); // This will typically throw SemanticExceptions,
+      plan = generator.generatePlanFor(tree); // This will typically throw SemanticExceptions,
                                           // but can also throw SyntaxExceptions from included files
                                           // or even a FileNotFoundException for an included path.
 
@@ -86,6 +88,67 @@ public class TestPlanner
     }
 
     return plan;
+  }
+
+  /**
+   * Parses a file containing an expected result and returns an ExpectedResult instance representing it.
+   * @param resultFile The file to be parsed.
+   * @param callStack the stack of files that are currently being parsed, resulting from file inclusions.
+   * @return an ExpectedResult instance that can be compared.
+   * @throws FileNotFoundException if the result file doesn't exist.
+   * @throws PlanningException if there is a problem with the contents of the result file.
+   */
+  public ExpectedResult newExpectedResultFor(File resultFile,
+                                             List<File> callStack,
+                                             Deque<List<Operation>> currentOpQueueStack)
+                        throws FileNotFoundException, PlanningException
+  {
+    if (!resultFile.exists()) {
+      throw new FileNotFoundException("File not found: " + resultFile.getPath());
+    }
+
+    byte[] bytes;
+
+    try {
+      bytes = Files.readAllBytes(resultFile.toPath());
+    } catch (IOException | OutOfMemoryError | SecurityException e) {
+      throw new SethSystemException(e);
+    }
+
+    String contents = new String(bytes);
+
+    SethLexer lexer = new SethLexer(new ANTLRInputStream(contents));
+    SethParser parser = new SethParser(new CommonTokenStream(lexer));
+    parser.setErrorHandler(new ErrorHandler(resultFile));
+
+    // Parse the contents of the file.
+    ParseTree tree;
+    ExpectedResult er;
+
+    try {
+      tree = parser.expectedResult(); // This will typically throw SyntaxExceptions.
+
+      // Now that we've parsed the statement into a ParseTree we now need to build
+      // the list of Operations. We use the visitor pattern for walking the ParseTree.
+      TestPlanGenerator generator = new TestPlanGenerator(parser, resultFile, callStack, appContext, currentOpQueueStack);
+
+      er = generator.generateExpectedResultFor(tree); // This will typically throw SemanticExceptions,
+                                                      // but can also throw SyntaxExceptions from included files
+                                                      // or even a FileNotFoundException for an included path.
+
+    } catch (SethBrownBagException e) {
+      if (e.getCause() instanceof PlanningException) {
+        throw (PlanningException) e.getCause();
+
+      } else if (e.getCause() instanceof FileNotFoundException) {
+        throw (FileNotFoundException) e.getCause();
+
+      } else {
+        throw new SethSystemException("Unhandled exception " + e.getClass().getSimpleName(), e.getCause());
+      }
+    }
+
+    return er;
   }
 
 
