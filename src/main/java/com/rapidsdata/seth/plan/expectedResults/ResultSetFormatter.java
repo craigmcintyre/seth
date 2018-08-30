@@ -131,4 +131,31 @@ public class ResultSetFormatter
 
     return sb.toString();
   }
+
+  public static String describeColumnNames(ResultSet rs) throws SQLException
+  {
+    ResultSetMetaData rsmd = rs.getMetaData();
+    StringBuilder sb = new StringBuilder(1024);
+
+    sb.append('[');
+
+    int numColumns = rsmd.getColumnCount();
+
+    for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
+
+      String label = rsmd.getColumnLabel(colIndex);
+
+      sb.append('\'');
+      sb.append(label.replace("'", "''"));
+      sb.append('\'');
+      sb.append(", ");
+    }
+
+    // Remove the last ", "
+    sb.delete(sb.length() - 2, sb.length());
+
+    sb.append(']');
+
+    return sb.toString();
+  }
 }

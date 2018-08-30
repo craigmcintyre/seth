@@ -20,6 +20,7 @@ import java.util.List;
 public class UnorderedRowsExpectedResult extends ExpectedResult
 {
   private final List<ExpectedRow> expectedRows;
+  private final ExpectedColumnNames expectedColumnNames;
 
   /**
    * Constructor
@@ -27,14 +28,17 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
    * @param expectedRows The list of rows expected to be returned by the operation.
+   * @param expectedColumnNames The set of expected column names to be returned by the operation.
    */
   public UnorderedRowsExpectedResult(String description,
                                      OperationMetadata opMetadata,
                                      AppContext appContext,
-                                     List<ExpectedRow> expectedRows)
+                                     List<ExpectedRow> expectedRows,
+                                     ExpectedColumnNames expectedColumnNames)
   {
     super(ExpectedResultType.UNORDERED_ROWS, description, opMetadata, appContext);
     this.expectedRows = expectedRows;
+    this.expectedColumnNames = expectedColumnNames;
   }
 
   /**
@@ -45,10 +49,19 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
-    // Make a copy of the expected row list so we can remove entries from it as we match them.
-    List<ExpectedRow> remainingExpectedRows = new LinkedList<ExpectedRow>(expectedRows);
-
     try {
+      // Compare the column names if they have been specified.
+      if (expectedColumnNames != null && !expectedColumnNames.compareTo(rs)) {
+
+        final String commentDesc = "The column names for the actual resultset does not match the column names " +
+                "of the expected resultset: " + expectedColumnNames.toString();
+        final String actualResultDesc = ResultSetFormatter.describeColumnNames(rs);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+      }
+
+      // Make a copy of the expected row list so we can remove entries from it as we match them.
+      List<ExpectedRow> remainingExpectedRows = new LinkedList<ExpectedRow>(expectedRows);
+
       // For each actual row
       while (rs.next()) {
 

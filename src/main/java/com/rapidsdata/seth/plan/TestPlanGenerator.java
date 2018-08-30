@@ -72,6 +72,10 @@ public class TestPlanGenerator extends SethBaseVisitor
   /** A list of expected column values for a single expected row. */
   private ArrayList<Object> columnVals;
 
+  /** A set of column name definitions expected to be returned from an operation. May be null. */
+  private ExpectedColumnNames expectedColumnNames;
+
+
   /**
    * Constructor.
    * @param parser The parser we're using to parse the test file.
@@ -870,15 +874,13 @@ public class TestPlanGenerator extends SethBaseVisitor
   @Override
   public Void visitOrderedRows(SethParser.OrderedRowsContext ctx)
   {
-    this.expectedRowList = new ArrayList<>();
-
     visitChildren(ctx);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new OrderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList);
+    ExpectedResult er = new OrderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
     expectedResultStack.push(er);
 
     this.expectedRowList = null;
@@ -889,15 +891,13 @@ public class TestPlanGenerator extends SethBaseVisitor
   @Override
   public Void visitUnorderedRows(SethParser.UnorderedRowsContext ctx)
   {
-    this.expectedRowList = new ArrayList<>();
-
     visitChildren(ctx);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList);
+    ExpectedResult er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
     expectedResultStack.push(er);
 
     this.expectedRowList = null;
@@ -945,7 +945,47 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
-  public Void visitRowDefn(SethParser.RowDefnContext ctx)
+  public Void visitResultSet(SethParser.ResultSetContext ctx)
+  {
+    this.expectedRowList = new ArrayList<>();
+
+    visitChildren(ctx);
+
+    return null;
+  }
+
+  @Override
+  public Void visitColumnNames(SethParser.ColumnNamesContext ctx)
+  {
+    this.columnDefs = new ArrayList<ExpectedColumnType>();
+    this.columnVals = new ArrayList<Object>();
+
+    visitChildren(ctx);
+
+    // check if there are any "IGNORE_REMAINING" column definitions. There can only be a
+    // maximum of one of these and it must be the last column definition in the list.
+    for (int i = 0; i < columnDefs.size(); i++) {
+      ExpectedColumnType type = columnDefs.get(i);
+
+      if (type == ExpectedColumnType.IGNORE_REMAINING && i != columnDefs.size() - 1) {
+        final String msg = "The '...' column name definition can only be specified as the last " +
+                           "column name definition.";
+        Token token = ctx.columnName().get(i).ignoreRemainingColumns().ELLIPSIS().getSymbol();
+        throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      }
+    }
+
+    this.expectedColumnNames = new ExpectedColumnNames(columnDefs, columnVals);
+
+    this.columnDefs = null;
+    this.columnVals = null;
+
+    return null;
+  }
+
+
+  @Override
+  public Void visitRowData(SethParser.RowDataContext ctx)
   {
     this.columnDefs = new ArrayList<ExpectedColumnType>();
     this.columnVals = new ArrayList<Object>();
@@ -960,7 +1000,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       if (type == ExpectedColumnType.IGNORE_REMAINING && i != columnDefs.size() - 1) {
         final String msg = "The '...' column definition can only be specified as the last " +
                            "definition for row.";
-        Token token = ctx.columnDefn().get(i).ignoreRemainingColumns().ELLIPSIS().getSymbol();
+        Token token = ctx.columnData().get(i).ignoreRemainingColumns().ELLIPSIS().getSymbol();
         throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, msg);
       }
     }

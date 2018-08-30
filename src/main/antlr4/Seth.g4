@@ -78,13 +78,16 @@ failureErrorMsgSuffix : FAILURE SUFFIX ':' msg=STR ;
 failureErrorMsgSubset : FAILURE CONTAINS ':' msg=STR ;
 
 failureAny          : FAILURE ;
-unorderedRows       : (UNORDERED)? ROWS ':' rowDefn+ ;
-orderedRows         : ORDERED ROWS ':' rowDefn+ ;
+unorderedRows       : (UNORDERED)? ROWS ':' resultSet ;
+orderedRows         : ORDERED ROWS ':' resultSet ;
 rowCount            : ROWS ':' count=INT ;
 affectedRowsCount   : AFFECTED ':' count=INT ;
 
-rowDefn             : '(' columnDefn (',' columnDefn)* ')';
-columnDefn          : booleanVal
+resultSet           : columnNames? rowData+ ;
+columnNames         : '[' columnName (',' columnName)* ']' ;
+columnName          : stringVal | dontCareVal | ignoreRemainingColumns ;
+rowData             : '(' columnData (',' columnData)* ')' ;
+columnData          : booleanVal
                     | integerVal
                     | decimalVal
                     | floatVal

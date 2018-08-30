@@ -16,6 +16,7 @@ import java.util.List;
 public class OrderedRowsExpectedResult extends ExpectedResult
 {
   private final List<ExpectedRow> expectedRows;
+  private final ExpectedColumnNames expectedColumnNames;
 
   /**
    * Constructor
@@ -23,14 +24,17 @@ public class OrderedRowsExpectedResult extends ExpectedResult
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
    * @param expectedRows The list of rows expected to be returned by the operation.
+   * @param expectedColumnNames The set of expected column names to be returned by the operation.
    */
   public OrderedRowsExpectedResult(String description,
                                    OperationMetadata opMetadata,
                                    AppContext appContext,
-                                   List<ExpectedRow> expectedRows)
+                                   List<ExpectedRow> expectedRows,
+                                   ExpectedColumnNames expectedColumnNames)
   {
     super(ExpectedResultType.ORDERED_ROWS, description, opMetadata, appContext);
     this.expectedRows = expectedRows;
+    this.expectedColumnNames = expectedColumnNames;
   }
 
   /**
@@ -42,6 +46,15 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   public void assertActualAsResultSet(ResultSet rs) throws FailureException
   {
     try {
+      // Compare the column names if they have been specified.
+      if (expectedColumnNames != null && !expectedColumnNames.compareTo(rs)) {
+
+        final String commentDesc = "The column names for the actual resultset does not match the column names " +
+                "of the expected resultset: " + expectedColumnNames.toString();
+        final String actualResultDesc = ResultSetFormatter.describeColumnNames(rs);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+      }
+
       for (ExpectedRow expectedRow : expectedRows) {
         if (!rs.next()) {
           final String commentDesc = "There are no more actual rows to compare to the expected row: " + expectedRow.toString();

@@ -12,6 +12,7 @@ modules.xml
 *.iml
 .idea/libraries/*.xml
 .idea/*.xml
+.idea/codeStyles/*.xml
 .idea/scopes/*.xml
 
 # Some needed IntelliJ config files.
