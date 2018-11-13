@@ -40,6 +40,17 @@ public class CommandLineArgs
           usage     = "The path to the text file containing the list of test files to be run.")
   public File listFile = null;
 
+  @Option(name      = "--round",
+          required  = false,
+          usage     = "Round numeric values to N decimal places before comparing (default is no rounding).")
+  public int round = NO_ROUNDING;
+  public static final int NO_ROUNDING = -999999;
+
+  @Option(name      = "--unordered",
+          required  = false,
+          usage     = "Ignore row order in expected result even when \"ordered rows\" is specified.")
+  public boolean unordered = false;
+
   @Option(name      = "--clean",
           required  = false,
           usage     = "Removes all files and subdirectories from the resultdir before running the test. Default is not to do this.")

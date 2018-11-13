@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.contexts;
 
+import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
@@ -375,5 +376,15 @@ public class ExecutionContextImpl implements ExecutionContext
   public ExecutorService getThreadPool()
   {
     return testContext.getThreadPool();
+  }
+
+  /**
+   * Returns the command line arguments used to run the program.
+   * @return the command line arguments used to run the program.
+   */
+  @Override
+  public CommandLineArgs getCommandLineArgs()
+  {
+    return testContext.getCommandLineArgs();
   }
 }

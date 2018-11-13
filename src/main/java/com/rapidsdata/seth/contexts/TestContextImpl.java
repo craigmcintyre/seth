@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.contexts;
 
+import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.exceptions.FailureException;
@@ -112,6 +113,16 @@ public class TestContextImpl implements TestContext
   public ExecutorService getThreadPool()
   {
     return appContext.getThreadPool();
+  }
+
+  /**
+   * Returns the command line arguments used to run the program.
+   * @return the command line arguments used to run the program.
+   */
+  @Override
+  public CommandLineArgs getCommandLineArgs()
+  {
+    return appContext.getCommandLineArgs();
   }
 
   /**

@@ -880,7 +880,15 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new OrderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
+    ExpectedResult er;
+
+    if (appContext.getCommandLineArgs().unordered) {
+      er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
+
+    } else {
+      er = new OrderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
+    }
+
     expectedResultStack.push(er);
 
     this.expectedRowList = null;

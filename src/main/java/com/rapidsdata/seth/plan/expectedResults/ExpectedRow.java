@@ -2,9 +2,12 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
+import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -27,7 +30,7 @@ public class ExpectedRow
    * @return true if the rows compare equally or false if they are different.
    * @throws SQLException
    */
-  public boolean compareTo(ResultSet rs) throws SQLException
+  public boolean compareTo(ResultSet rs, int rounding) throws SQLException
   {
     ResultSetMetaData rsmd = rs.getMetaData();
 
@@ -90,15 +93,14 @@ public class ExpectedRow
 
         case DECIMAL:
           BigDecimal expectedDecimal = (BigDecimal) expectedVal;
-          if (wasNull || !expectedDecimal.equals(rs.getBigDecimal(rsIndex))) {
+          if (wasNull || !equalRounded(expectedDecimal, rs.getBigDecimal(rsIndex), rounding)) {
             return false;
           }
           break;
 
         case FLOAT:
-          // Only compare floating points up to the level of precision specified in the expected value
-          ComparableFloat cf = (ComparableFloat) expectedVal;
-          if (wasNull || !cf.comparesTo(rs.getString(rsIndex))) {
+          // Compare floating points up to the requested level of precision
+          if (wasNull || !equalRounded(expectedVal, rs.getString(rsIndex), rounding)) {
             return false;
           }
           break;
@@ -164,6 +166,36 @@ public class ExpectedRow
 
     return true;
   }
+
+
+  private boolean equalRounded(BigDecimal x, BigDecimal y, int round)
+  {
+    if (round != CommandLineArgs.NO_ROUNDING) {
+      MathContext mc = new MathContext(round, RoundingMode.DOWN);
+
+      x = x.round(mc);
+      y = y.round(mc);
+    }
+
+    return x.equals(y);
+  }
+
+
+  private boolean equalRounded(Object x, String y, int round)
+  {
+    if (round == CommandLineArgs.NO_ROUNDING) {
+      ComparableFloat cf = (ComparableFloat) x;
+      return cf.comparesTo(y);
+    }
+
+    MathContext mc = new MathContext(round, RoundingMode.DOWN);
+
+    BigDecimal bdx = new BigDecimal((double) x, mc);
+    BigDecimal bdy = new BigDecimal(y, mc);
+
+    return x.equals(y);
+  }
+
 
   /**
    * Returns a string representation of this expected row.

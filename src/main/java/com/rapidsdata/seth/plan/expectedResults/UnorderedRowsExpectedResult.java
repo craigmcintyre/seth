@@ -83,7 +83,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
           ExpectedRow expectedRow = erIterator.next();
 
           // Compare the current actual row to this expected row.
-          if (expectedRow.compareTo(rs)) {
+          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round)) {
             // We got a match! Remove this expected row.
             erIterator.remove();
             gotMatch = true;

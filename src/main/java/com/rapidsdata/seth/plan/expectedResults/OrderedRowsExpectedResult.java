@@ -62,7 +62,7 @@ public class OrderedRowsExpectedResult extends ExpectedResult
           throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
         }
 
-        if (!expectedRow.compareTo(rs)) {
+        if (!expectedRow.compareTo(rs, appContext.getCommandLineArgs().round)) {
           final String commentDesc = "The actual row does not match the expected row: " + expectedRow.toString();
           final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs);
 

@@ -146,6 +146,7 @@ public class Seth {
 
     // Create the main run context.
     AppContext appContext = new AppContextImpl(jvmStartTime,
+                                               args,
                                                testFiles,
                                                args.url,
                                                args.relativity,

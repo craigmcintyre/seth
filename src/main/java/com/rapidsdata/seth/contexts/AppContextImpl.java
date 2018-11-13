@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.contexts;
 
+import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.logging.TestLogger;
 
@@ -33,8 +34,12 @@ public class AppContextImpl implements AppContext
   /** The service that we create threads from for running tests. */
   private final ExecutorService threadPool;
 
+  /** The command line arguments. */
+  private final CommandLineArgs args;
+
 
   public AppContextImpl(long appStartTime,
+                        CommandLineArgs args,
                         List<File> testFiles,
                         String url,
                         PathRelativity pathRelativity,
@@ -42,6 +47,7 @@ public class AppContextImpl implements AppContext
                         ExecutorService threadPool)
   {
     this.appStartTime = appStartTime;
+    this.args = args;
     this.testFiles = testFiles;
     this.url = url;
     this.pathRelativity = pathRelativity;
@@ -107,5 +113,15 @@ public class AppContextImpl implements AppContext
   public ExecutorService getThreadPool()
   {
     return threadPool;
+  }
+
+  /**
+   * Returns the command line arguments used to run the program.
+   * @return the command line arguments used to run the program.
+   */
+  @Override
+  public CommandLineArgs getCommandLineArgs()
+  {
+    return args;
   }
 }

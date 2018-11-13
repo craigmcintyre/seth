@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.contexts;
 
+import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.logging.TestLogger;
 
@@ -47,4 +48,10 @@ public interface AppContext
    * @return the thread pool executor service, by which new threads can be created.
    */
   public ExecutorService getThreadPool();
+
+  /**
+   * Returns the command line arguments used to run the program.
+   * @return the command line arguments used to run the program.
+   */
+  public CommandLineArgs getCommandLineArgs();
 }
