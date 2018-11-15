@@ -51,6 +51,11 @@ public class CommandLineArgs
           usage     = "Ignore row order in expected result even when \"ordered rows\" is specified.")
   public boolean unordered = false;
 
+  @Option(name      = "--nostop",
+          required  = false,
+          usage     = "Just show message and continue on wrong result or exception failure.")
+  public boolean nostop = false;
+
   @Option(name      = "--clean",
           required  = false,
           usage     = "Removes all files and subdirectories from the resultdir before running the test. Default is not to do this.")

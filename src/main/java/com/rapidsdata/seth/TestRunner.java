@@ -130,8 +130,14 @@ public class TestRunner implements Runnable
           op.execute(xContext);
 
         } catch (FailureException e) {
-          testContext.markAsFailed(e);
-          earlyExit = true;
+
+          if (testContext.getCommandLineArgs().nostop) {
+            System.out.println("Failure: " + e.getMessage());
+
+          } else {
+            testContext.markAsFailed(e);
+            earlyExit = true;
+          }
         }
       }
 
