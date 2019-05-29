@@ -59,7 +59,7 @@ public class SuccessExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a successful execution.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -75,7 +75,7 @@ public class SuccessExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a successful execution.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe(), e);
   }
 
   /**
@@ -101,6 +101,6 @@ public class SuccessExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An error message was received instead of a successful execution.";
     final String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 }

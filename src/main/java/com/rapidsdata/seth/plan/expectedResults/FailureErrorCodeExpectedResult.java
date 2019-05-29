@@ -43,7 +43,7 @@ public class FailureErrorCodeExpectedResult extends ExpectedResult
     // We expected failure, not a result set.
     final String commentDesc = "A ResultSet was returned instead of an error code.";
     final String actualResultDesc = "A ResultSet";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -58,7 +58,7 @@ public class FailureErrorCodeExpectedResult extends ExpectedResult
     // We expected failure, not an update count.
     final String commentDesc = "An affected row count was returned instead of an error code.";
     final String actualResultDesc = "An affected row count";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -73,7 +73,7 @@ public class FailureErrorCodeExpectedResult extends ExpectedResult
     if (e.getErrorCode() != expectedErrCode) {
       final String commentDesc = "A different error code was returned than was expected.";
       final String actualDesc = "Error code: " + e.getErrorCode();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this.describe());
     }
 
     // otherwise all is ok.
@@ -98,7 +98,7 @@ public class FailureErrorCodeExpectedResult extends ExpectedResult
 
     final String commentDesc = "An exception was returned instead of an error code.";
     final String actualResultDesc = "Exception type: " + e.getClass().getName() + " (has no error code)";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -112,7 +112,7 @@ public class FailureErrorCodeExpectedResult extends ExpectedResult
     // We expected failure, not a general purpose success.
     final String commentDesc = "The operation succeeeded instead of returning an error code.";
     final String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -126,6 +126,6 @@ public class FailureErrorCodeExpectedResult extends ExpectedResult
   {
     final String commentDesc = "An error message was returned instead of an error code.";
     final String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 }

@@ -53,13 +53,13 @@ public class RowCountExpectedResult extends ExpectedResult
       if (actualRowCount != expectedRowCount) {
         final String commentDesc = "A different row count was received than was expected.";
         final String actualResultDesc = "rows: " + actualRowCount;
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
       }
 
     } catch (SQLException e) {
       final String commentDesc = "An exception was received instead of a ResultSet.";
       final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
     }
   }
 
@@ -75,7 +75,7 @@ public class RowCountExpectedResult extends ExpectedResult
   {
     final String commentDesc = "An affected row count was received instead of a ResultSet.";
     final String actualResultDesc = "affected: " + updateCount;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -91,7 +91,7 @@ public class RowCountExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -108,7 +108,7 @@ public class RowCountExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe(), e);
   }
 
   /**
@@ -122,7 +122,7 @@ public class RowCountExpectedResult extends ExpectedResult
   {
     final String commentDesc = "The operation did not return a ResultSet as was expected.";
     final String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -138,6 +138,6 @@ public class RowCountExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
     final String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 }

@@ -50,23 +50,23 @@ public class OrderedRowsExpectedResult extends ExpectedResult
       if (expectedColumnNames != null && !expectedColumnNames.compareTo(rs)) {
 
         final String commentDesc = "The column names for the actual resultset does not match the column names " +
-                "of the expected resultset: " + expectedColumnNames.toString();
+                                   "of the expected resultset.";
         final String actualResultDesc = ResultSetFormatter.describeColumnNames(rs);
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedColumnNames.toString());
       }
 
       for (ExpectedRow expectedRow : expectedRows) {
         if (!rs.next()) {
-          final String commentDesc = "There are no more actual rows to compare to the expected row: " + expectedRow.toString();
+          final String commentDesc = "There are no more actual rows to compare to the expected row.";
           final String actualResultDesc = "<no remaining rows>";
-          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedRow.toString());
         }
 
         if (!expectedRow.compareTo(rs, appContext.getCommandLineArgs().round)) {
-          final String commentDesc = "The actual row does not match the expected row: " + expectedRow.toString();
+          final String commentDesc = "The actual row does not match the expected row.";
           final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs);
 
-          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedRow.toString());
         }
       }
 
@@ -86,13 +86,13 @@ public class OrderedRowsExpectedResult extends ExpectedResult
       }
 
       if (sb != null) {
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, sb.toString(), this);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, sb.toString(), "<no more rows>");
       }
 
     } catch (SQLException e) {
       final String commentDesc = "An exception was received instead of a ResultSet.";
       final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
     }
   }
 
@@ -108,7 +108,7 @@ public class OrderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An affected row count was received instead of a ResultSet.";
     final String actualResultDesc = "affected: " + updateCount;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -123,7 +123,7 @@ public class OrderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -139,7 +139,7 @@ public class OrderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe(), e);
   }
 
   /**
@@ -152,7 +152,7 @@ public class OrderedRowsExpectedResult extends ExpectedResult
   {
     final String commentDesc = "The operation did not return a ResultSet as was expected.";
     final String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -167,6 +167,6 @@ public class OrderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An error message was received instead of a ResultSet.";
     final String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 }

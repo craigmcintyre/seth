@@ -35,7 +35,7 @@ public class FailureAnyExpectedResult extends ExpectedResult
     // We expected failure, not a result set.
     final String commentDesc = "A ResultSet was received instead of any failure condition.";
     final String actualResultDesc = "A ResultSet";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -50,7 +50,7 @@ public class FailureAnyExpectedResult extends ExpectedResult
     // We expected failure, not an update count.
     final String commentDesc = "An affected row count was received instead of any failure condition.";
     final String actualResultDesc = "An affected row count";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -89,7 +89,7 @@ public class FailureAnyExpectedResult extends ExpectedResult
     // We expected failure, not a general purpose success.
     final String commentDesc = "The operation succeeded instead of any failure condition being returned.";
     final String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**

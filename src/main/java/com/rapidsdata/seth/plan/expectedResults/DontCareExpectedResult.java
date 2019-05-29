@@ -43,7 +43,7 @@ public class DontCareExpectedResult extends MuteExpectedResult
     final ExpectedResultFailureException erfe = new ExpectedResultFailureException(opMetadata,
                                                                                    commentDesc,
                                                                                    actualResult,
-                                                                                   this);
+                                                                                   this.describe());
     final String msg = "Command returned exception" + System.lineSeparator() + erfe.getMessage();
     appContext.getLogger().warning(msg);
   }
@@ -65,7 +65,7 @@ public class DontCareExpectedResult extends MuteExpectedResult
     final ExpectedResultFailureException erfe = new ExpectedResultFailureException(opMetadata,
                                                                                    commentDesc,
                                                                                    actualResult,
-                                                                                   this);
+                                                                                   this.describe());
 
     final String msg = "Command returned exception" + System.lineSeparator() + erfe.getMessage();
     appContext.getLogger().warning(msg);
@@ -87,7 +87,7 @@ public class DontCareExpectedResult extends MuteExpectedResult
     final ExpectedResultFailureException erfe = new ExpectedResultFailureException(opMetadata,
                                                                                    commentDesc,
                                                                                    actualResult,
-                                                                                   this);
+                                                                                   this.describe());
     final String logMsg = "Command returned error" + System.lineSeparator() + erfe.getMessage();
 
     appContext.getLogger().warning(logMsg);

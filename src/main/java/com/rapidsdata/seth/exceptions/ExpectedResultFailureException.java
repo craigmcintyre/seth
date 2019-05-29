@@ -17,25 +17,25 @@ public class ExpectedResultFailureException extends FailureException
   protected final String actualResultDesc;
 
   /** The expected result we should have got. */
-  protected final ExpectedResult expectedResult;
+  protected final String expectedResultDesc;
 
   public ExpectedResultFailureException(OperationMetadata opMetadata,
                                         String commentDesc,
                                         String actualResultDesc,
-                                        ExpectedResult expectedResult)
+                                        String expectedResultDesc)
   {
     super("Actual result does not compare to the expected result.", opMetadata.getTestFile(),
           opMetadata.getLine(), opMetadata.getDescription());
 
     this.commentDesc = commentDesc;
     this.actualResultDesc = actualResultDesc;
-    this.expectedResult = expectedResult;
+    this.expectedResultDesc = expectedResultDesc;
   }
 
   public ExpectedResultFailureException(OperationMetadata opMetadata,
                                         String commentDesc,
                                         String actualResultDesc,
-                                        ExpectedResult expectedResult,
+                                        String expectedResultDesc,
                                         Throwable throwable)
   {
     super("Actual result does not compare to the expected result.", throwable,
@@ -43,7 +43,7 @@ public class ExpectedResultFailureException extends FailureException
 
     this.commentDesc = commentDesc;
     this.actualResultDesc = actualResultDesc;
-    this.expectedResult = expectedResult;
+    this.expectedResultDesc = expectedResultDesc;
   }
 
   /**
@@ -79,8 +79,10 @@ public class ExpectedResultFailureException extends FailureException
       sb.append(System.lineSeparator());
     }
 
-    sb.append(EXPECTED_HEADING);
-    sb.append(indent(expectedResult.describe()));
+    if (expectedResultDesc != null) {
+      sb.append(EXPECTED_HEADING);
+      sb.append(indent(expectedResultDesc));
+    }
 
     if (actualResultDesc != null) {
       sb.append(System.lineSeparator());

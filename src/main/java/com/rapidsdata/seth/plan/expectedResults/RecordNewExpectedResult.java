@@ -204,7 +204,7 @@ public class RecordNewExpectedResult extends ExpectedResult
             default:
               final String errMsg = "Unsupported JDBC column type for column " + i + ": " + columnType;
               final String colVal = "Column Value = " + (rs.getString(i) == null ? "(null)" : rs.getString(i));
-              throw new ExpectedResultFailureException(opMetadata, errMsg, colVal, this);
+              throw new ExpectedResultFailureException(opMetadata, errMsg, colVal, this.describe());
           }
 
           row[i-1] = columnValue;
@@ -217,7 +217,7 @@ public class RecordNewExpectedResult extends ExpectedResult
     } catch (SQLException e) {
       final String commentDesc = "An exception was received while iterating the result set received.";
       final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
     }
 
     if (rows.isEmpty()) {

@@ -44,7 +44,7 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
     // We expected failure, not a result set.
     final String commentDesc = "A ResultSet was received instead of an error message.";
     final String actualResultDesc = "A ResultSet";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -59,7 +59,7 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
     // We expected failure, not an update count.
     final String commentDesc = "A affected row count was received instead of an error message.";
     final String actualResultDesc = "An affected row count was received";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -91,7 +91,7 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
       // The error messages differ.
       final String commentDesc = "A different error message was received than was expected.";
       final String actualDesc = "Error message: " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this.describe());
     }
 
     // All ok.
@@ -108,7 +108,7 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
     // We expected failure, not a general purpose success.
     final String commentDesc = "The operation succeeded instead of returning an error message.";
     final String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -127,7 +127,7 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
       // The error messages differ.
       final String commentDesc = "A different error message was received than was expected.";
       final String actualDesc = "failure: '" + msg + "'";
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this.describe());
     }
 
     // All ok.

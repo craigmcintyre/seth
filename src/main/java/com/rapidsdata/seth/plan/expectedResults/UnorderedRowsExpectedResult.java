@@ -54,9 +54,9 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
       if (expectedColumnNames != null && !expectedColumnNames.compareTo(rs)) {
 
         final String commentDesc = "The column names for the actual resultset does not match the column names " +
-                "of the expected resultset: " + expectedColumnNames.toString();
+                                   "of the expected resultset.";
         final String actualResultDesc = ResultSetFormatter.describeColumnNames(rs);
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedColumnNames.toString());
       }
 
       // Make a copy of the expected row list so we can remove entries from it as we match them.
@@ -71,7 +71,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
           final String comment = "There were more actual rows returned than expected rows.";
           final String actual  = ResultSetFormatter.describeCurrentRow(rs);
 
-          throw new ExpectedResultFailureException(opMetadata, comment, actual, this);
+          throw new ExpectedResultFailureException(opMetadata, comment, actual, "<no more rows>");
         }
 
 
@@ -100,22 +100,37 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
         // Actual row doesn't match any expected rows.
         final String commentDesc = "The actual row does not match any expected rows.";
         final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs);
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
       }
 
       // Are there any expected rows left over?
       if (!remainingExpectedRows.isEmpty()) {
+        String commentDesc = "There are no more actual rows to compare to the remaining expected rows.";
+
         StringBuilder sb = new StringBuilder(1024);
-        sb.append("There are no more actual rows to compare to the remaining expected rows:");
+        final int MAX_ROWS = 10;
+        int i = 0;
 
         for (ExpectedRow expectedRow : remainingExpectedRows) {
-          sb.append(System.lineSeparator());
+          if (++i > MAX_ROWS) {
+            continue;
+          }
+
+          if (i > 1) {
+            sb.append(System.lineSeparator());
+          }
+
           sb.append(expectedRow.toString());
         }
 
-        final String commentDesc = sb.toString();
+        if (i > MAX_ROWS) {
+          sb.append(System.lineSeparator());
+          sb.append("...and ").append(i - MAX_ROWS).append(" more rows.");
+        }
+
+        final String missingRows = sb.toString();
         final String actualDesc = "<no remaining rows>";
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, missingRows);
       }
 
       // All good!
@@ -123,7 +138,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
     } catch (SQLException e) {
       final String commentDesc = "An exception was received instead of returning a ResultSet.";
       final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
     }
   }
 
@@ -139,7 +154,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An affected row count was received instead of a ResultSet.";
     final String actualResultDesc = "Affected row count: " + updateCount;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -154,7 +169,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -170,7 +185,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe(), e);
   }
 
   /**
@@ -183,7 +198,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
   {
     final String commentDesc = "The operation did not return a ResultSet as expected.";
     final String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -198,6 +213,6 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An error message was received instead of a ResultSet.";
     final String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 }

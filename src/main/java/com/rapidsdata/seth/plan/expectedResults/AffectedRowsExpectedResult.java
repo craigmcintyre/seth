@@ -42,7 +42,7 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   {
     final String commentDesc = "A ResultSet was received instead of an affected row count.";
     final String actualDesc = "A ResultSet";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this.describe());
   }
 
   /**
@@ -58,7 +58,7 @@ public class AffectedRowsExpectedResult extends ExpectedResult
     if (affectedRowCount != updateCount) {
       final String commentDesc = "A different affected row count got returned.";
       final String actualResultDesc = "affected: " + updateCount;
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
     }
   }
 
@@ -75,7 +75,7 @@ public class AffectedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of an affected row count.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -92,7 +92,7 @@ public class AffectedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An exception was received instead of an affected row count.";
     final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this, e);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe(), e);
   }
 
   /**
@@ -106,7 +106,7 @@ public class AffectedRowsExpectedResult extends ExpectedResult
   {
     final String commentDesc = "The operation did not return an affected row count.";
     final String actualResultDesc = "success";
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -122,6 +122,6 @@ public class AffectedRowsExpectedResult extends ExpectedResult
     // Not what was expected.
     final String commentDesc = "An error message was received instead of an affected row count.";
     final String actualResultDesc = "Error message: " + msg;
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this);
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 }
