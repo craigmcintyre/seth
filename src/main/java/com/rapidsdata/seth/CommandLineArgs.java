@@ -56,6 +56,11 @@ public class CommandLineArgs
           usage     = "Just show message and continue on wrong result or exception failure.")
   public boolean nostop = false;
 
+  @Option(name      = "--record",
+      required      = false,
+      usage         = "For each operation, record the results and write the test and results to a new test file.")
+  public boolean recordResults = false;
+
   @Option(name      = "--clean",
           required  = false,
           usage     = "Removes all files and subdirectories from the resultdir before running the test. Default is not to do this.")

@@ -9,12 +9,10 @@ import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.plan.Plan;
 import com.rapidsdata.seth.plan.TestPlanner;
+import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.results.ResultWriter;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -57,6 +55,12 @@ public class TestSuite
 
     TestContext testContext = null;
 
+    List<TestAnnotationInfo> testsToAnnotate = null;
+
+    if (appContext.getCommandLineArgs().recordResults) {
+      testsToAnnotate = new ArrayList<>();
+    }
+
     try {
 
       // Iterate each test file
@@ -71,7 +75,7 @@ public class TestSuite
 
         // Parse each test file
         try {
-          plan = planner.newPlanFor(testFile, new ArrayList<File>());
+          plan = planner.newPlanFor(testFile, new ArrayList<File>(), testsToAnnotate);
 
         } catch (FileNotFoundException e) {
           testResult.setFailure(e);
@@ -108,6 +112,20 @@ public class TestSuite
 
         testContext = null;
       }
+
+      if (appContext.getCommandLineArgs().recordResults) {
+        for (TestAnnotationInfo testToAnnotate : testsToAnnotate) {
+
+          try {
+            testToAnnotate.annotate();
+          } catch (IOException e) {
+            String msg = "Could not annotate test: " + testToAnnotate.getOriginalTestFile().toString() +
+                         System.lineSeparator() + getStackTrace(e);
+            logger.error(msg);
+          }
+        }
+      }
+
     } catch (ExecutionException e) {
       // Thrown if the execution of a sub-task throws an exception.
       String stackTrace = "Unexpected internal exception encountered -" + System.lineSeparator() +

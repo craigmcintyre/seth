@@ -9,6 +9,11 @@ package com.rapidsdata.seth.exceptions;
  */
 public class SethBrownBagException extends SethSystemException
 {
+  public SethBrownBagException(String msg, Throwable t)
+  {
+    super(msg, t);
+  }
+
   public SethBrownBagException(Throwable t)
   {
     super(t);

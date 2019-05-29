@@ -7,15 +7,17 @@ import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethParser;
+import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.plan.expectedResults.*;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.*;
@@ -75,18 +77,25 @@ public class TestPlanGenerator extends SethBaseVisitor
   /** A set of column name definitions expected to be returned from an operation. May be null. */
   private ExpectedColumnNames expectedColumnNames;
 
+  /* A list of tests to be annotated with expected results. */
+  private List<TestAnnotationInfo> testsToAnnotate;
+
+  /** The current test to be annotated with new expected results. */
+  private TestAnnotationInfo testToAnnotate = null;
+
 
   /**
    * Constructor.
    * @param parser The parser we're using to parse the test file.
    * @param testFile The test file we're reading.
    */
-  public TestPlanGenerator(SethParser parser, File testFile, List<File> callStack, AppContext appContext)
+  public TestPlanGenerator(SethParser parser, File testFile, List<File> callStack, AppContext appContext, List<TestAnnotationInfo> testsToAnnotate)
   {
     this.parser = parser;
     this.testFile = testFile;
     this.callStack = callStack;
     this.appContext = appContext;
+    this.testsToAnnotate = testsToAnnotate;
   }
 
   /**
@@ -98,13 +107,15 @@ public class TestPlanGenerator extends SethBaseVisitor
                            File testFile,
                            List<File> callStack,
                            AppContext appContext,
-                           Deque<List<Operation>> currentOpQueueStack)
+                           Deque<List<Operation>> currentOpQueueStack,
+                           List<TestAnnotationInfo> testsToAnnotate)
   {
     this.parser = parser;
     this.testFile = testFile;
     this.callStack = callStack;
     this.appContext = appContext;
     this.currentOpQueueStack = currentOpQueueStack;
+    this.testsToAnnotate = testsToAnnotate;
   }
 
   /**
@@ -123,11 +134,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     return plan;
   }
 
-  /**
-   * Turns a parsed plan tree into a list of StatementOps.
-   * @param tree the parsed plan tree.
-   * @return a list of StatementOps representing the operations to be executed.
-   */
+
   public ExpectedResult generateExpectedResultFor(ParseTree tree)
   {
     visit(tree);
@@ -149,7 +156,16 @@ public class TestPlanGenerator extends SethBaseVisitor
     planStack.push(plan);
     currentOpQueueStack.push(testOps);
 
+    if (appContext.getCommandLineArgs().recordResults) {
+
+      // Make the output filename of the recorded results file.
+      Path outputTestFile = Paths.get(appContext.getCommandLineArgs().resultDir.getPath(), testFile.getName());
+      testToAnnotate = new TestAnnotationInfo(testFile.toPath(), outputTestFile);
+      testsToAnnotate.add(testToAnnotate);
+    }
+
     visitChildren(ctx);
+
     return null;
   }
 
@@ -218,10 +234,26 @@ public class TestPlanGenerator extends SethBaseVisitor
     } else {
       // We don't have an expected result, so lets add a "don't care" expected result.
       if (!gotIncludeStatement) {
-        Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
-        ExpectedResult expectedResult = new DontCareExpectedResult(op.metadata, appContext);
-        Operation newOp = op.rewriteWith(expectedResult);
-        currentOpQueueStack.peek().add(newOp);
+
+        if (appContext.getCommandLineArgs().recordResults) {
+          // We are recording the actual result instead.
+          // Record the file positions of the expected results to be removed from the original test file.
+          int startIdx = ctx.getStop().getStopIndex() + 1;
+          testToAnnotate.identifyExistingResult(startIdx, startIdx);
+
+          // Override the expected result with a RecordNewExpectedResult.
+          Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
+          ExpectedResult expectedResult = new RecordNewExpectedResult(op.metadata, appContext, testToAnnotate, startIdx);
+          Operation newOp = op.rewriteWith(expectedResult);
+          currentOpQueueStack.peek().add(newOp);
+
+        } else {
+          // Add a "don't care" expected result.
+          Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
+          ExpectedResult expectedResult = new DontCareExpectedResult(op.metadata, appContext);
+          Operation newOp = op.rewriteWith(expectedResult);
+          currentOpQueueStack.peek().add(newOp);
+        }
       }
     }
 
@@ -594,7 +626,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     try {
-      subPlan = planner.newPlanFor(includeFile, subCallStack);
+      subPlan = planner.newPlanFor(includeFile, subCallStack, testsToAnnotate);
 
     } catch (PlanningException e) {
       throw wrapException(e);
@@ -624,7 +656,23 @@ public class TestPlanGenerator extends SethBaseVisitor
     // Save the text of the expected result specified.
     currentExpectedResultDesc = parser.getTokenStream().getText(ctx.getStart(), ctx.getStop());
 
-    visitChildren(ctx);
+    if (appContext.getCommandLineArgs().recordResults) {
+      // Record the file positions of the expected results to be removed.
+      int startIdx = ctx.getStart().getStartIndex();
+      int stopIdx = ctx.getStop().getStopIndex() + 1;
+      testToAnnotate.identifyExistingResult(startIdx, stopIdx);
+
+      // Get the metadata for the last statement that was added.
+      List<Operation> opList = currentOpQueueStack.peek();
+      OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+      // Override the expected result with a RecordNewExpectedResult.
+      ExpectedResult er = new RecordNewExpectedResult(opMetadata, appContext, testToAnnotate, startIdx);
+      expectedResultStack.push(er);
+
+    } else {
+      visitChildren(ctx);
+    }
 
     currentExpectedResultDesc = null;
     return null;
@@ -687,7 +735,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     try {
-      er = planner.newExpectedResultFor(includeFile, subCallStack, currentOpQueueStack);
+      er = planner.newExpectedResultFor(includeFile, subCallStack, currentOpQueueStack, testsToAnnotate);
 
     } catch (PlanningException e) {
       throw wrapException(e);
@@ -1551,13 +1599,23 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   /**
-   * Wraps the PlanningException in an unchecked SethBrownBagException.
+   * Wraps the Exception in an unchecked SethBrownBagException.
    * @param e The exception to wrap.
    * @return The wrapped, unchecked, SethBrownBagException.
    */
-  private SethBrownBagException wrapException(PlanningException e)
+  private SethBrownBagException wrapException(Exception e)
   {
     return new SethBrownBagException(e);
+  }
+
+  /**
+   * Wraps the Exception in an unchecked SethBrownBagException.
+   * @param e The exception to wrap.
+   * @return The wrapped, unchecked, SethBrownBagException.
+   */
+  private SethBrownBagException wrapException(String msg, Exception e)
+  {
+    return new SethBrownBagException(msg, e);
   }
 
 

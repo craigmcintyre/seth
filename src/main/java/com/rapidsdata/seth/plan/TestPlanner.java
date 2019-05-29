@@ -6,6 +6,7 @@ import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
+import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -36,11 +37,13 @@ public class TestPlanner
    * Parses a testfile and returns a Plan instance representing it.
    * @param testFile The file to be parsed.
    * @param callStack the stack of files that are currently being parsed, resulting from file inclusions.
+   * @param testsToAnnotate a list that will be populated with tests to annotate. Can be null.
    * @return a Plan that can be executed.
    * @throws FileNotFoundException if the test file doesn't exist.
    * @throws PlanningException if there is a problem with the contents of the test file.
    */
-  public Plan newPlanFor(File testFile, List<File> callStack) throws FileNotFoundException, PlanningException
+  public Plan newPlanFor(File testFile, List<File> callStack, List<TestAnnotationInfo> testsToAnnotate)
+                         throws FileNotFoundException, PlanningException
   {
     if (!testFile.exists()) {
       throw new FileNotFoundException("File not found: " + testFile.getPath());
@@ -69,7 +72,7 @@ public class TestPlanner
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
-      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack, appContext);
+      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack, appContext, testsToAnnotate);
 
       plan = generator.generatePlanFor(tree); // This will typically throw SemanticExceptions,
                                           // but can also throw SyntaxExceptions from included files
@@ -94,13 +97,15 @@ public class TestPlanner
    * Parses a file containing an expected result and returns an ExpectedResult instance representing it.
    * @param resultFile The file to be parsed.
    * @param callStack the stack of files that are currently being parsed, resulting from file inclusions.
+   * @param testsToAnnotate a list that will be populated with tests to annotate. Can be null.
    * @return an ExpectedResult instance that can be compared.
    * @throws FileNotFoundException if the result file doesn't exist.
    * @throws PlanningException if there is a problem with the contents of the result file.
    */
   public ExpectedResult newExpectedResultFor(File resultFile,
                                              List<File> callStack,
-                                             Deque<List<Operation>> currentOpQueueStack)
+                                             Deque<List<Operation>> currentOpQueueStack,
+                                             List<TestAnnotationInfo> testsToAnnotate)
                         throws FileNotFoundException, PlanningException
   {
     if (!resultFile.exists()) {
@@ -130,7 +135,7 @@ public class TestPlanner
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
-      TestPlanGenerator generator = new TestPlanGenerator(parser, resultFile, callStack, appContext, currentOpQueueStack);
+      TestPlanGenerator generator = new TestPlanGenerator(parser, resultFile, callStack, appContext, currentOpQueueStack, testsToAnnotate);
 
       er = generator.generateExpectedResultFor(tree); // This will typically throw SemanticExceptions,
                                                       // but can also throw SyntaxExceptions from included files
