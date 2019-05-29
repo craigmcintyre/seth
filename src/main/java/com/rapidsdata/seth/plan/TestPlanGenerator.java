@@ -653,8 +653,35 @@ public class TestPlanGenerator extends SethBaseVisitor
   @Override
   public Void visitExpectedResult(SethParser.ExpectedResultContext ctx)
   {
+    final int MAX_EXPECTED_ROWS = 10;
+
     // Save the text of the expected result specified.
-    currentExpectedResultDesc = parser.getTokenStream().getText(ctx.getStart(), ctx.getStop());
+    // But we don't want to display huge expected results, so let's check how big they are before
+    // we formulate a description.
+    List<SethParser.RowDataContext> rowData = null;
+    if (ctx.unorderedRows() != null &&
+        ctx.unorderedRows().resultSet() != null &&
+        ctx.unorderedRows().resultSet().rowData() != null) {
+
+      rowData = ctx.unorderedRows().resultSet().rowData();
+
+    } else if (ctx.orderedRows() != null &&
+        ctx.orderedRows().resultSet() != null &&
+        ctx.orderedRows().resultSet().rowData() != null) {
+
+      rowData = ctx.orderedRows().resultSet().rowData();
+    }
+
+    if (rowData.size() > MAX_EXPECTED_ROWS) {
+      // Too big. Let's only show the first x rows.
+      SethParser.RowDataContext endContext = rowData.get(MAX_EXPECTED_ROWS);
+      currentExpectedResultDesc = parser.getTokenStream().getText(ctx.getStart(), endContext.getStop()) +
+                                  "\n...and " + (rowData.size() - MAX_EXPECTED_ROWS) + " more rows.";
+
+    } else {
+      // Just get the text, it should be small enough.
+      currentExpectedResultDesc = parser.getTokenStream().getText(ctx.getStart(), ctx.getStop());
+    }
 
     if (appContext.getCommandLineArgs().recordResults) {
       // Record the file positions of the expected results to be removed.
