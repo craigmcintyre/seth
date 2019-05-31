@@ -4,7 +4,7 @@ package com.rapidsdata.seth.plan.expectedResults;
 
 public enum ExpectedColumnType
 {
-  NULL              ("null"),
+  NULL              ("NULL"),
   BOOLEAN           (""),
   INTEGER           (""),
   DECIMAL           (""),

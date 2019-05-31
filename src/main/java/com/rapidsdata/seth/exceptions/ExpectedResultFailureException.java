@@ -76,18 +76,18 @@ public class ExpectedResultFailureException extends FailureException
     if (commentDesc != null) {
       sb.append(COMMENT_HEADING);
       sb.append(indent(commentDesc));
-      sb.append(System.lineSeparator());
-    }
-
-    if (expectedResultDesc != null) {
-      sb.append(EXPECTED_HEADING);
-      sb.append(indent(expectedResultDesc));
     }
 
     if (actualResultDesc != null) {
       sb.append(System.lineSeparator());
       sb.append(ACTUAL_HEADING);
       sb.append(indent(actualResultDesc));
+    }
+
+    if (expectedResultDesc != null) {
+      sb.append(System.lineSeparator());
+      sb.append(EXPECTED_HEADING);
+      sb.append(indent(expectedResultDesc));
     }
 
 

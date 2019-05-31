@@ -19,6 +19,9 @@ import java.util.List;
  */
 public class UnorderedRowsExpectedResult extends ExpectedResult
 {
+  private static final int MAX_NUM_ROWS_TO_SHOW = 10;
+  private static final int MAX_CLOSEST_MATCHES = 3;
+
   private final List<ExpectedRow> expectedRows;
   private final ExpectedColumnNames expectedColumnNames;
 
@@ -98,9 +101,106 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
         }
 
         // Actual row doesn't match any expected rows.
+
+        // Can we find the expected row from the unmatched expected row list that matches
+        // the actual row the closest.
+        List<ScoredExpectedRow> closestMatches = ExpectedRow.findClosestMatchOf(remainingExpectedRows,
+                                                                                rs,
+                                                                                appContext.getCommandLineArgs().round,
+                                                                                MAX_CLOSEST_MATCHES);
+
+        if (closestMatches.size() > 0) {
+
+          final String commentDesc = "The actual row does not match any expected rows. The " + closestMatches.size() +
+                                     " *estimated* closest expected rows are shown below.";
+
+          // Let's align the actual row and the expected rows. First we need to get the widths of them
+          int[] columnWidths = new int[rs.getMetaData().getColumnCount()];
+
+          for (int i = 0; i < columnWidths.length; i++) {
+            columnWidths[i] = 0;
+          }
+
+          // Update the widths based on the actual row...
+          ResultSetFormatter.updateColumnWidths(columnWidths, rs);
+
+          // ...and the expected rows.
+          for (ExpectedRow er : closestMatches) {
+            ResultSetFormatter.updateColumnWidths(columnWidths, er);
+          }
+
+          // Also get the desired padding position of each column so that we know how to pad things like nulls.
+          boolean[] padLeft = new boolean[columnWidths.length];
+          ResultSetFormatter.updatePadLeft(padLeft, rs);
+
+          // Now we can describe the actual row with these widths.
+          final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs, columnWidths);
+
+          // and the closest expected rows
+          StringBuilder sb = new StringBuilder(2048);
+          for (ScoredExpectedRow er : closestMatches) {
+            if (sb.length() > 0) {
+              sb.append(System.lineSeparator());
+            }
+
+            sb.append(er.toString(columnWidths, padLeft))
+              .append(String.format("  [Score: %.2f]", er.getScore()));
+          }
+
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, sb.toString());
+        }
+
+
+        // We could not compute the closest match, so simply show a subset of the expected rows instead.
         final String commentDesc = "The actual row does not match any expected rows.";
-        final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs);
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
+
+        // Let's align the actual row and the expected rows. First we need to get the widths of them
+        int[] columnWidths = new int[rs.getMetaData().getColumnCount()];
+
+        for (int i = 0; i < columnWidths.length; i++) {
+          columnWidths[i] = 0;
+        }
+
+        // Update the widths based on the actual row...
+        ResultSetFormatter.updateColumnWidths(columnWidths, rs);
+
+        // ...and the expected rows.
+        int count = 0;
+        for (ExpectedRow er : expectedRows) {
+          ResultSetFormatter.updateColumnWidths(columnWidths, er);
+          if (++count >= MAX_NUM_ROWS_TO_SHOW) {
+            break;
+          }
+        }
+
+        // Also get the desired padding position of each column so that we know how to pad things like nulls.
+        boolean[] padLeft = new boolean[columnWidths.length];
+        ResultSetFormatter.updatePadLeft(padLeft, rs);
+
+        // Now we can describe the actual row with these widths.
+        final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs, columnWidths);
+
+        // And some of the expected rows
+        count = 0;
+        StringBuilder sb = new StringBuilder(1024);
+        for (ExpectedRow er : expectedRows) {
+          if (sb.length() > 0) {
+            sb.append(System.lineSeparator());
+          }
+
+          sb.append(er.toString(columnWidths, padLeft));
+
+          if (++count >= MAX_NUM_ROWS_TO_SHOW) {
+            break;
+          }
+        }
+
+        int excessRows = expectedRows.size() - MAX_NUM_ROWS_TO_SHOW;
+        if (excessRows > 0) {
+          sb.append(System.lineSeparator()).append("...and ").append(excessRows).append(" more expected rows.");
+        }
+
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, sb.toString());
       }
 
       // Are there any expected rows left over?
@@ -108,11 +208,10 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
         String commentDesc = "There are no more actual rows to compare to the remaining expected rows.";
 
         StringBuilder sb = new StringBuilder(1024);
-        final int MAX_ROWS = 10;
         int i = 0;
 
         for (ExpectedRow expectedRow : remainingExpectedRows) {
-          if (++i > MAX_ROWS) {
+          if (++i > MAX_NUM_ROWS_TO_SHOW) {
             continue;
           }
 
@@ -120,12 +219,13 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
             sb.append(System.lineSeparator());
           }
 
+          // TODO: align all these rows.
           sb.append(expectedRow.toString());
         }
 
-        if (i > MAX_ROWS) {
+        if (i > MAX_NUM_ROWS_TO_SHOW) {
           sb.append(System.lineSeparator());
-          sb.append("...and ").append(i - MAX_ROWS).append(" more rows.");
+          sb.append("...and ").append(i - MAX_NUM_ROWS_TO_SHOW).append(" more expected rows.");
         }
 
         final String missingRows = sb.toString();

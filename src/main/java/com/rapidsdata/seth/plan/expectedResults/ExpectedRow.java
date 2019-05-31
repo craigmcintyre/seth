@@ -11,7 +11,7 @@ import java.math.RoundingMode;
 import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.*;
 
 public class ExpectedRow
 {
@@ -22,6 +22,12 @@ public class ExpectedRow
   {
     this.columnDefs = columnDefs;
     this.columnValues = columnValues;
+  }
+
+  public ExpectedRow(ExpectedRow er)
+  {
+    this.columnDefs = er.columnDefs;
+    this.columnValues = er.columnValues;
   }
 
   /**
@@ -198,70 +204,175 @@ public class ExpectedRow
 
 
   /**
-   * Returns a string representation of this expected row.
-   * @return a string representation of this expected row.
+   * Returns a string representation of this expected row, where the columns are padded according to
+   * the widths in the columnWidths argument.
+   * @param columnWidths the maximum width to pad to for each column, or null if padding is to be ignored.
+   * @param padLefts an array with values for each column indicating if we should add padding to the
+   *                left of the value if true, or to the right of the value if false.
+   * @return a string representation of this expected row
    */
-  public String toString()
+  public String toString(int[] columnWidths, boolean[] padLefts)
   {
+    if (columnWidths == null) {
+      columnWidths = new int[columnDefs.size()];
+      for (int i = 0; i < columnDefs.size(); i++) {
+        columnWidths[i] = 0;
+      }
+    }
+
+    if (padLefts == null) {
+      padLefts = getNaturalPaddingDirections();
+    }
+
+    String columnVal;
+    int padding;
+
     StringBuilder sb = new StringBuilder(128);
 
     sb.append('(');
 
-    for (int index = 0; index < columnDefs.size(); index++) {
+    for (int colIndex = 0; colIndex < columnDefs.size(); colIndex++) {
 
-      ExpectedColumnType type = columnDefs.get(index);
-      Object val = columnValues.get(index);
+      ExpectedColumnType type = columnDefs.get(colIndex);
+      Object objectVal = columnValues.get(colIndex);
+      boolean padLeft = padLefts[colIndex];
 
       switch (type) {
         case NULL:
         case DONT_CARE:
         case IGNORE_REMAINING:
-          sb.append(type.getCode());
+          columnVal = type.getCode();
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
         case BOOLEAN:
-        case INTEGER:
-          sb.append(val.toString());
+          columnVal = objectVal.toString();
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
+        case INTEGER:
         case FLOAT:
-          // Floats are stored as ComparableFloat objects so we can retain the precision.
-          sb.append(val.toString());
+          columnVal = objectVal.toString();
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
 
         case DECIMAL:
-          sb.append(((BigDecimal) val).toPlainString());
+          columnVal = ((BigDecimal) objectVal).toPlainString();
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
         case STRING:
-          sb.append("'");
-          sb.append(val);
-          sb.append("'");
+          columnVal = objectVal.toString();
+          padding = columnWidths[colIndex] - (columnVal.length() + 2);
+
+          if (!padLeft) {
+            sb.append("'").append(columnVal).append("'");
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append("'").append(columnVal).append("'");
+          }
           break;
 
         case DATE:
-          LocalDate localDate = (LocalDate) val;
-          sb.append("DATE '");
-          sb.append(localDate.toString());
-          sb.append("'");
+          LocalDate localDate = (LocalDate) objectVal;
+
+          columnVal = "DATE '" + localDate.toString() + "'";
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
         case TIME:
-          LocalTime localTime = (LocalTime) val;
-          sb.append("TIME '");
-          sb.append(localTime.toString());
-          sb.append("'");
+          LocalTime localTime = (LocalTime) objectVal;
+
+          columnVal = "TIME '" + localTime.toString() + "'";
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
         case TIMESTAMP:
-          LocalDateTime localDateTime = (LocalDateTime) val;
+          LocalDateTime localDateTime = (LocalDateTime) objectVal;
           DateTimeFormatter dtf = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
-          sb.append("TIMESTAMP '");
-          sb.append(localDateTime.format(dtf));
+
+          columnVal = "TIMESTAMP '" + localDateTime.format(dtf);
 
           if (localDateTime.getNano() != 0) {
-            sb.append('.');
+            columnVal += '.';
 
             // Don't show trailing zeros of fractional seconds.
             long fractionalSecs = localDateTime.getNano();
@@ -269,14 +380,42 @@ public class ExpectedRow
               fractionalSecs = fractionalSecs / 10;
             }
 
-            sb.append(fractionalSecs);
+            columnVal += String.valueOf(fractionalSecs);
           }
 
-          sb.append("'");
+          columnVal += "'";
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
         case INTERVAL:
-          formatInterval(sb, val);
+          StringBuilder tempSb = new StringBuilder(128);
+          formatInterval(tempSb, objectVal);
+          columnVal = tempSb.toString();
+          padding = columnWidths[colIndex] - columnVal.length();
+
+          if (!padLeft) {
+            sb.append(columnVal);
+          }
+
+          for (int j = 0; j < padding; j++) {
+            sb.append(' ');
+          }
+
+          if (padLeft) {
+            sb.append(columnVal);
+          }
           break;
 
         default:
@@ -292,6 +431,105 @@ public class ExpectedRow
     sb.append(')');
 
     return sb.toString();
+  }
+
+  /**
+   * Returns a string representation of this expected row.
+   * @return a string representation of this expected row.
+   */
+  public String toString()
+  {
+    return toString(null, null);
+  }
+
+  /** @returns the width of a column when printed to a string. */
+  public int columnWidth(int col)
+  {
+    if (col > columnDefs.size()) {
+      return 0;
+    }
+
+    ExpectedColumnType type = columnDefs.get(col);
+    Object val = columnValues.get(col);
+
+    switch (type) {
+      case NULL:
+      case DONT_CARE:
+      case IGNORE_REMAINING:
+        return type.getCode().length();
+
+      case BOOLEAN:
+      case INTEGER:
+      case FLOAT:
+        return val.toString().length();
+
+      case DECIMAL:
+        return ((BigDecimal) val).toPlainString().length();
+
+      case STRING:
+        return val.toString().replace("'", "''").length() + 2;  // for quotes
+
+      case DATE:
+        LocalDate localDate = (LocalDate) val;
+        return localDate.toString().length() + 7; // for "DATE '" + "'"
+
+      case TIME:
+        LocalTime localTime = (LocalTime) val;
+        return localTime.toString().length() + 7; // for "TIME '" + "'"
+
+      case TIMESTAMP:
+        LocalDateTime localDateTime = (LocalDateTime) val;
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
+        int len = localDateTime.format(dtf).length() + 12; // for "TIMESTAMP '" + "'"
+
+        if (localDateTime.getNano() != 0) {
+          // Don't show trailing zeros of fractional seconds.
+          long fractionalSecs = localDateTime.getNano();
+          while (fractionalSecs % 10 == 0) {
+            fractionalSecs = fractionalSecs / 10;
+          }
+
+          len += String.valueOf(fractionalSecs).length() + 1;  // for "."
+        }
+
+        return len;
+
+      case INTERVAL:
+        StringBuilder sb = new StringBuilder(128);
+        formatInterval(sb, val);
+        return sb.toString().length();
+
+      default:
+        throw new SethSystemException("Unhandled data type: " + type.name());
+    }
+  }
+
+  /**
+   * Returns an array of booleans that indicate the natural padding location for each expected column in
+   * the definition. A value of true means pad to the left of the column value.
+   * @return
+   */
+  private boolean[] getNaturalPaddingDirections()
+  {
+    boolean[] padLefts = new boolean[columnDefs.size()];
+
+    for (int i = 0; i < columnDefs.size(); i++) {
+      ExpectedColumnType type = columnDefs.get(i);
+
+      switch (type) {
+
+        case INTEGER:
+        case DECIMAL:
+        case FLOAT:
+          padLefts[i] = false;
+          break;
+
+        default:
+          padLefts[i] = true;
+      }
+    }
+
+    return padLefts;
   }
 
   /**
@@ -454,5 +692,208 @@ public class ExpectedRow
     }
 
     return intervalType;
+  }
+
+  /**
+   * Calculates a score that represents the distance that this expected row is from an actual row in the ResultSet.
+   * @param rs the ResultSet that is pointing to an actual row.
+   * @return the score. A perfect score would be 0.
+   */
+  private double distanceFrom(ResultSet rs, int rounding) throws SQLException
+  {
+    // The accumulated score for a final geometric mean result.
+    double cumulativeScore = 1f;
+
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    int actualColumnCount = rsmd.getColumnCount();
+    int expectedColumnDefCount = columnDefs.size();
+
+    // If the last column definition is not '...' then the number of expected columns
+    // should equal the number of actual columns.
+    if (columnDefs.get(expectedColumnDefCount - 1) != ExpectedColumnType.IGNORE_REMAINING &&
+        actualColumnCount != expectedColumnDefCount) {
+      // Not enough information to compute a score.
+      return -1f;
+    }
+
+    // Compare column by column
+    int defIndex = -1;
+
+    while (++defIndex < columnDefs.size()) {
+
+      ExpectedColumnType type = columnDefs.get(defIndex);
+      int rsIndex = defIndex + 1; // rs.getXXXX() uses 1-based indexes.
+
+      if (type == ExpectedColumnType.IGNORE_REMAINING) {
+        // We don't care about comparing this column or any other remaining ones.
+        break;
+      }
+
+      if (defIndex + 1 > actualColumnCount) {
+        // We received less actual columns than we were expecting.
+        // Not enough information to compute a score.
+        return -1f;
+      }
+
+
+      Object expectedVal = columnValues.get(defIndex);
+      Object actualVal = rs.getObject(rsIndex);
+      boolean wasNull = rs.wasNull();
+      double columnScore;
+
+      switch (type) {
+        case DONT_CARE:
+          // We don't care about comparing this column.
+          columnScore = 0f;
+          break;
+
+        case NULL:
+          if (!wasNull) { columnScore = ERScoring.compareNullWith(actualVal); }
+          else          { columnScore = 0f; }
+          break;
+
+        case BOOLEAN:
+          boolean expectedBoolean = (boolean) expectedVal;
+          if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedBoolean); }
+          else            { columnScore = ERScoring.compare(rs.getBoolean(rsIndex), expectedBoolean); }
+          break;
+
+        case INTEGER:
+          long expectedLong = (long) expectedVal;
+          if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedLong); }
+          else            { columnScore = ERScoring.compare(rs.getLong(rsIndex), expectedLong); }
+          break;
+
+        case DECIMAL:
+          BigDecimal expectedDecimal = (BigDecimal) expectedVal;
+          if (wasNull)  {
+            columnScore = ERScoring.compareWithNull(expectedDecimal);
+
+          } else {
+            if (rounding == CommandLineArgs.NO_ROUNDING) {
+              columnScore = ERScoring.compare(rs.getBigDecimal(rsIndex), expectedDecimal);
+
+            } else {
+              // Round the numbers and compare as decimals
+              MathContext mc = new MathContext(rounding, RoundingMode.HALF_UP);
+              BigDecimal bd1 = rs.getBigDecimal(rsIndex).round(mc);
+              BigDecimal bd2 = expectedDecimal.round(mc);
+              columnScore = ERScoring.compare(bd1, bd2);
+            }
+          }
+          break;
+
+        case FLOAT:
+          ComparableFloat cf = (ComparableFloat) expectedVal;
+          if (rounding == CommandLineArgs.NO_ROUNDING) {
+            if (wasNull)    { columnScore = ERScoring.compareWithNull(cf.toDouble()); }
+            else            { columnScore = ERScoring.compare(rs.getDouble(rsIndex), cf.toDouble()); }
+
+          } else {
+            // Round the numbers and compare as decimals
+            MathContext mc = new MathContext(rounding, RoundingMode.HALF_UP);
+            BigDecimal bd1 = rs.getBigDecimal(rsIndex).round(mc);
+            BigDecimal bd2 = cf.toBigDecimal().round(mc);
+
+            if (wasNull)    { columnScore = ERScoring.compareWithNull(bd1); }
+            else            { columnScore = ERScoring.compare(bd1, bd2); }
+          }
+          break;
+
+        case STRING:
+          String expectedString = (String) expectedVal;
+          if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedString); }
+          else            { columnScore = ERScoring.compare(rs.getString(rsIndex), expectedString); }
+          break;
+
+        case DATE:
+          LocalDate expectedDate = (LocalDate) expectedVal;
+          if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedDate); }
+          else            { columnScore = ERScoring.compare(rs.getDate(rsIndex).toLocalDate(), expectedDate); }
+          break;
+
+        case TIME:
+          LocalTime expectedTime = (LocalTime) expectedVal;
+          if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedTime); }
+          else            { columnScore = ERScoring.compare(rs.getTime(rsIndex).toLocalTime(), expectedTime); }
+          break;
+
+        case TIMESTAMP:
+          LocalDateTime expectedTsp = (LocalDateTime) expectedVal;
+          if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedTsp); }
+          else            { columnScore = ERScoring.compare(rs.getTimestamp(rsIndex).toLocalDateTime(), expectedTsp); }
+          break;
+
+        case INTERVAL:
+          throw new SethSystemException("Interval not yet implemented.");
+          // year-month intervals are represented by Period classes.
+          // day-time intevals are represented by Duration classes.
+          //break;
+
+        case IGNORE_REMAINING: // Falls through
+        default:
+          throw new SethSystemException("Unhandled column type: " + type.name());
+      }
+
+      // Combine with the cumulative score. We add 1 to all column scores so that a value of 0 does not
+      // affect the whole result.
+      cumulativeScore = cumulativeScore * (columnScore + 1);
+    }
+
+    // Calculate the final score by taking the nth root of the cumulative score, where n is
+    // the number of columns in the actual result.
+    // Taking the nth root is the same as raising to the power of 1/n, however this can be
+    // inaccurate. A better way is to use the equivalence
+    //
+    //   x^(1/n) == e^(ln(x)/n)
+    //
+    // We subtract one from the end because we added one to each column score in order to avoid
+    // a multiplication by zero.
+    double finalScore = Math.pow(Math.E, Math.log(cumulativeScore)/actualColumnCount) - 1;
+    return finalScore;
+  }
+
+
+  /**
+   * Returns the ExpectedRow that most closely matches the row that the ResultSet argument is currently set at.
+   * @param expectedRows the list of ExpectedRows to be compared.
+   * @param rs an actual ResultSet, set at the current row to be compared.
+   * @param rounding the number of decimal places of rounding to apply to floats/decimals before comparing them.
+   * @param maxNumRows the maximum number of rows to be returned.
+   * @return A list of ScoredExpectedRows that most closely matches the actual row, in descending order.
+   */
+  public static List<ScoredExpectedRow> findClosestMatchOf(List<ExpectedRow> expectedRows, ResultSet rs, int rounding, int maxNumRows)
+                                                          throws SQLException
+  {
+    assert (expectedRows.size() > 0);
+
+    if (expectedRows.size() == 1) {
+      List<ScoredExpectedRow> matchedRowsList = new ArrayList<>();
+      matchedRowsList.add(new ScoredExpectedRow(1, 0, expectedRows.get(0)));
+      return matchedRowsList;
+    }
+
+    int i = 0;
+    SortedSet<ScoredExpectedRow> sortedSet = new TreeSet<>();
+
+    for (ExpectedRow er : expectedRows) {
+      // calculate the Levenstein-like distance of this expected row to the actual row.
+      double score = er.distanceFrom(rs, rounding);
+
+      if (score >= 0f) {
+        ScoredExpectedRow scoredExpectedRow = new ScoredExpectedRow(score, i++, er);
+        sortedSet.add(scoredExpectedRow);
+      }
+    }
+
+    List<ScoredExpectedRow> matchedRowsList = new ArrayList<>();
+    Iterator<ScoredExpectedRow> iterator = sortedSet.iterator();
+
+    while (iterator.hasNext() && matchedRowsList.size() < maxNumRows) {
+      matchedRowsList.add(iterator.next());
+    }
+
+    return matchedRowsList;
   }
 }

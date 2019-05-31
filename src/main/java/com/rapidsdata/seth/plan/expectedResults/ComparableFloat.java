@@ -152,6 +152,22 @@ public class ComparableFloat
     return sigDigits;
   }
 
+  /**
+   * @return an approximate representation of this value.
+   */
+  public double toDouble()
+  {
+    return Double.parseDouble(originalValue);
+  }
+
+  /**
+   * @return as a BigDecimal representation.
+   */
+  public BigDecimal toBigDecimal()
+  {
+    return expectedBigDecimal;
+  }
+
   @Override
   public String toString()
   {
