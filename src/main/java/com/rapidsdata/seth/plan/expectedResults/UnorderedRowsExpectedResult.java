@@ -17,13 +17,9 @@ import java.util.List;
  * An expected result class where we expect the operation to have returned a set of rows
  * that is probably not in the same order as they are specified here.
  */
-public class UnorderedRowsExpectedResult extends ExpectedResult
+public class UnorderedRowsExpectedResult extends RowDataExpectedResult
 {
-  private static final int MAX_NUM_ROWS_TO_SHOW = 10;
-  private static final int MAX_CLOSEST_MATCHES = 3;
-
-  private final List<ExpectedRow> expectedRows;
-  private final ExpectedColumnNames expectedColumnNames;
+  protected static final int MAX_CLOSEST_MATCHES = 3;
 
   /**
    * Constructor
@@ -39,9 +35,7 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
                                      List<ExpectedRow> expectedRows,
                                      ExpectedColumnNames expectedColumnNames)
   {
-    super(ExpectedResultType.UNORDERED_ROWS, description, opMetadata, appContext);
-    this.expectedRows = expectedRows;
-    this.expectedColumnNames = expectedColumnNames;
+    super(ExpectedResultType.UNORDERED_ROWS, description, opMetadata, appContext, expectedRows, expectedColumnNames);
   }
 
   /**
@@ -76,7 +70,6 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
 
           throw new ExpectedResultFailureException(opMetadata, comment, actual, "<no more rows>");
         }
-
 
         Iterator<ExpectedRow> erIterator = remainingExpectedRows.iterator();
         boolean gotMatch = false;
@@ -114,123 +107,42 @@ public class UnorderedRowsExpectedResult extends ExpectedResult
           final String commentDesc = "The actual row does not match any expected rows. The " + closestMatches.size() +
                                      " *estimated* closest expected rows are shown below.";
 
-          // Let's align the actual row and the expected rows. First we need to get the widths of them
-          int[] columnWidths = new int[rs.getMetaData().getColumnCount()];
-
-          for (int i = 0; i < columnWidths.length; i++) {
-            columnWidths[i] = 0;
-          }
-
-          // Update the widths based on the actual row...
-          ResultSetFormatter.updateColumnWidths(columnWidths, rs);
-
-          // ...and the expected rows.
-          for (ExpectedRow er : closestMatches) {
-            ResultSetFormatter.updateColumnWidths(columnWidths, er);
-          }
-
-          // Also get the desired padding position of each column so that we know how to pad things like nulls.
-          boolean[] padLeft = new boolean[columnWidths.length];
-          ResultSetFormatter.updatePadLeft(padLeft, rs);
+          // Align the actual result and the expected results.
+          AlignmentInfo alignment = ResultSetFormatter.alignRows(rs, closestMatches);
 
           // Now we can describe the actual row with these widths.
-          final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs, columnWidths);
+          final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs, alignment.columnWidths);
 
           // and the closest expected rows
-          StringBuilder sb = new StringBuilder(2048);
-          for (ScoredExpectedRow er : closestMatches) {
-            if (sb.length() > 0) {
-              sb.append(System.lineSeparator());
-            }
+          final String expectedResultDesc = ResultSetFormatter.describeExpectedRows(closestMatches, alignment, MAX_NUM_ROWS_TO_SHOW);
 
-            sb.append(er.toString(columnWidths, padLeft))
-              .append(String.format("  [Score: %.2f]", er.getScore()));
-          }
-
-          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, sb.toString());
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedResultDesc);
         }
 
-
+        // closestMatches.size() is 0.
         // We could not compute the closest match, so simply show a subset of the expected rows instead.
         final String commentDesc = "The actual row does not match any expected rows.";
 
-        // Let's align the actual row and the expected rows. First we need to get the widths of them
-        int[] columnWidths = new int[rs.getMetaData().getColumnCount()];
-
-        for (int i = 0; i < columnWidths.length; i++) {
-          columnWidths[i] = 0;
-        }
-
-        // Update the widths based on the actual row...
-        ResultSetFormatter.updateColumnWidths(columnWidths, rs);
-
-        // ...and the expected rows.
-        int count = 0;
-        for (ExpectedRow er : expectedRows) {
-          ResultSetFormatter.updateColumnWidths(columnWidths, er);
-          if (++count >= MAX_NUM_ROWS_TO_SHOW) {
-            break;
-          }
-        }
-
-        // Also get the desired padding position of each column so that we know how to pad things like nulls.
-        boolean[] padLeft = new boolean[columnWidths.length];
-        ResultSetFormatter.updatePadLeft(padLeft, rs);
+        List<ExpectedRow> displayableRows = expectedRows.subList(0, Math.min(MAX_NUM_ROWS_TO_SHOW, expectedRows.size()));
+        AlignmentInfo alignment = ResultSetFormatter.alignRows(rs, displayableRows);
 
         // Now we can describe the actual row with these widths.
-        final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs, columnWidths);
+        final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs, alignment.columnWidths);
 
         // And some of the expected rows
-        count = 0;
-        StringBuilder sb = new StringBuilder(1024);
-        for (ExpectedRow er : expectedRows) {
-          if (sb.length() > 0) {
-            sb.append(System.lineSeparator());
-          }
+        final String expectedResultDesc = ResultSetFormatter.describeExpectedRows(expectedRows, alignment, MAX_NUM_ROWS_TO_SHOW);
 
-          sb.append(er.toString(columnWidths, padLeft));
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedResultDesc);
+      } // for each actual row
 
-          if (++count >= MAX_NUM_ROWS_TO_SHOW) {
-            break;
-          }
-        }
-
-        int excessRows = expectedRows.size() - MAX_NUM_ROWS_TO_SHOW;
-        if (excessRows > 0) {
-          sb.append(System.lineSeparator()).append("...and ").append(excessRows).append(" more expected rows.");
-        }
-
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, sb.toString());
-      }
 
       // Are there any expected rows left over?
       if (!remainingExpectedRows.isEmpty()) {
         String commentDesc = "There are no more actual rows to compare to the remaining expected rows.";
 
-        StringBuilder sb = new StringBuilder(1024);
-        int i = 0;
-
-        for (ExpectedRow expectedRow : remainingExpectedRows) {
-          if (++i > MAX_NUM_ROWS_TO_SHOW) {
-            continue;
-          }
-
-          if (i > 1) {
-            sb.append(System.lineSeparator());
-          }
-
-          // TODO: align all these rows.
-          sb.append(expectedRow.toString());
-        }
-
-        if (i > MAX_NUM_ROWS_TO_SHOW) {
-          sb.append(System.lineSeparator());
-          sb.append("...and ").append(i - MAX_NUM_ROWS_TO_SHOW).append(" more expected rows.");
-        }
-
-        final String missingRows = sb.toString();
+        final String expectedRowsDesc = ResultSetFormatter.describeExpectedRows(rs.getMetaData(), remainingExpectedRows, MAX_NUM_ROWS_TO_SHOW);
         final String actualDesc = "<no remaining rows>";
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, missingRows);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, expectedRowsDesc);
       }
 
       // All good!

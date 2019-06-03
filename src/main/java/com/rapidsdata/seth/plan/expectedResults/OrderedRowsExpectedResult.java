@@ -9,14 +9,13 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 
 /** An expected result class where we expect the operation to have returned an ordered set of rows. */
-public class OrderedRowsExpectedResult extends ExpectedResult
+public class OrderedRowsExpectedResult extends RowDataExpectedResult
 {
-  private final List<ExpectedRow> expectedRows;
-  private final ExpectedColumnNames expectedColumnNames;
 
   /**
    * Constructor
@@ -32,9 +31,7 @@ public class OrderedRowsExpectedResult extends ExpectedResult
                                    List<ExpectedRow> expectedRows,
                                    ExpectedColumnNames expectedColumnNames)
   {
-    super(ExpectedResultType.ORDERED_ROWS, description, opMetadata, appContext);
-    this.expectedRows = expectedRows;
-    this.expectedColumnNames = expectedColumnNames;
+    super(ExpectedResultType.ORDERED_ROWS, description, opMetadata, appContext, expectedRows, expectedColumnNames);
   }
 
   /**
@@ -55,39 +52,41 @@ public class OrderedRowsExpectedResult extends ExpectedResult
         throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedColumnNames.toString());
       }
 
+      int erIndex = -1;
       for (ExpectedRow expectedRow : expectedRows) {
+        ++erIndex;
+
         if (!rs.next()) {
-          final String commentDesc = "There are no more actual rows to compare to the expected row.";
+          final String commentDesc = "There are no more actual rows to compare to the expected rows.";
           final String actualResultDesc = "<no remaining rows>";
-          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedRow.toString());
+          final String expectedRowsDesc = ResultSetFormatter.describeExpectedRows(rs.getMetaData(),
+                                                                                  expectedRows.subList(erIndex, expectedRows.size()),
+                                                                                  MAX_NUM_ROWS_TO_SHOW);
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedRowsDesc);
         }
 
         if (!expectedRow.compareTo(rs, appContext.getCommandLineArgs().round)) {
           final String commentDesc = "The actual row does not match the expected row.";
-          final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs);
 
-          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedRow.toString());
+          List<ExpectedRow> expectedRows = new ArrayList<ExpectedRow>();
+          expectedRows.add(expectedRow);
+          AlignmentInfo alignment = ResultSetFormatter.alignRows(rs, expectedRows);
+
+          final String actualResultDesc = ResultSetFormatter.describeCurrentRow(rs, alignment.columnWidths);
+          final String expectedRowDesc  = ResultSetFormatter.describeExpectedRows(expectedRows, alignment, MAX_NUM_ROWS_TO_SHOW);
+
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedRowDesc);
         }
       }
 
       // Are there more actual rows compared to expected rows?
-      StringBuilder sb = null;
-      final String commentDesc = "There are more actual rows than expected rows.";
-
-      while (rs.next()) {
-        if (sb == null) {
-          sb = new StringBuilder(1024);
-        }
-
-        if (sb.length() > 0) {
-          sb.append(System.lineSeparator());
-        }
-        sb.append(ResultSetFormatter.describeCurrentRow(rs));
+      if (rs.next()) {
+        final String commentDesc = "There are more actual rows than expected rows.";
+        final String actualResultDesc = ResultSetFormatter.describeRemainingActualRows(rs, MAX_NUM_ROWS_TO_SHOW);
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, "<no more expected rows>");
       }
 
-      if (sb != null) {
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, sb.toString(), "<no more rows>");
-      }
+      // All good
 
     } catch (SQLException e) {
       final String commentDesc = "An exception was received instead of a ResultSet.";

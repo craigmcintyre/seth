@@ -30,6 +30,11 @@ public class ExpectedRow
     this.columnValues = er.columnValues;
   }
 
+  public List<ExpectedColumnType> getColumnDefs()
+  {
+    return columnDefs;
+  }
+
   /**
    * Compares the expected row to the row that the cursor is at in the ResultSet parameter.
    * @param rs The resultset which has the cursor on the current row to be compared.
