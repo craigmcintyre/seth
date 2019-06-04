@@ -23,6 +23,7 @@ sethStatement     : compoundStatements | singularStatements ;
 
 compoundStatements : loopStatement
                    | createThreadStatement
+                   | shuffleStatement
                    ;
 
 singularStatements : (  sleepStatement
@@ -39,6 +40,7 @@ loopStatement       : LOOP  (countedLoopStatement | timedLoopStatement);
 timedLoopStatement  : FOR count=INT (HOURS | MINUTES | SECONDS | MILLISECONDS) statementBlock;
 countedLoopStatement: ( loopCount=INT )? statementBlock;
 createThreadStatement : CREATE (THREAD | (threadCount=INT (THREADS | THREAD))) testFileBlock ;
+shuffleStatement    : SHUFFLE statementBlock;
 
 sleepStatement      : SLEEP  millis=INT ;
 logStatement        : LOG  logStr=STR ;
@@ -163,6 +165,7 @@ RESULT                : R E S U L T;
 ROWS                  : R O W S;
 SECONDS               : S E C O N D S;
 SECOND                : S E C O N D;
+SHUFFLE               : S H U F F L E;
 SLEEP                 : S L E E P;
 SUCCESS               : S U C C E S S;
 SUFFIX                : S U F F I X;

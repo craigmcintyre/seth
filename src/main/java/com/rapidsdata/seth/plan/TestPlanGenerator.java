@@ -420,6 +420,38 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitShuffleStatement(SethParser.ShuffleStatementContext ctx)
+  {
+    // Create a new plan for the shuffled operations to be put into and push it onto the stack.
+    // Also push the currentOpQueue, which is the queue of testOps, onto a stack too.
+    List<Operation> shuffleOps = new LinkedList<>();
+    List<Operation> cleanupOps = new LinkedList<>();
+    Plan plan = new Plan(testFile, shuffleOps, cleanupOps);
+
+    planStack.push(plan);
+    currentOpQueueStack.push(shuffleOps);
+
+    // Rewrite the operation description so it doesn't contain all the loop operations.
+    OperationMetadata originalOpMetadata = opMetadataStack.pop();
+    String desc = originalOpMetadata.getDescription();
+    desc = desc.substring(0, desc.indexOf('{') + 1) + " ... }";
+    OperationMetadata newOpMetadata = originalOpMetadata.rewriteWith(desc);
+    opMetadataStack.push(newOpMetadata);
+
+    visitChildren(ctx);
+
+    newOpMetadata = opMetadataStack.pop();
+    Plan statementBlock = planStack.pop();
+    currentOpQueueStack.pop();
+
+    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext);
+    Operation op = new ShuffleOp(newOpMetadata, expectedResult, statementBlock.getTestOperations());
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
   public Void visitSleepStatement(SethParser.SleepStatementContext ctx)
   {
     visitChildren(ctx);
