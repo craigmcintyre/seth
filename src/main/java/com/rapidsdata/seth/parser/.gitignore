@@ -6,3 +6,5 @@ SethLexer.tokens
 SethListener.java
 SethParser.java
 SethVisitor.java
+Seth.interp
+SethLexer.interp
