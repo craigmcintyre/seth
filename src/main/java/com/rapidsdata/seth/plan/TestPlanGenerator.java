@@ -704,7 +704,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       rowData = ctx.orderedRows().resultSet().rowData();
     }
 
-    if (rowData.size() > MAX_EXPECTED_ROWS) {
+    if (rowData != null && rowData.size() > MAX_EXPECTED_ROWS) {
       // Too big. Let's only show the first x rows.
       SethParser.RowDataContext endContext = rowData.get(MAX_EXPECTED_ROWS);
       currentExpectedResultDesc = parser.getTokenStream().getText(ctx.getStart(), endContext.getStop()) +

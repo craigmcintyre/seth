@@ -271,7 +271,21 @@ public class RecordNewExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsUpdateCount(long updateCount) throws FailureException
   {
-    String expectedResult = "affected: " + updateCount;
+    String expectedResult;
+
+    String cmd = opMetadata.getDescription().toLowerCase().trim();
+
+    if (updateCount != 0 ||
+        cmd.startsWith("insert into") ||
+        cmd.startsWith("update") ||
+        cmd.startsWith("delete from")) {
+
+      expectedResult = "affected: " + updateCount;
+
+    } else {
+      expectedResult = "success";
+    }
+
     testToAnnotate.addNewExpectedResult(erIndex, expectedResult);
   }
 

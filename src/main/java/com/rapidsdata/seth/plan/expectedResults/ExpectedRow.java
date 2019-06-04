@@ -111,7 +111,7 @@ public class ExpectedRow
 
         case FLOAT:
           // Compare floating points up to the requested level of precision
-          if (wasNull || !equalRounded(expectedVal, rs.getString(rsIndex), rounding)) {
+          if (wasNull || !equalRounded((ComparableFloat) expectedVal, rs.getString(rsIndex), rounding)) {
             return false;
           }
           break;
@@ -192,19 +192,18 @@ public class ExpectedRow
   }
 
 
-  private boolean equalRounded(Object x, String y, int round)
+  private boolean equalRounded(ComparableFloat cf, String y, int round)
   {
     if (round == CommandLineArgs.NO_ROUNDING) {
-      ComparableFloat cf = (ComparableFloat) x;
       return cf.comparesTo(y);
     }
 
     MathContext mc = new MathContext(round, RoundingMode.DOWN);
 
-    BigDecimal bdx = new BigDecimal((double) x, mc);
+    BigDecimal bdx = new BigDecimal(cf.toString(), mc);
     BigDecimal bdy = new BigDecimal(y, mc);
 
-    return x.equals(y);
+    return bdx.equals(bdy);
   }
 
 

@@ -5,6 +5,7 @@ package com.rapidsdata.seth.plan.expectedResults;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.ExpectedResultFailureException;
 import com.rapidsdata.seth.exceptions.FailureException;
+import com.rapidsdata.seth.exceptions.SethBrownBagException;
 import com.rapidsdata.seth.plan.OperationMetadata;
 
 import java.sql.ResultSet;
@@ -36,6 +37,22 @@ public class UnorderedRowsExpectedResult extends RowDataExpectedResult
                                      ExpectedColumnNames expectedColumnNames)
   {
     super(ExpectedResultType.UNORDERED_ROWS, description, opMetadata, appContext, expectedRows, expectedColumnNames);
+  }
+
+  /**
+   * Returns a string description of what was actually expected from this result.
+   * @return a string description of what was actually expected from this result.
+   */
+  public String describe()
+  {
+    // The description is a subset of the expected rows.
+    try {
+      final String expectedResultDesc = ResultSetFormatter.describeExpectedRows(expectedRows, MAX_NUM_ROWS_TO_SHOW);
+      return expectedResultDesc;
+
+    } catch (SQLException e) {
+      throw new SethBrownBagException(e);
+    }
   }
 
   /**

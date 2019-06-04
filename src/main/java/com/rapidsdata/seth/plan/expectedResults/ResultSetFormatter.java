@@ -570,6 +570,40 @@ public class ResultSetFormatter
   /**
    * Describes and aligns a set of expected rows.
    * @param expectedRows the set of expected rows to describe, limited by MAX_NUM_ROWS_TO_SHOW.
+   * @param maxRowsToShow to maximum number of rows to describe.
+   * @return a nicely formatted string that describes such.
+   * @throws SQLException
+   */
+  protected static String describeExpectedRows(List<? extends ExpectedRow> expectedRows, int maxRowsToShow) throws SQLException
+  {
+    StringBuilder sb = new StringBuilder(1024);
+
+    // How many do we want to display?
+    List<? extends ExpectedRow> displayableRows = expectedRows.subList(0, Math.min(maxRowsToShow, expectedRows.size()));
+
+    // Align them.
+    AlignmentInfo alignment = alignRows(displayableRows);
+
+    for (ExpectedRow expectedRow : displayableRows) {
+      if (sb.length() > 0) {
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(expectedRow.toString(alignment.columnWidths, alignment.padLefts));
+    }
+
+    int excessRows = expectedRows.size() - displayableRows.size();
+    if (excessRows > 0) {
+      sb.append(System.lineSeparator());
+      sb.append("...and ").append(excessRows).append(" more expected rows.");
+    }
+
+    return sb.toString();
+  }
+
+  /**
+   * Describes and aligns a set of expected rows.
+   * @param expectedRows the set of expected rows to describe, limited by MAX_NUM_ROWS_TO_SHOW.
    * @param alignment the alignment to use when describing the rows.
    * @param maxRowsToShow to maximum number of rows to describe.
    * @return a nicely formatted string that describes such.
@@ -740,7 +774,7 @@ public class ResultSetFormatter
   public static AlignmentInfo alignRows(ResultSetMetaData rsmd, List<? extends ExpectedRow> expectedRows) throws SQLException
   {
     // Let's align the actual row and the expected rows. First we need to get the widths of them
-    int[] columnWidths = new int[rsmd.getColumnCount()];;
+    int[] columnWidths = new int[rsmd.getColumnCount()];
 
     for (int i = 0; i < columnWidths.length; i++) {
       columnWidths[i] = 0;
@@ -756,6 +790,36 @@ public class ResultSetFormatter
     ResultSetFormatter.updatePadLeft(padLefts, rsmd);
 
     return new AlignmentInfo(columnWidths, padLefts);
+  }
+
+  /**
+   * Works out the column widths and padding locations for each row for a set of expected rows and a single actual row.
+   * @param expectedRows the set of expected rows to be aligned.
+   * @return a container of alignment data.
+   * @throws SQLException
+   */
+  public static AlignmentInfo alignRows(List<? extends ExpectedRow> expectedRows) throws SQLException
+  {
+    // First, work out the maximum number of columns
+    int columnCount = 0;
+
+    for (ExpectedRow er : expectedRows) {
+      columnCount = Math.max(columnCount, er.getColumnDefs().size());
+    }
+
+    // Let's align the actual row and the expected rows. First we need to get the widths of them
+    int[] columnWidths = new int[columnCount];
+
+    for (int i = 0; i < columnWidths.length; i++) {
+      columnWidths[i] = 0;
+    }
+
+    // Update the widths based on the expected rows.
+    for (ExpectedRow er : expectedRows) {
+      ResultSetFormatter.updateColumnWidths(columnWidths, er);
+    }
+
+    return new AlignmentInfo(columnWidths, null);
   }
 
   /**
