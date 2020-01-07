@@ -161,4 +161,39 @@ public class ResultSummary
 
     return sb.toString();
   }
+
+  public long getNumTestsExecuted()
+  {
+    return numTestsExecuted;
+  }
+
+  public long getNumTestsValidated()
+  {
+    return numTestsValidated;
+  }
+
+  public long getNumTestsPassed()
+  {
+    return numTestsPassed;
+  }
+
+  public long getNumTestsFailed()
+  {
+    return numTestsFailed;
+  }
+
+  public long getNumTestsAborted()
+  {
+    return numTestsAborted;
+  }
+
+  public long getNumStepsExecuted()
+  {
+    return numStepsExecuted;
+  }
+
+  public List<TestResult> getFailedTests()
+  {
+    return failedTests;
+  }
 }

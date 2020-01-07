@@ -43,8 +43,8 @@ public class Seth {
   /** The parsed arguments to the application. */
   private CommandLineArgs args;
 
-  /** Time the application was started. */
-  private long jvmStartTime = ManagementFactory.getRuntimeMXBean().getStartTime();
+  /** Time the application was started, in nanoseconds. */
+  private long jvmStartTime = System.currentTimeMillis();
 
   /** The thing to log messages to. */
   private TestLogger logger;

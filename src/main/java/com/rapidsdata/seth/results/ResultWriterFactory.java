@@ -43,10 +43,11 @@ public class ResultWriterFactory
 
     switch (format) {
       case JUNIT:
-        throw new FeatureNotImplementedException("JUnit test result format is not yet implemented.");
+      case LOG:
+        break;
 
       default:
-        break;
+        throw new FeatureNotImplementedException("Test result format is not yet implemented: " + format.name());
     }
 
   }
@@ -67,9 +68,8 @@ public class ResultWriterFactory
 
     switch (format) {
       case JUNIT:
-        throw new FeatureNotImplementedException("JUnit test result format is not yet implemented.");
-        //resultWriter = new JUnitResultWriter(context, args.resultDir, args.resultName);
-        //break;
+        resultWriter = new JUnitResultWriter(context, args.resultDir, args.resultName);
+        break;
 
       case LOG:
         resultWriter = new LoggableResultWriter(context);

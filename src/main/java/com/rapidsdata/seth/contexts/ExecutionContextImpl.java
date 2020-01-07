@@ -319,8 +319,8 @@ public class ExecutionContextImpl implements ExecutionContext
   }
 
   /**
-   * Returns the time since the application started, in nanoseconds since the epoch.
-   * @return the time since the application started, in nanoseconds since the epoch.
+   * Returns the time that the application started, in milliseconds since the epoch.
+   * @return the time that the application started, in milliseconds since the epoch.
    */
   @Override
   public long getAppStartTime()

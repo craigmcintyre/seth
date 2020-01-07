@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
 
 public class AppContextImpl implements AppContext
 {
-  /** The start time of the application in nanoseconds since the epoch. */
+  /** The start time of the application in milliseconds since the epoch. */
   private final long appStartTime;
 
   /** The list of test files to be executed. */
@@ -56,8 +56,8 @@ public class AppContextImpl implements AppContext
   }
 
   /**
-   * Returns the time since the application started, in nanoseconds since the epoch.
-   * @return the time since the application started, in nanoseconds since the epoch.
+   * Returns the time since the application started, in milliseconds since the epoch.
+   * @return the time since the application started, in milliseconds since the epoch.
    */
   @Override
   public long getAppStartTime()

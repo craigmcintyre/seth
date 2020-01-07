@@ -449,7 +449,7 @@ public class ExpectedRow
   /** @returns the width of a column when printed to a string. */
   public int columnWidth(int col)
   {
-    if (col > columnDefs.size()) {
+    if (col >= columnDefs.size()) {
       return 0;
     }
 

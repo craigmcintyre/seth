@@ -11,7 +11,7 @@ import java.util.List;
 public class LoggableResultWriter implements ResultWriter
 {
   /** Common information and settings of the application. */
-  private final AppContext context;
+  protected final AppContext context;
 
   /**
    * Constructor

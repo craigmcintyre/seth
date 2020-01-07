@@ -199,6 +199,15 @@ public class TestResult
   }
 
   /**
+   * Returns a counter (in nanoseconds) of when the this test was started.
+   * @return a counter (in nanoseconds) of when the this test was started.
+   */
+  public long getStartTimeNs()
+  {
+    return startTimeNs;
+  }
+
+  /**
    * Returns how long the test took to execute, in nanoseconds. A value of 0 indicates it hasn't finished yet.
    * @return Returns how long the test took to execute, in nanoseconds.
    */

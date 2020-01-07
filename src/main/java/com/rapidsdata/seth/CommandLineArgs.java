@@ -94,11 +94,12 @@ public class CommandLineArgs
           usage     = "The format that the result file will be written in. Valid values are log, " +
                       "junit. Default is log.")
   public String resultFormat = "log";
-//
-//  @Option(name      = "--resultname",
-//          required  = false,
-//          usage     = "The name of the file containing the results. Default is \"results.xml\".")
-//  public String resultName = "results.xml";
+
+  @Option(name      = "--resultname",
+          required  = false,
+          usage     = "The name of the file containing the results (when the resultformat is not \"log\"). " +
+                      "Default is \"results.xml\".")
+  public String resultName = "results.xml";
 
   @Argument(usage  = "The list of test files to be executed.",
             hidden = true)
