@@ -297,12 +297,19 @@ public class Seth {
       // Is there any file globbing in the file name? Look for globbing characters: * ? { } [ ]
 
       if (!hasGlobbing(f)) {
-        // No globbing. Simply add this file.
-        files.add(f);
+        if (isTestFile(f)) {
+          // No globbing. Simply add this file.
+          files.add(f);
+
+        } else {
+          // Must be a list file. Recurse and process this list file.
+          files.addAll(getTestFileListFromListFile(f, relativity));
+        }
+
         continue;
       }
 
-      addGlobbedFiles(f, files);
+      addGlobbedFiles(f, files, relativity);
     }
 
     return files;
@@ -324,7 +331,7 @@ public class Seth {
    * @param f the file with the path that contains globbing characters.
    * @param files the list we wish to add matching files to.
    */
-  private void addGlobbedFiles(File f, List<File> files)
+  private void addGlobbedFiles(File f, List<File> files, PathRelativity relativity)
   {
     // Expand any file globbing.
     PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + f.getPath());
@@ -342,7 +349,14 @@ public class Seth {
         @Override
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
           if (matcher.matches(file)) {
-            files.add(file.toFile());
+
+            if (isTestFile(file.toFile())) {
+              files.add(file.toFile());
+
+            } else {
+              // Must be a list file. Recurse and process this list file.
+              files.addAll(getTestFileListFromListFile(file.toFile(), relativity));
+            }
           }
           return FileVisitResult.CONTINUE;
         }
@@ -355,6 +369,17 @@ public class Seth {
     } catch (IOException e) {
       throw new SethSystemException(e);
     }
+  }
+
+  /**
+   * Returns true if the specified file is a test file, otherwise false.
+   * @param file the file to test.
+   * @return true if the specified file is a test file, otherwise false.
+   */
+  private boolean isTestFile(File file)
+  {
+    // TODO: this could be done better, perhaps by inspecting the contents of the file.
+    return file.getName().toLowerCase().trim().endsWith(".test");
   }
 
   /**
