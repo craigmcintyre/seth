@@ -250,6 +250,10 @@ public class Seth {
     try {
       lines = Files.readAllLines(listFile.toPath());
 
+    } catch (NoSuchFileException e) {
+      System.err.println("No such testlist file: " + listFile.toString());
+      return new ArrayList<File>();
+
     } catch (IOException | SecurityException e) {
       final String msg = "Could not read from the listFile at " + listFile.getPath() + ".";
       throw new SethSystemException(msg, e);
