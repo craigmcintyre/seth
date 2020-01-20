@@ -101,6 +101,12 @@ public class CommandLineArgs
                       "Default is \"results.xml\".")
   public String resultName = "results.xml";
 
+  @Option(name      = "--testsuffix",
+      required  = false,
+      usage     = "A suffix to append to a test name when the resultformat is junit. Can be used to " +
+          "differentiate test names when executed against a debug and then a release version.")
+  public String testSuffix = "";
+
   @Argument(usage  = "The list of test files to be executed.",
             hidden = true)
   public List<File> testFiles = null;

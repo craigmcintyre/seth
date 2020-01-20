@@ -67,8 +67,10 @@ public class TestSuite
       for (File testFile : appContext.getTestFiles()) {
         logger.testExecuting(testFile);
 
+        String testName = testFile.getName() + appContext.getCommandLineArgs().testSuffix;
+
         // Make a TestResult to hold the result of the test.
-        TestResult testResult = new TestResult(testFile);
+        TestResult testResult = new TestResult(testFile, testName);
 
         // Save it in the list of results. It will get updated as the test executes.
         resultList.add(testResult);

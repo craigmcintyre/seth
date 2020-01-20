@@ -40,6 +40,9 @@ public class TestResult
   /** The test file being executed. */
   private File testFile;
 
+  /** The shortened name being given to the test. May simply be the name of the file. */
+  private String testName;
+
   /** The result status of running the test. */
   private ResultStatus status;
 
@@ -59,9 +62,10 @@ public class TestResult
    * Constructor.
    * @param testFile The test file being executed.
    */
-  public TestResult(File testFile)
+  public TestResult(File testFile, String testName)
   {
     this.testFile = testFile;
+    this.testName = testName;
     this.status = ResultStatus.NOT_STARTED;
     this.failureException = null;
     this.numStepsExecuted = new AtomicLong(0);
@@ -76,6 +80,15 @@ public class TestResult
   public File getTestFile()
   {
     return testFile;
+  }
+
+  /**
+   * Returns the name of the test being executed.
+   * @return the name of the test being executed.
+   */
+  public String getTestName()
+  {
+    return testName;
   }
 
   /**
