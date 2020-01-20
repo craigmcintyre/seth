@@ -45,14 +45,35 @@ public class RowCountExpectedResult extends ExpectedResult
   {
     long actualRowCount = 0;
 
+    StringBuilder sb = new StringBuilder(4096);
+    final int maxRowsToDisplay = 100;
+
     try {
       while (rs.next()) {
         ++actualRowCount;
+
+        if (actualRowCount > maxRowsToDisplay) {
+          continue;
+        }
+
+        if (sb.length() > 0) {
+          sb.append("\n");
+        }
+
+        sb.append("  ");
+        sb.append(ResultSetFormatter.describeCurrentRow(rs));
+      }
+
+      if (actualRowCount > maxRowsToDisplay) {
+        sb.append("\n  ...")
+          .append("\nand ")
+          .append(actualRowCount - maxRowsToDisplay)
+          .append(" more rows.");
       }
 
       if (actualRowCount != expectedRowCount) {
         final String commentDesc = "A different row count was received than was expected.";
-        final String actualResultDesc = "rows: " + actualRowCount;
+        final String actualResultDesc = "rows: " + actualRowCount + "\nThe following rows were received:\n" + sb.toString();
         throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
       }
 
