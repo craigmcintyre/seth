@@ -16,6 +16,12 @@ public interface TestLogger extends Closeable
   public void testValidating(File testFile);
 
   /**
+   * Logs that the test is currently being skipped.
+   * @param testFile the path of the test being skipped.
+   */
+  public void testSkipping(File testFile);
+
+  /**
    * Logs that the test is currently being executed.
    * @param testFile the path of the test being executed.
    */

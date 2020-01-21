@@ -63,6 +63,18 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
   }
 
   /**
+   * Logs that the test is currently being skipped.
+   *
+   * @param testFile the path of the test being skipped.
+   */
+  @Override
+  public void testSkipping(File testFile)
+  {
+    // Ensure we write to the console.
+    super.testSkipping(testFile);
+  }
+
+  /**
    * Logs that the test is currently being executed.
    *
    * @param testFile the path of the test being executed.

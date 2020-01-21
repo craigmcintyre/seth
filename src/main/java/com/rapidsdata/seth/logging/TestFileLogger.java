@@ -48,6 +48,21 @@ public class TestFileLogger extends FileLogger
   }
 
   /**
+   * Logs that the test is currently being skipped.
+   *
+   * @param testFile the path of the test being skipped.
+   */
+  @Override
+  public void testSkipping(File testFile)
+  {
+    // Ensure we write to the console.
+    super.testSkipping(testFile);
+
+    String msg = "Skipping test file " + testFile.getPath();
+    queue.add(decorateMessage(msg));
+  }
+
+  /**
    * Logs that the test is currently being executed.
    *
    * @param testFile the path of the test being executed.

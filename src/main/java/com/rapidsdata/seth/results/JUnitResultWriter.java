@@ -86,7 +86,7 @@ public class JUnitResultWriter extends LoggableResultWriter
     root.setAttribute("name", "Seth tests");
     root.setAttribute("time", millisToSeconds(System.currentTimeMillis() - context.getAppStartTime(), 3));
     root.setAttribute("errors", String.valueOf(summary.getNumTestsAborted()));
-    root.setAttribute("skipped", String.valueOf(0));
+    root.setAttribute("skipped", String.valueOf(summary.getNumTestsSkipped()));
     root.setAttribute("timestamp", millisToISO8601DateTimePattern(context.getAppStartTime()));
     root.setAttribute("hostname", getHostName());
 
@@ -127,6 +127,12 @@ public class JUnitResultWriter extends LoggableResultWriter
           }
           break;
 
+        case SKIPPED:
+          Element skippedElement = document.createElement("skipped");
+          testCase.appendChild(skippedElement);
+          skippedElement.setAttribute("message", "");
+          break;
+
         case SUCCEEDED:
         case NOT_STARTED:
         case IN_PROGRESS:
@@ -154,7 +160,7 @@ public class JUnitResultWriter extends LoggableResultWriter
       throw new SethBrownBagException(e);
     }
 
-    context.getLogger().log("Test results have been written out to: " + resultPath.toString());
+    context.getLogger().log("Test results have been written out to: " + resultPath.toString(), false);
   }
 
   private String nanosToSeconds(long nanos, int numDecimalPlaces)

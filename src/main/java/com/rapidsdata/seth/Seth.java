@@ -19,7 +19,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.management.ManagementFactory;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Driver;
@@ -33,7 +32,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 /**
  * The SE Test Harness.
@@ -124,10 +122,10 @@ public class Seth {
   {
     logStartTime();
 
-    // Build a list of test files to run.
-    List<File> testFiles = buildTestList(args);
+    // Build a list of test files to run and test files to be skipped.
+    List<TestableFile> testableFiles = getTestableFiles(args);
 
-    if (testFiles.isEmpty()) {
+    if (testableFiles.isEmpty()) {
       logger.log("There are no test files to execute!", false);
       return;
     }
@@ -147,7 +145,7 @@ public class Seth {
     // Create the main run context.
     AppContext appContext = new AppContextImpl(jvmStartTime,
                                                args,
-                                               testFiles,
+                                               testableFiles,
                                                args.url,
                                                args.relativity,
                                                logger,
@@ -208,42 +206,44 @@ public class Seth {
    * @param args
    * @return
    */
-  private List<File> buildTestList(CommandLineArgs args)
+  private List<TestableFile> getTestableFiles(CommandLineArgs args)
   {
-    List<File> testFiles;
+    List<TestableFile> testableFiles;
 
     if (args.listFile != null) {
       // We need to read a file that then contains the
-      testFiles = getTestFileListFromListFile(args.listFile, args.relativity);
+      testableFiles = getTestableFilesFromListFile(args.listFile, args.relativity, TestableFile.Instruction.EXECUTE);
 
     } else {
       // We should have a set of test files specified on the command line.
-      testFiles = new ArrayList<>(args.testFiles);
+      testableFiles = TestableFile.listOf(args.testFiles, TestableFile.Instruction.EXECUTE);
     }
 
     // Validate that each of these files exist. Remove those that do not exist.
-    Iterator<File> iterator = testFiles.iterator();
+    Iterator<TestableFile> iterator = testableFiles.iterator();
 
     while (iterator.hasNext()) {
-      File testFile = iterator.next();
+      TestableFile testableFile = iterator.next();
 
-      if (!testFile.exists()) {
-        final String msg = "Test file \"" + testFile.getPath() + "\" does not exist and will not be executed.";
+      if (testableFile.getInstruction() == TestableFile.Instruction.EXECUTE &&
+          !testableFile.getFile().exists()) {
+        final String msg = "Test file \"" + testableFile.getFile().getPath() + "\" does not exist and will not be executed.";
         logger.error(msg);
-        iterator.remove();
+        testableFile.setInstruction(TestableFile.Instruction.SKIP);
       }
     }
 
-    return testFiles;
+    return testableFiles;
   }
 
   /**
    * Read the list file, which may contain a test file to execute on each line.
    * @param listFile the list file to get the set of test files from.
    * @param relativity how we deal with relative paths.
+   * @param defaultInstruction what instruction to use by default for each test or testlist encountered.
    * @return a list of File objects representing the test files to be executed.
    */
-  private List<File> getTestFileListFromListFile(File listFile, PathRelativity relativity)
+  private List<TestableFile> getTestableFilesFromListFile(File listFile, PathRelativity relativity, TestableFile.Instruction defaultInstruction)
   {
     List<String> lines;
 
@@ -252,18 +252,20 @@ public class Seth {
 
     } catch (NoSuchFileException e) {
       System.err.println("No such testlist file: " + listFile.toString());
-      return new ArrayList<File>();
+      return new ArrayList<TestableFile>();
 
     } catch (IOException | SecurityException e) {
       final String msg = "Could not read from the listFile at " + listFile.getPath() + ".";
       throw new SethSystemException(msg, e);
     }
 
-    List<File> files = new ArrayList<File>();
+    List<TestableFile> files = new ArrayList<TestableFile>();
 
     final String[] lineComments = new String[] {"#", "--", "//"};
 
     for (String line : lines) {
+      TestableFile.Instruction instruction = defaultInstruction;
+
       line = line.trim();
 
       // Strip out any rest-of-line-comments from the line.
@@ -271,7 +273,15 @@ public class Seth {
 
         int index = line.indexOf(comment);
 
-        if (index >= 0) {
+        if (index == 0) {
+          // A test file (or testlist file) that is commented out is treated as a skipped test
+          // (or a skipped set of tests in the case of a testlist file).
+          instruction = TestableFile.Instruction.SKIP;
+
+          // Remove the comment and keep processing.
+          line = line.substring(comment.length());
+
+        } else if (index > 0) {
           // Remove the rest of the line.
           line = line.substring(0, index);
         }
@@ -301,19 +311,24 @@ public class Seth {
       // Is there any file globbing in the file name? Look for globbing characters: * ? { } [ ]
 
       if (!hasGlobbing(f)) {
+        if (instruction == TestableFile.Instruction.SKIP && !f.exists()) {
+          // Treat it as a general comment in the file and ignore it.
+          continue;
+        }
+
         if (isTestFile(f)) {
           // No globbing. Simply add this file.
-          files.add(f);
+          files.add(new TestableFile(f, instruction));
 
         } else {
           // Must be a list file. Recurse and process this list file.
-          files.addAll(getTestFileListFromListFile(f, relativity));
+          files.addAll(getTestableFilesFromListFile(f, relativity, instruction));
         }
 
         continue;
       }
 
-      addGlobbedFiles(f, files, relativity);
+      addGlobbedFiles(f, files, relativity, instruction);
     }
 
     return files;
@@ -334,8 +349,9 @@ public class Seth {
    * to the list of Files provided.
    * @param f the file with the path that contains globbing characters.
    * @param files the list we wish to add matching files to.
+   * @param defaultInstruction what instruction to use by default for each test or testlist encountered.
    */
-  private void addGlobbedFiles(File f, List<File> files, PathRelativity relativity)
+  private void addGlobbedFiles(File f, List<TestableFile> files, PathRelativity relativity, TestableFile.Instruction defaultInstruction)
   {
     // Expand any file globbing.
     PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + f.getPath());
@@ -355,11 +371,11 @@ public class Seth {
           if (matcher.matches(file)) {
 
             if (isTestFile(file.toFile())) {
-              files.add(file.toFile());
+              files.add(new TestableFile(file.toFile(), defaultInstruction));
 
             } else {
               // Must be a list file. Recurse and process this list file.
-              files.addAll(getTestFileListFromListFile(file.toFile(), relativity));
+              files.addAll(getTestableFilesFromListFile(file.toFile(), relativity, defaultInstruction));
             }
           }
           return FileVisitResult.CONTINUE;

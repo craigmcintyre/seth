@@ -29,6 +29,18 @@ public class ConsoleLogger implements TestLogger
   }
 
   /**
+   * Logs that the test is currently being skipped.
+   *
+   * @param testFile the path of the test being skipped.
+   */
+  @Override
+  public void testSkipping(File testFile)
+  {
+    final String msg = String.format(FMT, "Skipping", testFile.getPath());
+    System.out.println(msg);
+  }
+
+  /**
    * Logs that the test is currently being executed.
    *
    * @param testFile the path of the test being executed.

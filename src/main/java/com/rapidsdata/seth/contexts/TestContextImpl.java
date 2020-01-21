@@ -4,6 +4,7 @@ package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
+import com.rapidsdata.seth.TestableFile;
 import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.logging.TestLogger;
@@ -70,9 +71,9 @@ public class TestContextImpl implements TestContext
    * @return the list of test files to be executed.
    */
   @Override
-  public List<File> getTestFiles()
+  public List<TestableFile> getTestableFiles()
   {
-    return appContext.getTestFiles();
+    return appContext.getTestableFiles();
   }
 
   /**

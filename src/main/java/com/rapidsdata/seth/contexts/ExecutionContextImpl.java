@@ -6,11 +6,10 @@ import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
-import com.rapidsdata.seth.plan.Operation;
+import com.rapidsdata.seth.TestableFile;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.Driver;
 import java.util.*;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -333,9 +332,9 @@ public class ExecutionContextImpl implements ExecutionContext
    * @return the list of test files to be executed.
    */
   @Override
-  public List<File> getTestFiles()
+  public List<TestableFile> getTestableFiles()
   {
-    return testContext.getTestFiles();
+    return testContext.getTestableFiles();
   }
 
   /**

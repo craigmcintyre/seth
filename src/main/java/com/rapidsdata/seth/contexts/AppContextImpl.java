@@ -5,9 +5,8 @@ package com.rapidsdata.seth.contexts;
 import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.logging.TestLogger;
+import com.rapidsdata.seth.TestableFile;
 
-import java.io.File;
-import java.sql.Driver;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -17,7 +16,7 @@ public class AppContextImpl implements AppContext
   private final long appStartTime;
 
   /** The list of test files to be executed. */
-  private final List<File> testFiles;
+  private final List<TestableFile> testableFiles;
 
   /** The url that the JDBC driver should use. */
   private final String url;
@@ -40,7 +39,7 @@ public class AppContextImpl implements AppContext
 
   public AppContextImpl(long appStartTime,
                         CommandLineArgs args,
-                        List<File> testFiles,
+                        List<TestableFile> testableFiles,
                         String url,
                         PathRelativity pathRelativity,
                         TestLogger logger,
@@ -48,7 +47,7 @@ public class AppContextImpl implements AppContext
   {
     this.appStartTime = appStartTime;
     this.args = args;
-    this.testFiles = testFiles;
+    this.testableFiles = testableFiles;
     this.url = url;
     this.pathRelativity = pathRelativity;
     this.logger = logger;
@@ -70,9 +69,9 @@ public class AppContextImpl implements AppContext
    * @return the list of test files to be executed.
    */
   @Override
-  public List<File> getTestFiles()
+  public List<TestableFile> getTestableFiles()
   {
-    return testFiles;
+    return testableFiles;
   }
 
   /**

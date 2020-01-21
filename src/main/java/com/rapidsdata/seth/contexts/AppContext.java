@@ -5,9 +5,8 @@ package com.rapidsdata.seth.contexts;
 import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.logging.TestLogger;
+import com.rapidsdata.seth.TestableFile;
 
-import java.io.File;
-import java.sql.Driver;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -23,7 +22,7 @@ public interface AppContext
    * Returns the list of test files to be executed.
    * @return the list of test files to be executed.
    */
-  public List<File> getTestFiles();
+  public List<TestableFile> getTestableFiles();
 
   /**
    * Returns the url the JDBC driver should use to communicate to the system being tested.

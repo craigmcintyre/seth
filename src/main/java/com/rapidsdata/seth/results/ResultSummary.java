@@ -15,9 +15,11 @@ public class ResultSummary
   private final long numTestsPassed;
   private final long numTestsFailed;
   private final long numTestsAborted;
+  private final long numTestsSkipped;
   private final long numStepsExecuted;
 
   private final List<TestResult> failedTests;
+  private final List<TestResult> skippedTests;
 
 
   protected ResultSummary(long testsExecuted,
@@ -25,16 +27,20 @@ public class ResultSummary
                           long testsPassed,
                           long testsFailed,
                           long testsAborted,
+                          long numTestsSkipped,
                           long stepsExecuted,
-                          List<TestResult> failedTests)
+                          List<TestResult> failedTests,
+                          List<TestResult> skippedTests)
   {
     this.numTestsExecuted  = testsExecuted;
     this.numTestsValidated = testsValidated;
     this.numTestsPassed    = testsPassed;
     this.numTestsFailed    = testsFailed;
     this.numTestsAborted   = testsAborted;
+    this.numTestsSkipped   = numTestsSkipped;
     this.numStepsExecuted  = stepsExecuted;
     this.failedTests       = failedTests;
+    this.skippedTests      = skippedTests;
   }
 
   /**
@@ -45,11 +51,13 @@ public class ResultSummary
   public static ResultSummary summariseFrom(List<TestResult> results)
   {
     List<TestResult> failedTests = new ArrayList<>(results.size());
+    List<TestResult> skippedTests = new ArrayList<>(results.size());
     long numTestsExecuted  = 0;
     long numTestsValidated = 0;
     long numTestsPassed    = 0;
     long numTestsFailed    = 0;
     long numTestsAborted   = 0;
+    long numTestsSkipped   = 0;
     long numStepsExecuted  = 0;
 
     for (TestResult result : results) {
@@ -75,6 +83,11 @@ public class ResultSummary
           ++numTestsAborted;
           break;
 
+        case SKIPPED:
+          ++numTestsSkipped;
+          skippedTests.add(result);
+          break;
+
         case NOT_STARTED:
         case IN_PROGRESS:
         default:
@@ -84,7 +97,7 @@ public class ResultSummary
     }
 
     return new ResultSummary(numTestsExecuted, numTestsValidated, numTestsPassed, numTestsFailed,
-                             numTestsAborted, numStepsExecuted, failedTests);
+                             numTestsAborted, numTestsSkipped, numStepsExecuted, failedTests, skippedTests);
   }
 
   @Override
@@ -116,6 +129,7 @@ public class ResultSummary
     }
 
     sb.append(String.format("Tests Failed   : %4d", numTestsFailed)).append(System.lineSeparator());
+    sb.append(String.format("Tests Skipped  : %4d", numTestsSkipped)).append(System.lineSeparator());
 
     if (numTestsAborted > 0) {
       sb.append(String.format("Tests Aborted  : %4d", numTestsAborted)).append(System.lineSeparator());
@@ -126,8 +140,31 @@ public class ResultSummary
 
     sb.append(System.lineSeparator());
 
+    if (numTestsSkipped > 0) {
+      sb.append(getSkippedTestDesc());
+    }
+
     if (numTestsFailed > 0) {
       sb.append(getFailedTestDesc());
+    }
+
+    return sb.toString();
+  }
+
+  /**
+   * Returns a string describing the skipped tests.
+   * @return a string describing the skipped tests.
+   */
+  private String getSkippedTestDesc()
+  {
+    StringBuilder sb = new StringBuilder(1024);
+
+    sb.append("***********************************").append(System.lineSeparator());
+    sb.append(String.format(" Summary Of All Skipped Tests (%d)", skippedTests.size())).append(System.lineSeparator());
+    sb.append("***********************************").append(System.lineSeparator());
+
+    for (TestResult result : skippedTests) {
+      sb.append("Skipped : ").append(result.getTestFile().getPath()).append(System.lineSeparator());
     }
 
     return sb.toString();
@@ -185,6 +222,11 @@ public class ResultSummary
   public long getNumTestsAborted()
   {
     return numTestsAborted;
+  }
+
+  public long getNumTestsSkipped()
+  {
+    return numTestsSkipped;
   }
 
   public long getNumStepsExecuted()

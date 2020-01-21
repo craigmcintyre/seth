@@ -16,7 +16,8 @@ public class TestResult
     VALIDATED   (true),
     SUCCEEDED   (true),
     FAILED      (true),
-    ABORTED     (true);
+    ABORTED     (true),
+    SKIPPED     (true);
 
     private final boolean finished;
 
@@ -176,6 +177,14 @@ public class TestResult
   }
 
   /**
+   * Marks the test as having been skipped on user request.
+   */
+  public void setSkipped()
+  {
+    setStatus(ResultStatus.SKIPPED);
+  }
+
+  /**
    * Returns the status of executing this test.
    * @return the status of executing this test.
    */
@@ -261,5 +270,13 @@ public class TestResult
 
     msg += testFile.getPath();
     return msg;
+  }
+
+  /** @returns a TestResult indicating that the given test file was skipped. */
+  public static TestResult skipped(File testFile, String testName)
+  {
+    TestResult result = new TestResult(testFile, testName);
+    result.setSkipped();
+    return result;
   }
 }

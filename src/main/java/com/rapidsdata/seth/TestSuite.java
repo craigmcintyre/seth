@@ -64,20 +64,28 @@ public class TestSuite
     try {
 
       // Iterate each test file
-      for (File testFile : appContext.getTestFiles()) {
-        logger.testExecuting(testFile);
+      for (TestableFile testableFile : appContext.getTestableFiles()) {
 
-        String testName = testFile.getName() + appContext.getCommandLineArgs().testSuffix;
+        String testName = testableFile.getFile().getName() + appContext.getCommandLineArgs().testSuffix;
+
+        if (testableFile.getInstruction() == TestableFile.Instruction.SKIP) {
+          logger.testSkipping(testableFile.getFile());
+          resultList.add(TestResult.skipped(testableFile.getFile(), testName));
+          continue;
+        }
+
+        // We need to execute this test file.
+        logger.testExecuting(testableFile.getFile());
 
         // Make a TestResult to hold the result of the test.
-        TestResult testResult = new TestResult(testFile, testName);
+        TestResult testResult = new TestResult(testableFile.getFile(), testName);
 
         // Save it in the list of results. It will get updated as the test executes.
         resultList.add(testResult);
 
         // Parse each test file
         try {
-          plan = planner.newPlanFor(testFile, new ArrayList<File>(), testsToAnnotate);
+          plan = planner.newPlanFor(testableFile.getFile(), new ArrayList<File>(), testsToAnnotate);
 
         } catch (FileNotFoundException e) {
           testResult.setFailure(e);
@@ -98,7 +106,7 @@ public class TestSuite
         }
 
         // Make a new test context for executing this test.
-        testContext = new TestContextImpl(appContext, testFile, testResult);
+        testContext = new TestContextImpl(appContext, testableFile.getFile(), testResult);
 
         // Make a new TestRunner to run the plan
         TestRunner testRunner = new TestRunner(plan, testContext, true);
@@ -110,7 +118,7 @@ public class TestSuite
         future.get();
 
         // Log the result of each test file
-        logger.testExecutionFinished(testFile, testResult);
+        logger.testExecutionFinished(testableFile.getFile(), testResult);
 
         testContext = null;
       }
