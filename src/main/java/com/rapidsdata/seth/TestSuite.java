@@ -66,7 +66,7 @@ public class TestSuite
       // Iterate each test file
       for (TestableFile testableFile : appContext.getTestableFiles()) {
 
-        String testName = testableFile.getFile().getName() + appContext.getCommandLineArgs().testSuffix;
+        String testName = testableFile.getFile().getName();
 
         if (testableFile.getInstruction() == TestableFile.Instruction.SKIP) {
           logger.testSkipping(testableFile.getFile());

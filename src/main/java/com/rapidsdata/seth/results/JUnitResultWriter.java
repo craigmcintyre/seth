@@ -94,9 +94,9 @@ public class JUnitResultWriter extends LoggableResultWriter
       Element testCase = document.createElement("testcase");
       root.appendChild(testCase);
 
-      testCase.setAttribute("name", testResult.getTestName());
+      testCase.setAttribute("name", testResult.getTestName() + context.getCommandLineArgs().testSuffix);
       testCase.setAttribute("time", nanosToSeconds(testResult.getExecutionTimeNs(), 3));
-      testCase.setAttribute("classname", testResult.getTestFile().getAbsolutePath());
+      testCase.setAttribute("classname", testResult.getTestFile().getAbsolutePath() + context.getCommandLineArgs().testSuffix);
 
       switch (testResult.getStatus()) {
         case FAILED:
