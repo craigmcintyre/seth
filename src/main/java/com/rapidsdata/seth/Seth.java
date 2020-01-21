@@ -269,8 +269,8 @@ public class Seth {
       line = line.trim();
 
       // Strip out any rest-of-line-comments from the line.
-      for (String comment : lineComments) {
-
+      for (int i = 0; i < lineComments.length; i++) {
+        String comment = lineComments[i];
         int index = line.indexOf(comment);
 
         if (index == 0) {
@@ -279,7 +279,10 @@ public class Seth {
           instruction = TestableFile.Instruction.SKIP;
 
           // Remove the comment and keep processing.
-          line = line.substring(comment.length());
+          line = line.substring(comment.length()).trim();
+
+          // Check again for any more of these comments on the line.
+          --i;
 
         } else if (index > 0) {
           // Remove the rest of the line.
