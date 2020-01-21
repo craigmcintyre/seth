@@ -15,6 +15,32 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <!--
+            This is the CloudRepo.io repository that SETH will be deployed to.
+            The username and password are retrieved by looking for the Repository
+            Id in the $HOME/.m2/settings.xml file.
+            -->
+            <!-- the <id> field must match the Unique Identifier in settings.xml -->
+            <id>io.cloudrepo</id>
+            <url>https://rapidsdata.mycloudrepo.io/repositories/rdp-repo</url>
+            <releases/>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <!-- For publishing artifacts to our artifact repository.
+             This is done by executing "mvn deploy".
+             Must have username/password credentials for the cloudrepo.io service
+             in your $HOME/.m2/settings.xml file. -->
+        <repository>
+            <id>io.cloudrepo</id> <!-- Must Match the Unique Identifier in settings.xml -->
+            <name>RDP Artifact Repository</name>
+            <url>https://rapidsdata.mycloudrepo.io/repositories/rdp-repo</url>
+        </repository>
+    </distributionManagement>
+
     <!-- Dependencies -->
     <dependencies>
 
