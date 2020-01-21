@@ -13,6 +13,8 @@
     <!-- Prevents a compile warning about file encoding -->
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <repositories>
