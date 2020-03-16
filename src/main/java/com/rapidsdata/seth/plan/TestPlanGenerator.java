@@ -1211,7 +1211,11 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     this.columnDefs.add(ExpectedColumnType.DATE);
 
-    Token strToken = ctx.STR().getSymbol();
+    // We accept the following date formats:
+    //   DATE 'YYYY-MM-DD'
+    //   YYYY-MM-DD
+
+    Token strToken = (ctx.STR() == null ? ctx.DTE().getSymbol() : ctx.STR().getSymbol());
     String strVal = cleanString(strToken.getText());
 
     try {
@@ -1233,7 +1237,11 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     this.columnDefs.add(ExpectedColumnType.TIME);
 
-    Token strToken = ctx.STR().getSymbol();
+    // We accept the following time formats:
+    //   TIME 'hh:mm:ss[.f]'
+    //   hh:mm:ss[.f]
+
+    Token strToken = (ctx.STR() == null ? ctx.TME().getSymbol() : ctx.STR().getSymbol());
     String strVal = cleanString(strToken.getText());
 
     try {
@@ -1255,16 +1263,58 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     this.columnDefs.add(ExpectedColumnType.TIMESTAMP);
 
-    Token strToken = ctx.STR().getSymbol();
-    String strVal = cleanString(strToken.getText());
+    String strVal;
+    Token token;
 
+    // We accept the following timestamp forms:
+    //  TIMESTAMP 'YYYY-MM-DD hh:mm:ss[.f]'
+    //  YYYY-MM-DD hh:mm:ss[.f]
+    //  YYYY-MM-DD hh:mm:ss[.f]Z
+    //  YYYY-MM-DDThh:mm:ss[.f]
+    //  YYYY-MM-DDThh:mm:ss[.f]Z
+    //  0123456789012345678  <-- index purposes
+
+    final int T_INDEX = 10;   // index in the string where the letter T may appear.
+
+    if (ctx.STR() != null) {
+      token = ctx.STR().getSymbol();
+      strVal = cleanString(token.getText());
+
+    } else {
+      token = ctx.TSP().getSymbol();
+      strVal = ctx.TSP().getText().trim();
+    }
+
+    // Check for a 'T' in the middle of the value
+    if (strVal.length() <= T_INDEX) {
+      final String errMsg = "Unable to parse timestamp string: '" + strVal + "'. Must be 'yyyy-mm-dd hh:mm:ss[.fff...]'.";
+      throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+    }
+
+    strVal = strVal.trim().toUpperCase();
+
+    if (strVal.charAt(10) == 'T') {
+      // Remove it.
+      StringBuilder sb =  new StringBuilder(32);
+      sb.append(strVal.substring(0, T_INDEX));
+      sb.append(' ');
+      sb.append(strVal.substring(T_INDEX + 1));
+      strVal = sb.toString();
+    }
+
+    // If the timestamp ends with a 'Z' then remove it.
+    if (strVal.endsWith("Z")) {
+      strVal = strVal.substring(0, strVal.length() - 1);
+    }
+
+    // Now we can parse the timestamp.
     try {
       LocalDateTime localDateTime = Timestamp.valueOf(strVal).toLocalDateTime();
       this.columnVals.add(localDateTime);
 
     } catch (IllegalArgumentException e) {
       final String errMsg = "Unable to parse timestamp string: '" + strVal + "'. Must be 'yyyy-mm-dd hh:mm:ss[.fff...]'.";
-      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+      throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
     }
 
     return null;

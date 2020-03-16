@@ -107,9 +107,9 @@ integerVal          : INT ;
 decimalVal          : DEC ;
 floatVal            : FLT ;
 stringVal           : STR ;
-dateVal             : DATE STR ;
-timeVal             : TIME STR ;
-timestampVal        : TIMESTAMP STR ;
+dateVal             : (DATE STR) | DTE ;
+timeVal             : (TIME STR) | TME ;
+timestampVal        : (TIMESTAMP STR) | TSP ;
 intervalVal         : yearMonthInterval | dayTimeInterval ;
 nullVal             : NULL ;
 dontCareVal         : ASTERISK ;
@@ -214,6 +214,8 @@ fragment Z            : 'z' | 'Z';
 
 fragment ID_LETTER    : 'a' .. 'z' | 'A' .. 'Z' | '_' ;
 fragment DIGIT        : '0' .. '9' ;
+fragment TWO_DIGITS   : DIGIT DIGIT ;
+fragment FOUR_DIGITS  : DIGIT DIGIT DIGIT DIGIT ;
 
 fragment DUBLDUBL     : '""' ;
 fragment DUBLSINGL    : '\'\'' ;
@@ -223,6 +225,9 @@ fragment DOUBLE_STR   : '"'  (DUBLDUBL  | (~'"'))* '"' ;
 
 ID  : (ID_LETTER (ID_LETTER | DIGIT)*) ;
 
+TSP : FOUR_DIGITS '-' TWO_DIGITS '-' TWO_DIGITS (' ' | T) TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? Z?;
+DTE : FOUR_DIGITS '-' TWO_DIGITS '-' TWO_DIGITS ;
+TME : TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? ;
 FLT : ('+' | '-')? (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
 INT : ('+' | '-')? DIGIT+ ;
 DEC : ('+' | '-')? ( (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ) ;
