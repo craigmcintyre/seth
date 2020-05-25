@@ -33,6 +33,7 @@ singularStatements : (  sleepStatement
                       | useConnectionStmt
                       | dropConnectionStmt
                       | includeFileStmt
+                      | failStatement
                       | emptyStatement
                      ) ';' ;
 
@@ -49,6 +50,7 @@ createConnStmt      : CREATE CONNECTION connName=STR (',' url=STR)? ;
 useConnectionStmt   : USE CONNECTION? connName=STR ;
 dropConnectionStmt  : DROP CONNECTION? ( connName=STR )? ;
 includeFileStmt     : INCLUDE FILE?  filePath=STR ;
+failStatement       : FAIL (msg=STR)? ;
 emptyStatement      : ;
 
 
@@ -148,6 +150,7 @@ DAY                   : D A Y;
 DOES                  : D O E S;
 DROP                  : D R O P;
 FAILURE               : F A I L U R E;
+FAIL                  : F A I L;
 FALSE                 : F A L S E;
 FILE                  : F I L E;
 FOR                   : F O R;
@@ -177,6 +180,7 @@ SUCCESS               : S U C C E S S;
 SUFFIX                : S U F F I X;
 SYNCHRONISE           : S Y N C H R O N I S E;
 SYNCHRONIZE           : S Y N C H R O N I Z E;
+TEST                  : T E S T;
 THREADS               : T H R E A D S;
 THREAD                : T H R E A D;
 TIMESTAMP             : T I M E S T A M P;

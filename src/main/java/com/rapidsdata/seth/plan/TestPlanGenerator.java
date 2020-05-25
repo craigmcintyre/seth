@@ -474,6 +474,22 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitFailStatement(SethParser.FailStatementContext ctx)
+  {
+    visitChildren(ctx);
+
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+
+    String failureMsg = (ctx.msg == null ? null : cleanString(ctx.msg.getText()));
+
+    Operation op = new FailOp(opMetadata, expectedResult, failureMsg);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
   public Void visitLogStatement(SethParser.LogStatementContext ctx)
   {
     visitChildren(ctx);
