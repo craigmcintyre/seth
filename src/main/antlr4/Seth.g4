@@ -57,6 +57,7 @@ expectedResult      : success
                     | failure
                     | unorderedRows
                     | orderedRows
+                    | containsRows
                     | rowCount
                     | affectedRowsCount
                     | resultFile ;
@@ -82,6 +83,7 @@ failureErrorMsgSubset : FAILURE CONTAINS ':' msg=STR ;
 failureAny          : FAILURE ;
 unorderedRows       : (UNORDERED)? ROWS ':' resultSet ;
 orderedRows         : ORDERED ROWS ':' resultSet ;
+containsRows        : ( (DOES | MUST)? NOT)? (CONTAINS | CONTAIN) ROWS ':' resultSet ;
 rowCount            : ROWS ':' count=INT ;
 affectedRowsCount   : AFFECTED ':' count=INT ;
 
@@ -139,9 +141,11 @@ AFFECTED              : A F F E C T E D;
 CLEANUP               : C L E A N U P;
 CONNECTION            : C O N N E C T I O N;
 CONTAINS              : C O N T A I N S;
+CONTAIN               : C O N T A I N;
 CREATE                : C R E A T E;
 DATE                  : D A T E;
 DAY                   : D A Y;
+DOES                  : D O E S;
 DROP                  : D R O P;
 FAILURE               : F A I L U R E;
 FALSE                 : F A L S E;
@@ -157,7 +161,9 @@ MILLISECONDS          : M I L L I S E C O N D S;
 MINUTES               : M I N U T E S;
 MINUTE                : M I N U T E;
 MONTH                 : M O N T H;
+MUST                  : M U S T;
 MUTE                  : M U T E;
+NOT                   : N O T;
 NULL                  : N U L L;
 ORDERED               : O R D E R E D;
 PREFIX                : P R E F I X;

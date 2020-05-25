@@ -1021,6 +1021,28 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitContainsRows(SethParser.ContainsRowsContext ctx)
+  {
+    visitChildren(ctx);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    boolean invert = (ctx.NOT() != null);
+
+    ExpectedResult er = new ContainsRowsExpectedResult(currentExpectedResultDesc,
+                                                       opMetadata,
+                                                       appContext,
+                                                       invert,
+                                                       expectedRowList);
+
+    expectedResultStack.push(er);
+    this.expectedRowList = null;
+    return null;
+  }
+
+  @Override
   public Void visitRowCount(SethParser.RowCountContext ctx)
   {
     visitChildren(ctx);
