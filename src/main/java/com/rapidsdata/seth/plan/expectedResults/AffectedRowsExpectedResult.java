@@ -9,6 +9,7 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 
 /** An expected result class where we the operation to have succeeded. */
 public class AffectedRowsExpectedResult extends ExpectedResult
@@ -35,10 +36,11 @@ public class AffectedRowsExpectedResult extends ExpectedResult
    * Compares the actual result, being a ResultSet, with the expected result and throws an
    * exception if they are not compatible.
    * @param rs The ResultSet to be compared to the expected result.
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsResultSet(ResultSet rs) throws FailureException
+  public void assertActualAsResultSet(ResultSet rs, SQLWarning warnings) throws FailureException
   {
     final String commentDesc = "A ResultSet was received instead of an affected row count.";
     final String actualDesc = "A ResultSet";
@@ -50,10 +52,11 @@ public class AffectedRowsExpectedResult extends ExpectedResult
    * exception if they are not compatible.
    *
    * @param updateCount The update count to be compared to the expected result.
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsUpdateCount(long updateCount) throws FailureException
+  public void assertActualAsUpdateCount(long updateCount, SQLWarning warnings) throws FailureException
   {
     if (affectedRowCount != updateCount) {
       final String commentDesc = "A different affected row count got returned.";
@@ -99,10 +102,11 @@ public class AffectedRowsExpectedResult extends ExpectedResult
    * Compares the actual result, being a general purpose statement of success, with the expected
    * result and throws an exception if they are not compatible.
    *
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsSuccess() throws FailureException
+  public void assertActualAsSuccess(SQLWarning warnings) throws FailureException
   {
     final String commentDesc = "The operation did not return an affected row count.";
     final String actualResultDesc = "success";

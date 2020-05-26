@@ -10,19 +10,72 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.ArrayList;
+import java.util.List;
 
-/** An expected result class where we the operation to have succeeded. */
-public class SuccessExpectedResult extends ExpectedResult
+/**
+ * An expected result class where we expect the operation to have returned successfully
+ * but with a warning message. The contents of the warning message is not important for
+ * this particular expected result.
+ */
+public class WarningAnyExpectedResult extends ExpectedResult
 {
+  private static final String WARNING_DESC = "SqlWarning: ";
+
   /**
    * Constructor
    * @param description A textual description of the expected result.
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
    */
-  public SuccessExpectedResult(String description, OperationMetadata opMetadata, AppContext appContext)
+  public WarningAnyExpectedResult(String description, OperationMetadata opMetadata, AppContext appContext)
   {
-    super(ExpectedResultType.SUCCESS, description, opMetadata, appContext);
+    super(ExpectedResultType.WARNING_ANY, description, opMetadata, appContext);
+  }
+
+  /**
+   * Assert that we got a warning message that contains the expected warning substring.
+   * @param warnings Statement warnings to check. Can be null.
+   */
+  private void assertWarnings(SQLWarning warnings) throws FailureException
+  {
+    assertWarnings(warnings, null);
+  }
+
+  /**
+   * Assert that we got a warning message that contains the expected warning substring.
+   * @param warnings Statement warnings to check. Can be null.
+   * @param rs An optional ResultSet which may contain warnings to be checked too. Can be null.
+   */
+  private void assertWarnings(SQLWarning warnings, ResultSet rs) throws FailureException
+  {
+    if (warnings != null) {
+      // We got a warning, that's all we need!
+      return;
+    }
+
+    if (rs != null) {
+
+      // But we've got a resultset here, and it can have different warnings, so we need to check them too.
+      try {
+        SQLWarning warn = rs.getWarnings();
+
+        if (warn != null) {
+          // We got a warning, that's all we need!
+          return;
+        }
+
+      } catch (SQLException e) {
+        final String commentDesc = "An exception was received instead of an warning message.";
+        final String actualResultDesc = "An exception was received: " + e.getMessage();
+        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
+      }
+    }
+
+    // We expected a warning but didn't get any.
+    final String commentDesc = "Expected to get a warning message but none were received.";
+    final String actualDesc = "<No warning messages were received>";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this.describe());
   }
 
   /**
@@ -34,7 +87,7 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsResultSet(ResultSet rs, SQLWarning warnings) throws FailureException
   {
-    // A ResultSet is success.
+    assertWarnings(warnings, rs);
   }
 
   /**
@@ -47,7 +100,7 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsUpdateCount(long updateCount, SQLWarning warnings) throws FailureException
   {
-    // An update count is success.
+    assertWarnings(warnings);
   }
 
   /**
@@ -59,9 +112,9 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsException(SQLException e) throws FailureException
   {
-    // Not what was expected.
-    final String commentDesc = "An exception was received instead of a successful execution.";
-    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
+    // We got an exception but we actually expected the command to succeed with warnings.
+    final String commentDesc = "The operation failed with an error instead of returning a warning message.";
+    final String actualResultDesc = "failure: '" + e.getMessage() + "'";
     throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
@@ -75,10 +128,10 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsException(Exception e) throws FailureException
   {
-    // Not what was expected.
-    final String commentDesc = "An exception was received instead of a successful execution.";
-    final String actualResultDesc = e.getClass().getSimpleName() + ": " + e.getMessage();
-    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe(), e);
+    // We got an exception but we actually expected the command to succeed with warnings.
+    final String commentDesc = "The operation failed with an error instead of returning a warning message.";
+    final String actualResultDesc = "failure: '" + e.getMessage() + "'";
+    throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 
   /**
@@ -89,7 +142,7 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsSuccess(SQLWarning warnings) throws FailureException
   {
-    // A general purpose notification of success is success.
+    assertWarnings(warnings);
   }
 
   /**
@@ -101,9 +154,9 @@ public class SuccessExpectedResult extends ExpectedResult
   @Override
   public void assertActualAsFailure(String msg) throws FailureException
   {
-    // Not what was expected.
-    final String commentDesc = "An error message was received instead of a successful execution.";
-    final String actualResultDesc = "Error message: " + msg;
+    // We got an exception but we actually expected the command to succeed with warnings.
+    final String commentDesc = "The operation failed with an error instead of returning a warning message.";
+    final String actualResultDesc = "failure: '" + msg + "'";
     throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
   }
 }

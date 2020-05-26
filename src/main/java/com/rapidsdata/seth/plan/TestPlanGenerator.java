@@ -862,14 +862,13 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    int errCode = convertToInt(ctx.code);
-    String errMsg = cleanString(ctx.msg.getText());
+    String warningMsg = cleanString(ctx.msg.getText());
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorCodeAndMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode, errMsg);
+    ExpectedResult er = new WarningMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, warningMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -989,6 +988,72 @@ public class TestPlanGenerator extends SethBaseVisitor
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
     ExpectedResult er = new FailureAnyExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitWarningMsgPrefix(SethParser.WarningMsgPrefixContext ctx)
+  {
+    visitChildren(ctx);
+
+    String errMsg = cleanString(ctx.msg.getText());
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new WarningMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitWarningMsgSuffix(SethParser.WarningMsgSuffixContext ctx)
+  {
+    visitChildren(ctx);
+
+    String errMsg = cleanString(ctx.msg.getText());
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new WarningMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitWarningMsgSubset(SethParser.WarningMsgSubsetContext ctx)
+  {
+    visitChildren(ctx);
+
+    String errMsg = cleanString(ctx.msg.getText());
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new WarningMsgSubsetExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
+  public Void visitWarningAny(SethParser.WarningAnyContext ctx)
+  {
+    visitChildren(ctx);
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new WarningAnyExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
     expectedResultStack.push(er);
 
     return null;

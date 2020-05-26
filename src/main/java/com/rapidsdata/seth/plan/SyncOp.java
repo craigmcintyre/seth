@@ -105,6 +105,6 @@ public class SyncOp extends Operation
       }
     }
 
-    expectedResult.assertActualAsSuccess();
+    expectedResult.assertActualAsSuccess(null);
   }
 }

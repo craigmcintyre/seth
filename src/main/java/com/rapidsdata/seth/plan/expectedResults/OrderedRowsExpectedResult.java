@@ -10,6 +10,7 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,10 +55,11 @@ public class OrderedRowsExpectedResult extends RowDataExpectedResult
   /**
    * Compares the actual result, being a ResultSet, with the expected result.
    * @param rs The ResultSet to be compared to the expected result.
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsResultSet(ResultSet rs) throws FailureException
+  public void assertActualAsResultSet(ResultSet rs, SQLWarning warnings) throws FailureException
   {
     try {
       // Compare the column names if they have been specified.
@@ -116,10 +118,11 @@ public class OrderedRowsExpectedResult extends RowDataExpectedResult
    * Compares the actual result, being an update count, with the expected result.
    *
    * @param updateCount The update count to be compared to the expected result.
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsUpdateCount(long updateCount) throws FailureException
+  public void assertActualAsUpdateCount(long updateCount, SQLWarning warnings) throws FailureException
   {
     // Not what was expected.
     final String commentDesc = "An affected row count was received instead of a ResultSet.";
@@ -160,11 +163,11 @@ public class OrderedRowsExpectedResult extends RowDataExpectedResult
 
   /**
    * Compares the actual result, being a general purpose statement of success, with the expected result.
-   *
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsSuccess() throws FailureException
+  public void assertActualAsSuccess(SQLWarning warnings) throws FailureException
   {
     final String commentDesc = "The operation did not return a ResultSet as was expected.";
     final String actualResultDesc = "success";

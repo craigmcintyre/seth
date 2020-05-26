@@ -8,6 +8,7 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 
 public abstract class ExpectedResult
 {
@@ -49,16 +50,18 @@ public abstract class ExpectedResult
   /**
    * Compares the actual result, being a ResultSet, with the expected result.
    * @param rs The ResultSet to be compared to the expected result.
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void assertActualAsResultSet(ResultSet rs) throws FailureException;
+  public abstract void assertActualAsResultSet(ResultSet rs, SQLWarning warnings) throws FailureException;
 
   /**
    * Compares the actual result, being an update count, with the expected result.
    * @param updateCount The update count to be compared to the expected result.
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void assertActualAsUpdateCount(long updateCount) throws FailureException;
+  public abstract void assertActualAsUpdateCount(long updateCount, SQLWarning warnings) throws FailureException;
 
   /**
    * Compares the actual result, being a SQLException, with the expected result.
@@ -78,9 +81,10 @@ public abstract class ExpectedResult
 
   /**
    * Compares the actual result, being a general purpose statement of success, with the expected result.
+   * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
-  public abstract void assertActualAsSuccess() throws FailureException;
+  public abstract void assertActualAsSuccess(SQLWarning warnings) throws FailureException;
 
   /**
    * Compares the actual result, being a general purpose failure with an error message, with the expected result.

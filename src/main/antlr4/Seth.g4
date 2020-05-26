@@ -57,6 +57,7 @@ emptyStatement      : ;
 expectedResult      : success
                     | mute
                     | failure
+                    | warning
                     | unorderedRows
                     | orderedRows
                     | containsRows
@@ -83,6 +84,13 @@ failureErrorMsgSuffix : FAILURE SUFFIX ':' msg=STR ;
 failureErrorMsgSubset : FAILURE CONTAINS ':' msg=STR ;
 
 failureAny          : FAILURE ;
+
+warning             : warningMsgPrefix | warningMsgSuffix | warningMsgSubset | warningAny;
+warningMsgPrefix    : WARNING (PREFIX)? ':' msg=STR ;
+warningMsgSuffix    : WARNING SUFFIX ':' msg=STR ;
+warningMsgSubset    : WARNING CONTAINS ':' msg=STR ;
+warningAny          : WARNING ;
+
 unorderedRows       : (UNORDERED)? ROWS ':' resultSet ;
 orderedRows         : ORDERED ROWS ':' resultSet ;
 containsRows        : ( (DOES | MUST)? NOT)? (CONTAINS | CONTAIN) ROWS ':' resultSet ;
@@ -189,6 +197,7 @@ TO                    : T O;
 TRUE                  : T R U E;
 UNORDERED             : U N O R D E R E D;
 USE                   : U S E;
+WARNING               : W A R N I N G;
 YEAR                  : Y E A R;
 
 HINT_START            : '/*+';

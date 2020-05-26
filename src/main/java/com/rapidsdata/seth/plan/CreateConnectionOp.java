@@ -89,6 +89,6 @@ public class CreateConnectionOp extends Operation
       throw new SethSystemException(e);
     }
 
-    expectedResult.assertActualAsSuccess();
+    expectedResult.assertActualAsSuccess(null);
   }
 }

@@ -53,6 +53,6 @@ public class UseConnectionOp extends Operation
       return;
     }
 
-    expectedResult.assertActualAsSuccess();
+    expectedResult.assertActualAsSuccess(null);
   }
 }

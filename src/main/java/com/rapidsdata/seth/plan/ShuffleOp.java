@@ -78,7 +78,7 @@ public class ShuffleOp extends Operation
         }
       }
 
-    expectedResult.assertActualAsSuccess();
+    expectedResult.assertActualAsSuccess(null);
 
     } finally {
       // Accumulate the number of operation steps we executed.

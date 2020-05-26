@@ -67,6 +67,6 @@ public class DropConnectionOp extends Operation
       return;
     }
 
-    expectedResult.assertActualAsSuccess();
+    expectedResult.assertActualAsSuccess(null);
   }
 }

@@ -77,6 +77,6 @@ public class CreateThreadOp extends Operation
       xContext.registerFuture(future);
     }
 
-    expectedResult.assertActualAsSuccess();
+    expectedResult.assertActualAsSuccess(null);
   }
 }

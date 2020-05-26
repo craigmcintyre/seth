@@ -68,10 +68,10 @@ public class ServerOp extends Operation
 
       if (hasResultSet) {
         rs = statement.getResultSet();
-        expectedResult.assertActualAsResultSet(rs);
+        expectedResult.assertActualAsResultSet(rs, statement.getWarnings());
 
       } else {
-        expectedResult.assertActualAsUpdateCount(statement.getUpdateCount());
+        expectedResult.assertActualAsUpdateCount(statement.getUpdateCount(), statement.getWarnings());
       }
 
     } catch (SQLException e) {

@@ -74,6 +74,6 @@ public class SleepOp extends Operation
       remaining = endTime - System.currentTimeMillis();
     }
 
-    expectedResult.assertActualAsSuccess();
+    expectedResult.assertActualAsSuccess(null);
   }
 }
