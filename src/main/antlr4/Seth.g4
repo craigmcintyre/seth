@@ -85,7 +85,8 @@ failureErrorMsgSubset : FAILURE CONTAINS ':' msg=STR ;
 
 failureAny          : FAILURE ;
 
-warning             : warningMsgPrefix | warningMsgSuffix | warningMsgSubset | warningAny;
+warning             : warningCount | warningMsgPrefix | warningMsgSuffix | warningMsgSubset | warningAny;
+warningCount        : WARNINGS ':' count=INT ;
 warningMsgPrefix    : WARNING (PREFIX)? ':' msg=STR ;
 warningMsgSuffix    : WARNING SUFFIX ':' msg=STR ;
 warningMsgSubset    : WARNING CONTAINS ':' msg=STR ;
@@ -197,6 +198,7 @@ TO                    : T O;
 TRUE                  : T R U E;
 UNORDERED             : U N O R D E R E D;
 USE                   : U S E;
+WARNINGS              : W A R N I N G S;
 WARNING               : W A R N I N G;
 YEAR                  : Y E A R;
 
