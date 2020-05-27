@@ -1168,6 +1168,52 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitRowRange(SethParser.RowRangeContext ctx)
+  {
+    visitChildren(ctx);
+
+    boolean lowerInclusivity = ctx.lowerInclusivity.getText().equals("[");
+    boolean upperInclusivity = ctx.upperInclusivity.getText().equals("]");
+    long lowerVal = (ctx.lowerVal == null ? Long.MIN_VALUE : convertToLong(ctx.lowerVal));
+    long upperVal = (ctx.upperVal == null ? Long.MIN_VALUE : convertToLong(ctx.upperVal));
+
+    if (lowerVal == upperVal && lowerVal == Long.MIN_VALUE) {
+      final String msg = "Either the lower bound or upper bound must be specified for the row range.";
+      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+    }
+
+    if (lowerVal < 0 && lowerVal != Long.MIN_VALUE) {
+      final String msg = "The lower bound of the range must not be negative.";
+      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+    }
+
+    if (upperVal < 0 && upperVal != Long.MIN_VALUE) {
+      final String msg = "The upper bound of the range must not be negative.";
+      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+    }
+
+    if (lowerVal > upperVal && upperVal != Long.MIN_VALUE) {
+      final String msg = "The lower bound of the range must be less than or equal to the upper bound of the range.";
+      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+    }
+
+    // Get the metadata for the last statement that was added.
+    List<Operation> opList = currentOpQueueStack.peek();
+    OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
+
+    ExpectedResult er = new RowRangeExpectedResult(currentExpectedResultDesc,
+                                                   opMetadata,
+                                                   appContext,
+                                                   lowerInclusivity,
+                                                   upperInclusivity,
+                                                   lowerVal,
+                                                   upperVal);
+    expectedResultStack.push(er);
+
+    return null;
+  }
+
+  @Override
   public Void visitAffectedRowsCount(SethParser.AffectedRowsCountContext ctx)
   {
     visitChildren(ctx);

@@ -62,6 +62,7 @@ expectedResult      : success
                     | orderedRows
                     | containsRows
                     | rowCount
+                    | rowRange
                     | affectedRowsCount
                     | resultFile ;
 
@@ -96,6 +97,7 @@ unorderedRows       : (UNORDERED)? ROWS ':' resultSet ;
 orderedRows         : ORDERED ROWS ':' resultSet ;
 containsRows        : ( (DOES | MUST)? NOT)? (CONTAINS | CONTAIN) ROWS ':' resultSet ;
 rowCount            : ROWS ':' count=INT ;
+rowRange            : ROW RANGE ':' lowerInclusivity=( '[' | '(' ) (lowerVal=INT)? ',' (upperVal=INT)? upperInclusivity=( ']' | ')' ) ;
 affectedRowsCount   : AFFECTED ':' count=INT ;
 
 resultSet           : columnNames? rowData+ ;
@@ -180,7 +182,9 @@ NULL                  : N U L L;
 ORDERED               : O R D E R E D;
 PREFIX                : P R E F I X;
 RESULT                : R E S U L T;
+RANGE                 : R A N G E;
 ROWS                  : R O W S;
+ROW                   : R O W;
 SECONDS               : S E C O N D S;
 SECOND                : S E C O N D;
 SHUFFLE               : S H U F F L E;

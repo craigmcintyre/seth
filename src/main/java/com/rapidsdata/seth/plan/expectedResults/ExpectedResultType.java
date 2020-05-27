@@ -18,6 +18,7 @@ public enum ExpectedResultType
   UNORDERED_ROWS,
   ORDERED_ROWS,
   ROW_COUNT,
+  ROW_RANGE,
   AFFECTED_ROWS,
   RECORD_NEW,
   CONTAINS_ROWS,

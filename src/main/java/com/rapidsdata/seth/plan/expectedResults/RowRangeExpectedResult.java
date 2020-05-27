@@ -12,27 +12,40 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 
 /**
- * An expected result class where we the operation expects to have returned a ResultSet
- * with a certain number of rows.
+ * An expected result class where we expect the operation to have returned a ResultSet
+ * with a number of rows within a given range.
  */
-public class RowCountExpectedResult extends ExpectedResult
+public class RowRangeExpectedResult extends ExpectedResult
 {
-  private final long expectedRowCount;
+  private final boolean inclusiveLower;
+  private final boolean inclusiveUpper;
+  private final long lowerVal;
+  private final long upperVal;
 
   /**
    * Constructor
    * @param description A textual description of the expected result.
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
-   * @param expectedRowCount The expected number of rows in the ResultSet returned by the operation.
+   * @param inclusiveLower if true then the number of rows returned must be >= startVal. If false then it must be > startVal.
+   * @param inclusiveUpper if true then the number of rows returned must be <= endVal. If false then it must be < endVal.
+   * @param lowerVal the lower value of the range. Set to Long.MIN_VALUE to ignore the lower bound.
+   * @param upperVal the upper value of the range. Set to Long.MIN_VALUE to ignore the upper bound.
    */
-  public RowCountExpectedResult(String description,
+  public RowRangeExpectedResult(String description,
                                 OperationMetadata opMetadata,
                                 AppContext appContext,
-                                long expectedRowCount)
+                                boolean inclusiveLower,
+                                boolean inclusiveUpper,
+                                long lowerVal,
+                                long upperVal)
   {
-    super(ExpectedResultType.ROW_COUNT, description, opMetadata, appContext);
-    this.expectedRowCount = expectedRowCount;
+    super(ExpectedResultType.ROW_RANGE, description, opMetadata, appContext);
+
+    this.inclusiveLower = inclusiveLower;
+    this.inclusiveUpper = inclusiveUpper;
+    this.lowerVal = lowerVal;
+    this.upperVal = upperVal;
   }
 
   /**
@@ -73,11 +86,28 @@ public class RowCountExpectedResult extends ExpectedResult
           .append(" more rows.");
       }
 
-      if (actualRowCount != expectedRowCount) {
-        final String commentDesc = "A different row count was received than was expected.";
-        final String actualResultDesc = "rows: " + actualRowCount + "\nThe following rows were received:\n" + sb.toString();
-        throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
+
+      if (lowerVal != Long.MIN_VALUE) {
+        if (actualRowCount < (inclusiveLower ? lowerVal : lowerVal + 1)) {
+          // problem
+          final String commentDesc = "A different row count was received than was expected.";
+          final String actualResultDesc = "rows: " + actualRowCount +
+              (actualRowCount > 0 ? "\nThe following rows were received:\n" + sb.toString() : "");
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
+        }
       }
+
+      if (upperVal != Long.MIN_VALUE) {
+        if (actualRowCount > (inclusiveUpper ? upperVal : upperVal - 1)) {
+          // problem
+          final String commentDesc = "A different row count was received than was expected.";
+          final String actualResultDesc = "rows: " + actualRowCount +
+              (actualRowCount > 0 ? "\nThe following rows were received:\n" + sb.toString() : "");
+          throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, this.describe());
+        }
+      }
+
+      // All good.
 
     } catch (SQLException e) {
       final String commentDesc = "An exception was received instead of a ResultSet.";
