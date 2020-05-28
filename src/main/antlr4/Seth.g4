@@ -82,7 +82,7 @@ failureErrorCode    : FAILURE ':' code=INT ;
 failureErrorMsg     : failureErrorMsgPrefix | failureErrorMsgSuffix | failureErrorMsgSubset;
 failureErrorMsgPrefix : FAILURE (PREFIX)? ':' msg=STR ;
 failureErrorMsgSuffix : FAILURE SUFFIX ':' msg=STR ;
-failureErrorMsgSubset : FAILURE CONTAINS ':' msg=STR ;
+failureErrorMsgSubset : FAILURE CONTAINS (ALL | ANY)? ':' msgs=strList ;
 
 failureAny          : FAILURE ;
 
@@ -146,11 +146,14 @@ dayTimeInterval     : INTERVAL ('+' | minus='-')? STR
                         | s=SECOND
                       );
 
+strList             : STR ( (',')? STR )* ;
 
 // lexer ------------------------------------------------------
 
 
 AFFECTED              : A F F E C T E D;
+ALL                   : A L L;
+ANY                   : A N Y;
 CLEANUP               : C L E A N U P;
 CONNECTION            : C O N N E C T I O N;
 CONTAINS              : C O N T A I N S;

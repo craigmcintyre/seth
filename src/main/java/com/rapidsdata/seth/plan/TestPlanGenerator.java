@@ -13,6 +13,7 @@ import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -966,13 +967,23 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String errMsg = cleanString(ctx.msg.getText());
+    List<String> errMsgs = new ArrayList<>();
+
+    for (TerminalNode node : ctx.strList().STR()) {
+      errMsgs.add(cleanString(node.getSymbol().getText()));
+    }
+
+    boolean mustMatchAll = (ctx.ANY() == null);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorMsgSubsetExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    ExpectedResult er = new FailureErrorMsgSubsetExpectedResult(currentExpectedResultDesc,
+                                                                opMetadata,
+                                                                appContext,
+                                                                errMsgs,
+                                                                mustMatchAll);
     expectedResultStack.push(er);
 
     return null;

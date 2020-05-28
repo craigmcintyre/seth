@@ -10,6 +10,7 @@ import com.rapidsdata.seth.plan.OperationMetadata;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.List;
 
 /**
  * An expected result class where we expect the operation to have failed with a particular
@@ -18,20 +19,27 @@ import java.sql.SQLWarning;
  */
 public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
 {
-  protected final String expectedErrMsg;
+  /** the list of error messages to be matched. */
+  protected final List<String> expectedErrMsgs;
+
+  /** if true then we must match all of the expected error messages. If false we simply need to match at least 1. */
+  protected final boolean mustMatchAll;
 
   /**
    * Constructor
    * @param description A textual description of the expected result.
    * @param opMetadata The metadata about the operation that produced the actual result.
    * @param appContext The application context container.
-   * @param expectedErrMsg the error message that is expected to be received.
+   * @param expectedErrMsgs the error message that is expected to be received.
+   * @param mustMatchAll if true then we must match all of the expected error messages. If false we simply need to match at least 1.
    */
   public FailureErrorMsgSubsetExpectedResult(String description, OperationMetadata opMetadata,
-                                             AppContext appContext, String expectedErrMsg)
+                                             AppContext appContext, List<String> expectedErrMsgs,
+                                             boolean mustMatchAll)
   {
     super(ExpectedResultType.FAILURE_MSG_SUBSET, description, opMetadata, appContext);
-    this.expectedErrMsg = expectedErrMsg;
+    this.expectedErrMsgs = expectedErrMsgs;
+    this.mustMatchAll = mustMatchAll;
   }
 
   /**
@@ -90,12 +98,7 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
     // actual == expected iff the error message of the expected result is a leading substring
     // of the error message of the actual.
 
-    if (!e.getMessage().contains(expectedErrMsg)) {
-      // The error messages differ.
-      final String commentDesc = "A different error message was received than was expected.";
-      final String actualDesc = "Error message: " + e.getMessage();
-      throw new ExpectedResultFailureException(opMetadata, commentDesc, actualDesc, this.describe());
-    }
+    assertActualAsFailure(e.getMessage());
 
     // All ok.
   }
@@ -127,7 +130,27 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
     // actual == expected iff the error message of the expected result is contained
     // within the actual error response.
 
-    if (!msg.contains(expectedErrMsg)) {
+    boolean valid = false;
+
+    for (String expectedMsg : expectedErrMsgs) {
+
+      if (msg.contains(expectedMsg)) {
+        valid = true;
+        if (!mustMatchAll) {
+          // any match is good enough
+          return;
+        }
+
+      } else {
+        if (mustMatchAll) {
+          valid = false;
+          // no need to keep checking other msgs
+          break;
+        }
+      }
+    }
+
+    if (!valid) {
       // The error messages differ.
       final String commentDesc = "A different error message was received than was expected.";
       final String actualDesc = "failure: '" + msg + "'";
@@ -136,4 +159,5 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
 
     // All ok.
   }
+
 }
