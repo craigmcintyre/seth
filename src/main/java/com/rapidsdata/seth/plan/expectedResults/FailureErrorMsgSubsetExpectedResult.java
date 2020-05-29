@@ -2,7 +2,9 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.contexts.AppContext;
+import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.ExpectedResultFailureException;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.plan.OperationMetadata;
@@ -34,22 +36,23 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
    * @param mustMatchAll if true then we must match all of the expected error messages. If false we simply need to match at least 1.
    */
   public FailureErrorMsgSubsetExpectedResult(String description, OperationMetadata opMetadata,
-                                             AppContext appContext, List<String> expectedErrMsgs,
-                                             boolean mustMatchAll)
+                                             AppContext appContext, Options options,
+                                             List<String> expectedErrMsgs, boolean mustMatchAll)
   {
-    super(ExpectedResultType.FAILURE_MSG_SUBSET, description, opMetadata, appContext);
+    super(ExpectedResultType.FAILURE_MSG_SUBSET, description, opMetadata, appContext, options);
     this.expectedErrMsgs = expectedErrMsgs;
     this.mustMatchAll = mustMatchAll;
   }
 
   /**
    * Compares the actual result, being a ResultSet, with the expected result.
+   * @param xContext The context that the operator was executed within.
    * @param rs The ResultSet to be compared to the expected result.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsResultSet(ResultSet rs, SQLWarning warnings) throws FailureException
+  public void assertActualAsResultSet(ExecutionContext xContext, ResultSet rs, SQLWarning warnings) throws FailureException
   {
     // We expected failure, not a result set.
     final String commentDesc = "A ResultSet was received instead of an error message.";
@@ -59,13 +62,13 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
 
   /**
    * Compares the actual result, being an update count, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param updateCount The update count to be compared to the expected result.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsUpdateCount(long updateCount, SQLWarning warnings) throws FailureException
+  public void assertActualAsUpdateCount(ExecutionContext xContext, long updateCount, SQLWarning warnings) throws FailureException
   {
     // We expected failure, not an update count.
     final String commentDesc = "A affected row count was received instead of an error message.";
@@ -75,42 +78,42 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
 
   /**
    * Compares the actual result, being a SQLException, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsException(SQLException e) throws FailureException
+  public void assertActualAsException(ExecutionContext xContext, SQLException e) throws FailureException
   {
-    assertActualAsException((Exception) e);
+    assertActualAsException(xContext, (Exception) e);
   }
 
   /**
    * Compares the actual result, being an Exception, with the expected result.
    * Because this is a general exception, the stack trace will be included.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsException(Exception e) throws FailureException
+  public void assertActualAsException(ExecutionContext xContext, Exception e) throws FailureException
   {
     // actual == expected iff the error message of the expected result is a leading substring
     // of the error message of the actual.
 
-    assertActualAsFailure(e.getMessage());
+    assertActualAsFailure(xContext, e.getMessage());
 
     // All ok.
   }
 
   /**
    * Compares the actual result, being a general purpose statement of success, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsSuccess(SQLWarning warnings) throws FailureException
+  public void assertActualAsSuccess(ExecutionContext xContext, SQLWarning warnings) throws FailureException
   {
     // We expected failure, not a general purpose success.
     final String commentDesc = "The operation succeeded instead of returning an error message.";
@@ -120,12 +123,12 @@ public class FailureErrorMsgSubsetExpectedResult extends ExpectedResult
 
   /**
    * Compares the actual result, being a general purpose failure with an error message, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param msg The error message to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsFailure(String msg) throws FailureException
+  public void assertActualAsFailure(ExecutionContext xContext, String msg) throws FailureException
   {
     // actual == expected iff the error message of the expected result is contained
     // within the actual error response.

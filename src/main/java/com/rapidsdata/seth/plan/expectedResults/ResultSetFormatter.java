@@ -555,7 +555,7 @@ public class ResultSetFormatter
         sb.append(System.lineSeparator());
       }
 
-      sb.append(expectedRow.toString(alignment.columnWidths, alignment.padLefts));
+      sb.append(expectedRow.toString(alignment.columnWidths, alignment.padLefts, alignment.optionWidth));
     }
 
     int excessRows = expectedRows.size() - displayableRows.size();
@@ -589,7 +589,7 @@ public class ResultSetFormatter
         sb.append(System.lineSeparator());
       }
 
-      sb.append(expectedRow.toString(alignment.columnWidths, alignment.padLefts));
+      sb.append(expectedRow.toString(alignment.columnWidths, alignment.padLefts, alignment.optionWidth));
     }
 
     int excessRows = expectedRows.size() - displayableRows.size();
@@ -621,7 +621,7 @@ public class ResultSetFormatter
         sb.append(System.lineSeparator());
       }
 
-      sb.append(expectedRow.toString(alignment.columnWidths, alignment.padLefts));
+      sb.append(expectedRow.toString(alignment.columnWidths, alignment.padLefts, alignment.optionWidth));
 
       if (expectedRow instanceof ScoredExpectedRow) {
         sb.append(String.format("  [Score: %.2f]", ((ScoredExpectedRow) expectedRow).getScore()));
@@ -748,9 +748,14 @@ public class ResultSetFormatter
       ResultSetFormatter.updateColumnWidths(columnWidths, rs);
     }
 
+    int optionWidth = 0;
+
     // ...and the expected rows.
     for (ExpectedRow er : expectedRows) {
       ResultSetFormatter.updateColumnWidths(columnWidths, er);
+
+      int optLen = er.getRowOptions().toString().length() + 1;
+      optionWidth = Math.max(optionWidth, optLen);
     }
 
     // Also get the desired padding position of each column so that we know how to pad things like nulls.
@@ -761,7 +766,7 @@ public class ResultSetFormatter
       ResultSetFormatter.updatePadLeft(padLefts, rs.getMetaData());
     }
 
-    return new AlignmentInfo(columnWidths, padLefts);
+    return new AlignmentInfo(columnWidths, padLefts, optionWidth);
   }
 
   /**
@@ -780,16 +785,21 @@ public class ResultSetFormatter
       columnWidths[i] = 0;
     }
 
+    int optionWidth = 0;
+
     // Update the widths based on the expected rows.
     for (ExpectedRow er : expectedRows) {
       ResultSetFormatter.updateColumnWidths(columnWidths, er);
+
+      int optLen = er.getRowOptions().toString().length() + 1;
+      optionWidth = Math.max(optionWidth, optLen);
     }
 
     // Also get the desired padding position of each column so that we know how to pad things like nulls.
     boolean[] padLefts = new boolean[columnWidths.length];
     ResultSetFormatter.updatePadLeft(padLefts, rsmd);
 
-    return new AlignmentInfo(columnWidths, padLefts);
+    return new AlignmentInfo(columnWidths, padLefts, optionWidth);
   }
 
   /**
@@ -814,12 +824,17 @@ public class ResultSetFormatter
       columnWidths[i] = 0;
     }
 
+    int optionWidth = 0;
+
     // Update the widths based on the expected rows.
     for (ExpectedRow er : expectedRows) {
       ResultSetFormatter.updateColumnWidths(columnWidths, er);
+
+      int optLen = er.getRowOptions().toString().length() + 1;
+      optionWidth = Math.max(optionWidth, optLen);
     }
 
-    return new AlignmentInfo(columnWidths, null);
+    return new AlignmentInfo(columnWidths, null, optionWidth);
   }
 
   /**
@@ -855,7 +870,7 @@ public class ResultSetFormatter
     boolean[] padLefts = new boolean[columnCount];
     ResultSetFormatter.updatePadLeft(padLefts, rsmd);
 
-    return new AlignmentInfo(columnWidths, padLefts);
+    return new AlignmentInfo(columnWidths, padLefts, 0);
   }
 
   /**

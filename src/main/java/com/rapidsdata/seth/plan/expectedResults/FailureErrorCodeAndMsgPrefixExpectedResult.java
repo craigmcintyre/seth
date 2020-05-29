@@ -2,7 +2,9 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.contexts.AppContext;
+import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.ExpectedResultFailureException;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.plan.OperationMetadata;
@@ -29,22 +31,23 @@ public class FailureErrorCodeAndMsgPrefixExpectedResult extends ExpectedResult
    * @param expectedErrMsg the error message that is expected to be received.
    */
   public FailureErrorCodeAndMsgPrefixExpectedResult(String description, OperationMetadata opMetadata,
-                                                    AppContext appContext, int expectedErrCode,
-                                                    String expectedErrMsg)
+                                                    AppContext appContext, Options options,
+                                                    int expectedErrCode, String expectedErrMsg)
   {
-    super(ExpectedResultType.FAILURE_CODE_AND_MSG_PREFIX, description, opMetadata, appContext);
+    super(ExpectedResultType.FAILURE_CODE_AND_MSG_PREFIX, description, opMetadata, appContext, options);
     this.expectedErrCode = expectedErrCode;
     this.expectedErrMsg = expectedErrMsg;
   }
 
   /**
    * Compares the actual result, being a ResultSet, with the expected result.
+   * @param xContext The context that the operator was executed within.
    * @param rs The ResultSet to be compared to the expected result.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsResultSet(ResultSet rs, SQLWarning warnings) throws FailureException
+  public void assertActualAsResultSet(ExecutionContext xContext, ResultSet rs, SQLWarning warnings) throws FailureException
   {
     // We expected failure, not a result set.
     final String commentDesc = "A ResultSet was returned instead of an error code and message.";
@@ -54,13 +57,13 @@ public class FailureErrorCodeAndMsgPrefixExpectedResult extends ExpectedResult
 
   /**
    * Compares the actual result, being an update count, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param updateCount The update count to be compared to the expected result.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsUpdateCount(long updateCount, SQLWarning warnings) throws FailureException
+  public void assertActualAsUpdateCount(ExecutionContext xContext, long updateCount, SQLWarning warnings) throws FailureException
   {
     // We expected failure, not an update count.
     final String commentDesc = "An affected row count was returned instead of an error code and message.";
@@ -70,12 +73,12 @@ public class FailureErrorCodeAndMsgPrefixExpectedResult extends ExpectedResult
 
   /**
    * Compares the actual result, being a SQLException, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsException(SQLException e) throws FailureException
+  public void assertActualAsException(ExecutionContext xContext, SQLException e) throws FailureException
   {
     if (e.getErrorCode() != expectedErrCode) {
       final String commentDesc = "A different error code was returned than was expected.";
@@ -99,18 +102,18 @@ public class FailureErrorCodeAndMsgPrefixExpectedResult extends ExpectedResult
   /**
    * Compares the actual result, being an Exception, with the expected result.
    * Because this is a general exception, the stack trace will be included.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsException(Exception e) throws FailureException
+  public void assertActualAsException(ExecutionContext xContext, Exception e) throws FailureException
   {
     // actual == expected iff the error message of the expected result is a leading substring
     // of the error message of the actual.
 
     if (e instanceof SQLException) {
-      assertActualAsException((SQLException) e);
+      assertActualAsException(xContext, (SQLException) e);
     }
 
     final String commentDesc = "An exception was returned instead of an error code and message.";
@@ -120,11 +123,12 @@ public class FailureErrorCodeAndMsgPrefixExpectedResult extends ExpectedResult
 
   /**
    * Compares the actual result, being a general purpose statement of success, with the expected result.
+   * @param xContext The context that the operator was executed within.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsSuccess(SQLWarning warnings) throws FailureException
+  public void assertActualAsSuccess(ExecutionContext xContext, SQLWarning warnings) throws FailureException
   {
     // We expected failure, not a general purpose success.
     final String commentDesc = "The operation succeeeded instead of returning an error code.";
@@ -134,12 +138,12 @@ public class FailureErrorCodeAndMsgPrefixExpectedResult extends ExpectedResult
 
   /**
    * Compares the actual result, being a general purpose failure with an error message, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param msg The error message to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsFailure(String msg) throws FailureException
+  public void assertActualAsFailure(ExecutionContext xContext, String msg) throws FailureException
   {
     final String commentDesc = "An error message was returned instead of an error code.";
     final String actualResultDesc = "Error message only: " + msg;

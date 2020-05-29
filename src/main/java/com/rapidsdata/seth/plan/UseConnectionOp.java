@@ -46,13 +46,13 @@ public class UseConnectionOp extends Operation
       xContext.useConnection(name);
 
     } catch (BadConnectionNameException e) {
-      expectedResult.assertActualAsFailure(e.getMessage());
+      expectedResult.assertActualAsFailure(xContext, e.getMessage());
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
       return;
     }
 
-    expectedResult.assertActualAsSuccess(null);
+    expectedResult.assertActualAsSuccess(xContext, null);
   }
 }

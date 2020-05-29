@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.plan.expectedResults;
 
 import com.rapidsdata.seth.CommandLineArgs;
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 
 import java.math.BigDecimal;
@@ -17,17 +18,20 @@ public class ExpectedRow
 {
   private final List<ExpectedColumnType> columnDefs;
   private final List<Object> columnValues;
+  private final Options rowOptions;
 
-  public ExpectedRow(List<ExpectedColumnType> columnDefs, List<Object> columnValues)
+  public ExpectedRow(List<ExpectedColumnType> columnDefs, List<Object> columnValues, Options rowOptions)
   {
-    this.columnDefs = columnDefs;
+    this.columnDefs   = columnDefs;
     this.columnValues = columnValues;
+    this.rowOptions   = rowOptions;
   }
 
   public ExpectedRow(ExpectedRow er)
   {
-    this.columnDefs = er.columnDefs;
+    this.columnDefs   = er.columnDefs;
     this.columnValues = er.columnValues;
+    this.rowOptions   = er.rowOptions;
   }
 
   public List<ExpectedColumnType> getColumnDefs()
@@ -38,10 +42,12 @@ public class ExpectedRow
   /**
    * Compares the expected row to the row that the cursor is at in the ResultSet parameter.
    * @param rs The resultset which has the cursor on the current row to be compared.
+   * @param rounding the rounding to be applied to floats and decimals.
+   * @param optionList a list of any options on the whole expected result, test file, application, etc.
    * @return true if the rows compare equally or false if they are different.
    * @throws SQLException
    */
-  public boolean compareTo(ResultSet rs, int rounding) throws SQLException
+  public boolean compareTo(ResultSet rs, int rounding, LinkedList<Options> optionList) throws SQLException
   {
     ResultSetMetaData rsmd = rs.getMetaData();
 
@@ -118,7 +124,17 @@ public class ExpectedRow
 
         case STRING:
           String expectedString = (String) expectedVal;
-          if (wasNull || !expectedString.equals(rs.getString(rsIndex))) {
+          if (wasNull) {
+            return false;
+          }
+
+          // Any row options override result options.
+          optionList.addFirst(rowOptions);
+          boolean ignoreCase = Options.ignoreCase(optionList);
+          optionList.removeFirst();
+
+          if ( (ignoreCase && !expectedString.equalsIgnoreCase(rs.getString(rsIndex))) ||
+               (!ignoreCase && !expectedString.equals(rs.getString(rsIndex))) ) {
             return false;
           }
           break;
@@ -207,6 +223,12 @@ public class ExpectedRow
   }
 
 
+  public Options getRowOptions()
+  {
+    return rowOptions;
+  }
+
+
   /**
    * Returns a string representation of this expected row, where the columns are padded according to
    * the widths in the columnWidths argument.
@@ -215,7 +237,7 @@ public class ExpectedRow
    *                left of the value if true, or to the right of the value if false.
    * @return a string representation of this expected row
    */
-  public String toString(int[] columnWidths, boolean[] padLefts)
+  public String toString(int[] columnWidths, boolean[] padLefts, int optionWidth)
   {
     if (columnWidths == null) {
       columnWidths = new int[columnDefs.size()];
@@ -232,6 +254,22 @@ public class ExpectedRow
     int padding;
 
     StringBuilder sb = new StringBuilder(128);
+
+    // First add the row option padding.
+    if (rowOptions == null) {
+      for (int i = 0; i < optionWidth; i++) {
+        sb.append(' ');
+      }
+
+    } else {
+      String optStr = rowOptions.toString();
+      sb.append(optStr);
+      sb.append(" ");
+
+      for (int i = optStr.length() + 1; i < optionWidth; i++) {
+        sb.append(' ');
+      }
+    }
 
     sb.append('(');
 
@@ -443,7 +481,7 @@ public class ExpectedRow
    */
   public String toString()
   {
-    return toString(null, null);
+    return toString(null, null, 0);
   }
 
   /** @returns the width of a column when printed to a string. */

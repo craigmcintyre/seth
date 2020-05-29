@@ -2,10 +2,7 @@
 
 package com.rapidsdata.seth.contexts;
 
-import com.rapidsdata.seth.CommandLineArgs;
-import com.rapidsdata.seth.PathRelativity;
-import com.rapidsdata.seth.TestableFile;
-import com.rapidsdata.seth.TestResult;
+import com.rapidsdata.seth.*;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.logging.TestLogger;
 
@@ -43,6 +40,9 @@ public class TestContextImpl implements TestContext
 
   /** A map of objects that threads can synchronise on. */
   private final Map<String, CyclicBarrier> syncMap = new ConcurrentHashMap<>();
+
+  /** Options that are specified to this test. */
+  private final Options testOptions = new Options();
 
   /**
    * Constructor.
@@ -124,6 +124,16 @@ public class TestContextImpl implements TestContext
   public CommandLineArgs getCommandLineArgs()
   {
     return appContext.getCommandLineArgs();
+  }
+
+  /**
+   * Returns the options that are applied to the whole application.
+   * @return the options that are applied to the whole application.
+   */
+  @Override
+  public Options getAppOptions()
+  {
+    return appContext.getAppOptions();
   }
 
   /**
@@ -328,5 +338,11 @@ public class TestContextImpl implements TestContext
     synchronized(syncMap) {
       syncMap.remove(name, barrier);
     }
+  }
+
+  @Override
+  public Options getTestOptions()
+  {
+    return testOptions;
   }
 }

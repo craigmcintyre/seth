@@ -54,17 +54,23 @@ failStatement       : FAIL (msg=STR)? ;
 emptyStatement      : ;
 
 
-expectedResult      : success
-                    | mute
-                    | failure
-                    | warning
-                    | unorderedRows
-                    | orderedRows
-                    | containsRows
-                    | rowCount
-                    | rowRange
-                    | affectedRowsCount
-                    | resultFile ;
+expectedResult      : opts?
+                     ( success
+                     | mute
+                     | failure
+                     | warning
+                     | unorderedRows
+                     | orderedRows
+                     | containsRows
+                     | rowCount
+                     | rowRange
+                     | affectedRowsCount
+                     | resultFile
+                     );
+
+opts                : '[' opt ( ',' opt )*  ']' ;
+opt                 : (ID | STR) ( '=' optVal)? ;
+optVal              : booleanVal | integerVal | decimalVal | floatVal | stringVal | idVal ;
 
 resultFile          : RESULT FILE? ':' filePath=STR ;
 
@@ -103,7 +109,7 @@ affectedRowsCount   : AFFECTED ':' count=INT ;
 resultSet           : columnNames? rowData+ ;
 columnNames         : '[' columnName (',' columnName)* ']' ;
 columnName          : stringVal | dontCareVal | ignoreRemainingColumns ;
-rowData             : '(' columnData (',' columnData)* ')' ;
+rowData             : opts? '(' columnData (',' columnData)* ')' ;
 columnData          : booleanVal
                     | integerVal
                     | decimalVal
@@ -122,6 +128,7 @@ integerVal          : INT ;
 decimalVal          : DEC ;
 floatVal            : FLT ;
 stringVal           : STR ;
+idVal               : ID ;
 dateVal             : (DATE STR) | DTE ;
 timeVal             : (TIME STR) | TME ;
 timestampVal        : (TIMESTAMP STR) | TSP ;

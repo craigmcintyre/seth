@@ -14,9 +14,13 @@ public class AlignmentInfo
    */
   public final boolean[] padLefts;
 
-  public AlignmentInfo(int[] columnWidths, boolean[] padLefts)
+  /** The maximum width of a row option in a result. */
+  public final int optionWidth;
+
+  public AlignmentInfo(int[] columnWidths, boolean[] padLefts, int optionWidth)
   {
     this.columnWidths = columnWidths;
     this.padLefts = padLefts;
+    this.optionWidth = optionWidth;
   }
 }

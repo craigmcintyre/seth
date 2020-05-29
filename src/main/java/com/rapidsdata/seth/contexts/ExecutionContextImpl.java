@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.CommandLineArgs;
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
@@ -385,5 +386,25 @@ public class ExecutionContextImpl implements ExecutionContext
   public CommandLineArgs getCommandLineArgs()
   {
     return testContext.getCommandLineArgs();
+  }
+
+  /**
+   * Returns the options that are applied to the whole application.
+   * @return the options that are applied to the whole application.
+   */
+  @Override
+  public Options getAppOptions()
+  {
+    return testContext.getAppOptions();
+  }
+
+  /**
+   * Returns the options that are applied to the this test.
+   * @return the options that are applied to the this test.
+   */
+  @Override
+  public Options getTestOptions()
+  {
+    return testContext.getTestOptions();
   }
 }

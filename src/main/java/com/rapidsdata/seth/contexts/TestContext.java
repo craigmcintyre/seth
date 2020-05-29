@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.contexts;
 
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.exceptions.FailureException;
 
 import java.io.File;
@@ -83,4 +84,10 @@ public interface TestContext extends AppContext
    * @param barrier the actual synchronisation object to be removed.
    */
   public void removeSyncObject(String name, CyclicBarrier barrier);
+
+  /**
+   * Returns the options object that applies to this test.
+   * @return the options object that applies to this test.
+   */
+  public Options getTestOptions();
 }

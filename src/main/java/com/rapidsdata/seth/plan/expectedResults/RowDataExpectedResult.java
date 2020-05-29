@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.plan.OperationMetadata;
 
@@ -15,9 +16,10 @@ public abstract class RowDataExpectedResult extends ExpectedResult
   protected final ExpectedColumnNames expectedColumnNames;
 
   public RowDataExpectedResult(ExpectedResultType type, String description, OperationMetadata opMetadata,
-                               AppContext ctx, List<ExpectedRow> expectedRows, ExpectedColumnNames expectedColumnNames)
+                               AppContext ctx, Options options, List<ExpectedRow> expectedRows,
+                               ExpectedColumnNames expectedColumnNames)
   {
-    super(type, description, opMetadata, ctx);
+    super(type, description, opMetadata, ctx, options);
     this.expectedRows = expectedRows;
     this.expectedColumnNames = expectedColumnNames;
   }

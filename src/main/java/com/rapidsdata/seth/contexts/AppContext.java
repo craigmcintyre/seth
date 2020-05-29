@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.CommandLineArgs;
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.TestableFile;
@@ -53,4 +54,10 @@ public interface AppContext
    * @return the command line arguments used to run the program.
    */
   public CommandLineArgs getCommandLineArgs();
+
+  /**
+   * Returns the options that are applied to the whole application.
+   * @return the options that are applied to the whole application.
+   */
+  public Options getAppOptions();
 }

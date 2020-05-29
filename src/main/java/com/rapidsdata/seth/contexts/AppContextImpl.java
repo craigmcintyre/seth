@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.CommandLineArgs;
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.TestableFile;
@@ -36,6 +37,9 @@ public class AppContextImpl implements AppContext
   /** The command line arguments. */
   private final CommandLineArgs args;
 
+  /** The options that are applicable to the whole application. */
+  private final Options appOptions;
+
 
   public AppContextImpl(long appStartTime,
                         CommandLineArgs args,
@@ -43,7 +47,8 @@ public class AppContextImpl implements AppContext
                         String url,
                         PathRelativity pathRelativity,
                         TestLogger logger,
-                        ExecutorService threadPool)
+                        ExecutorService threadPool,
+                        Options appOptions)
   {
     this.appStartTime = appStartTime;
     this.args = args;
@@ -52,6 +57,7 @@ public class AppContextImpl implements AppContext
     this.pathRelativity = pathRelativity;
     this.logger = logger;
     this.threadPool = threadPool;
+    this.appOptions = appOptions;
   }
 
   /**
@@ -122,5 +128,15 @@ public class AppContextImpl implements AppContext
   public CommandLineArgs getCommandLineArgs()
   {
     return args;
+  }
+
+  /**
+   * Returns the options that are applied to the whole application.
+   * @return the options that are applied to the whole application.
+   */
+  @Override
+  public Options getAppOptions()
+  {
+    return appOptions;
   }
 }

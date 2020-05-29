@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.exceptions.*;
@@ -83,6 +84,9 @@ public class TestPlanGenerator extends SethBaseVisitor
 
   /** The current test to be annotated with new expected results. */
   private TestAnnotationInfo testToAnnotate = null;
+
+  /** key/value options that can be applied at different levels. */
+  private Options options = null;
 
 
   /**
@@ -244,14 +248,14 @@ public class TestPlanGenerator extends SethBaseVisitor
 
           // Override the expected result with a RecordNewExpectedResult.
           Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
-          ExpectedResult expectedResult = new RecordNewExpectedResult(op.metadata, appContext, testToAnnotate, startIdx);
+          ExpectedResult expectedResult = new RecordNewExpectedResult(op.metadata, appContext, options, testToAnnotate, startIdx);
           Operation newOp = op.rewriteWith(expectedResult);
           currentOpQueueStack.peek().add(newOp);
 
         } else {
           // Add a "don't care" expected result.
           Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
-          ExpectedResult expectedResult = new DontCareExpectedResult(op.metadata, appContext);
+          ExpectedResult expectedResult = new DontCareExpectedResult(op.metadata, appContext, options);
           Operation newOp = op.rewriteWith(expectedResult);
           currentOpQueueStack.peek().add(newOp);
         }
@@ -272,7 +276,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     desc = desc.substring(1, desc.length() - 1);
     OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
 
-    Operation op = new ServerOp(newOpMetadata, new DontCareExpectedResult(newOpMetadata, appContext));
+    Operation op = new ServerOp(newOpMetadata, new DontCareExpectedResult(newOpMetadata, appContext, options));
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -284,7 +288,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    Operation op = new ServerOp(opMetadata, new DontCareExpectedResult(opMetadata, appContext));
+    Operation op = new ServerOp(opMetadata, new DontCareExpectedResult(opMetadata, appContext, options));
     currentOpQueueStack.peek().add(op);
 
     return null;
@@ -337,7 +341,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan loopPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
     Operation op = new CountedLoopOp(opMetadata, expectedResult, count, loopPlan.getTestOperations());
     currentOpQueueStack.peek().add(op);
 
@@ -380,7 +384,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan loopPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
     Operation op = new TimedLoopOp(opMetadata, expectedResult, duration.toMillis(), loopPlan.getTestOperations());
     currentOpQueueStack.peek().add(op);
 
@@ -413,7 +417,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan threadPlan = planStack.pop();
     currentOpQueueStack.pop();
 
-    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext, options);
     Operation op = new CreateThreadOp(newOpMetadata, expectedResult, numThreads, threadPlan);
     currentOpQueueStack.peek().add(op);
 
@@ -445,7 +449,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     Plan statementBlock = planStack.pop();
     currentOpQueueStack.pop();
 
-    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(newOpMetadata, appContext, options);
     Operation op = new ShuffleOp(newOpMetadata, expectedResult, statementBlock.getTestOperations());
     currentOpQueueStack.peek().add(op);
 
@@ -466,7 +470,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
 
     Operation op = new SleepOp(opMetadata, expectedResult, millis);
     currentOpQueueStack.peek().add(op);
@@ -480,7 +484,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
 
     String failureMsg = (ctx.msg == null ? null : cleanString(ctx.msg.getText()));
 
@@ -498,7 +502,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     String msg = cleanString(ctx.logStr.getText());
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
 
     Operation op = new LogOp(opMetadata, expectedResult, msg);
     currentOpQueueStack.peek().add(op);
@@ -530,7 +534,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
 
     Operation op = new SyncOp(opMetadata, expectedResult, name, count);
     currentOpQueueStack.peek().add(op);
@@ -564,7 +568,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
 
     Operation op = new CreateConnectionOp(opMetadata, expectedResult, name, url);
     currentOpQueueStack.peek().add(op);
@@ -586,7 +590,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
 
     Operation op = new UseConnectionOp(opMetadata, expectedResult, name);
     currentOpQueueStack.peek().add(op);
@@ -608,7 +612,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
-    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext);
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
 
     Operation op = new DropConnectionOp(opMetadata, expectedResult, name);
     currentOpQueueStack.peek().add(op);
@@ -702,6 +706,8 @@ public class TestPlanGenerator extends SethBaseVisitor
   @Override
   public Void visitExpectedResult(SethParser.ExpectedResultContext ctx)
   {
+    this.options = null;
+
     final int MAX_EXPECTED_ROWS = 10;
 
     // Save the text of the expected result specified.
@@ -719,6 +725,12 @@ public class TestPlanGenerator extends SethBaseVisitor
         ctx.orderedRows().resultSet().rowData() != null) {
 
       rowData = ctx.orderedRows().resultSet().rowData();
+
+    } else if (ctx.containsRows() != null &&
+        ctx.containsRows().resultSet() != null &&
+        ctx.containsRows().resultSet().rowData() != null) {
+
+      rowData = ctx.containsRows().resultSet().rowData();
     }
 
     if (rowData != null && rowData.size() > MAX_EXPECTED_ROWS) {
@@ -743,7 +755,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
       // Override the expected result with a RecordNewExpectedResult.
-      ExpectedResult er = new RecordNewExpectedResult(opMetadata, appContext, testToAnnotate, startIdx);
+      ExpectedResult er = new RecordNewExpectedResult(opMetadata, appContext, options, testToAnnotate, startIdx);
       expectedResultStack.push(er);
 
     } else {
@@ -751,6 +763,31 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     currentExpectedResultDesc = null;
+    options = null;
+    return null;
+  }
+
+  @Override
+  public Void visitOpts(SethParser.OptsContext ctx)
+  {
+    this.options = new Options();
+    visitChildren(ctx);
+
+    return null;
+  }
+
+  @Override
+  public Void visitOpt(SethParser.OptContext ctx)
+  {
+    this.columnVals = new ArrayList<Object>(1);
+    String key = (ctx.ID() != null ? ctx.ID().getText() : cleanString(ctx.STR().getText()));
+
+    visitChildren(ctx);
+
+    Object value = (columnVals.size() > 0 ? columnVals.get(0) : null);
+    this.options.put(key, value);
+
+    this.columnVals = null;
     return null;
   }
 
@@ -837,7 +874,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new SuccessExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    ExpectedResult er = new SuccessExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options);
     expectedResultStack.push(er);
 
     return null;
@@ -852,7 +889,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new MuteExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    ExpectedResult er = new MuteExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options);
     expectedResultStack.push(er);
 
     return null;
@@ -869,7 +906,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new WarningMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, warningMsg);
+    ExpectedResult er = new WarningMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, warningMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -887,7 +924,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorCodeAndMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode, errMsg);
+    ExpectedResult er = new FailureErrorCodeAndMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errCode, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -905,7 +942,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorCodeAndMsgSubsetExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode, errMsg);
+    ExpectedResult er = new FailureErrorCodeAndMsgSubsetExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errCode, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -922,7 +959,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorCodeExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errCode);
+    ExpectedResult er = new FailureErrorCodeExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errCode);
     expectedResultStack.push(er);
 
     return null;
@@ -939,7 +976,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    ExpectedResult er = new FailureErrorMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -956,7 +993,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureErrorMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    ExpectedResult er = new FailureErrorMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -982,6 +1019,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     ExpectedResult er = new FailureErrorMsgSubsetExpectedResult(currentExpectedResultDesc,
                                                                 opMetadata,
                                                                 appContext,
+                                                                options,
                                                                 errMsgs,
                                                                 mustMatchAll);
     expectedResultStack.push(er);
@@ -998,7 +1036,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new FailureAnyExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    ExpectedResult er = new FailureAnyExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options);
     expectedResultStack.push(er);
 
     return null;
@@ -1020,7 +1058,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new WarningCountExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedWarningCount);
+    ExpectedResult er = new WarningCountExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, expectedWarningCount);
     expectedResultStack.push(er);
 
     return null;
@@ -1037,7 +1075,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new WarningMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    ExpectedResult er = new WarningMsgPrefixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -1054,7 +1092,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new WarningMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    ExpectedResult er = new WarningMsgSuffixExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -1071,7 +1109,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new WarningMsgSubsetExpectedResult(currentExpectedResultDesc, opMetadata, appContext, errMsg);
+    ExpectedResult er = new WarningMsgSubsetExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, errMsg);
     expectedResultStack.push(er);
 
     return null;
@@ -1086,7 +1124,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new WarningAnyExpectedResult(currentExpectedResultDesc, opMetadata, appContext);
+    ExpectedResult er = new WarningAnyExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options);
     expectedResultStack.push(er);
 
     return null;
@@ -1104,10 +1142,10 @@ public class TestPlanGenerator extends SethBaseVisitor
     ExpectedResult er;
 
     if (appContext.getCommandLineArgs().unordered) {
-      er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
+      er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, expectedRowList, expectedColumnNames);
 
     } else {
-      er = new OrderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
+      er = new OrderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, expectedRowList, expectedColumnNames);
     }
 
     expectedResultStack.push(er);
@@ -1126,7 +1164,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowList, expectedColumnNames);
+    ExpectedResult er = new UnorderedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, expectedRowList, expectedColumnNames);
     expectedResultStack.push(er);
 
     this.expectedRowList = null;
@@ -1148,6 +1186,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     ExpectedResult er = new ContainsRowsExpectedResult(currentExpectedResultDesc,
                                                        opMetadata,
                                                        appContext,
+                                                       options,
                                                        invert,
                                                        expectedRowList);
 
@@ -1172,7 +1211,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new RowCountExpectedResult(currentExpectedResultDesc, opMetadata, appContext, expectedRowCount);
+    ExpectedResult er = new RowCountExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, expectedRowCount);
     expectedResultStack.push(er);
 
     return null;
@@ -1215,6 +1254,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     ExpectedResult er = new RowRangeExpectedResult(currentExpectedResultDesc,
                                                    opMetadata,
                                                    appContext,
+                                                   options,
                                                    lowerInclusivity,
                                                    upperInclusivity,
                                                    lowerVal,
@@ -1235,7 +1275,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<Operation> opList = currentOpQueueStack.peek();
     OperationMetadata opMetadata = opList.get(opList.size() - 1).metadata;
 
-    ExpectedResult er = new AffectedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, affectedRowCount);
+    ExpectedResult er = new AffectedRowsExpectedResult(currentExpectedResultDesc, opMetadata, appContext, options, affectedRowCount);
     expectedResultStack.push(er);
 
     return null;
@@ -1287,6 +1327,10 @@ public class TestPlanGenerator extends SethBaseVisitor
     this.columnDefs = new ArrayList<ExpectedColumnType>();
     this.columnVals = new ArrayList<Object>();
 
+    if (ctx.opts() != null) {
+      this.options = new Options();
+    }
+
     visitChildren(ctx);
 
     // check if there are any "IGNORE_REMAINING" column definitions. There can only be a
@@ -1302,11 +1346,12 @@ public class TestPlanGenerator extends SethBaseVisitor
       }
     }
 
-    ExpectedRow expectedRow = new ExpectedRow(columnDefs, columnVals);
+    ExpectedRow expectedRow = new ExpectedRow(columnDefs, columnVals, options);
     this.expectedRowList.add(expectedRow);
 
     this.columnDefs = null;
     this.columnVals = null;
+    this.options    = null;
 
     return null;
   }
@@ -1316,7 +1361,10 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.BOOLEAN);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.BOOLEAN);
+    }
+
     this.columnVals.add(ctx.TRUE() != null);
 
     return null;
@@ -1327,7 +1375,9 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.INTEGER);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.INTEGER);
+    }
 
     long val = convertToLong(ctx.INT().getSymbol());
     this.columnVals.add(val);
@@ -1340,7 +1390,9 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.DECIMAL);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.DECIMAL);
+    }
 
     BigDecimal val = convertToBigDecimal(ctx.DEC().getSymbol());
     this.columnVals.add(val);
@@ -1353,7 +1405,9 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.FLOAT);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.FLOAT);
+    }
 
     // We internally store floats as strings to we can extract the required precision
     // needed for comparisons.
@@ -1378,9 +1432,26 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.STRING);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.STRING);
+    }
 
     String val = cleanString(ctx.STR().getText());
+    this.columnVals.add(val);
+
+    return null;
+  }
+
+  @Override
+  public Void visitIdVal(SethParser.IdValContext ctx)
+  {
+    visitChildren(ctx);
+
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.STRING);
+    }
+
+    String val = ctx.ID().getText();
     this.columnVals.add(val);
 
     return null;
@@ -1391,7 +1462,9 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.DATE);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.DATE);
+    }
 
     // We accept the following date formats:
     //   DATE 'YYYY-MM-DD'
@@ -1417,7 +1490,9 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.TIME);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.TIME);
+    }
 
     // We accept the following time formats:
     //   TIME 'hh:mm:ss[.f]'
@@ -1443,7 +1518,9 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.TIMESTAMP);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.TIMESTAMP);
+    }
 
     String strVal;
     Token token;
@@ -1580,7 +1657,10 @@ public class TestPlanGenerator extends SethBaseVisitor
       throw new SethSystemException(msg, e);
     }
 
-    this.columnDefs.add(ExpectedColumnType.INTERVAL);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.INTERVAL);
+    }
+
     this.columnVals.add(period);
 
     return null;
@@ -1832,7 +1912,10 @@ public class TestPlanGenerator extends SethBaseVisitor
       throw new SethSystemException(msg, e);
     }
 
-    this.columnDefs.add(ExpectedColumnType.INTERVAL);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.INTERVAL);
+    }
+
     this.columnVals.add(duration);
 
     return null;
@@ -1843,7 +1926,10 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.NULL);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.NULL);
+    }
+
     this.columnVals.add(null);
 
     return null;
@@ -1854,7 +1940,10 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.DONT_CARE);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.DONT_CARE);
+    }
+
     this.columnVals.add(null);
 
     return null;
@@ -1865,7 +1954,10 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    this.columnDefs.add(ExpectedColumnType.IGNORE_REMAINING);
+    if (this.columnDefs != null) {
+      this.columnDefs.add(ExpectedColumnType.IGNORE_REMAINING);
+    }
+
     this.columnVals.add(null);
 
     return null;

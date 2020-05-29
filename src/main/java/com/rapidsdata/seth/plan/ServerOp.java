@@ -55,7 +55,7 @@ public class ServerOp extends Operation
       statement = connection.createStatement();
 
     } catch (SQLException e) {
-      expectedResult.assertActualAsException(e);
+      expectedResult.assertActualAsException(xContext, e);
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
@@ -68,14 +68,14 @@ public class ServerOp extends Operation
 
       if (hasResultSet) {
         rs = statement.getResultSet();
-        expectedResult.assertActualAsResultSet(rs, statement.getWarnings());
+        expectedResult.assertActualAsResultSet(xContext, rs, statement.getWarnings());
 
       } else {
-        expectedResult.assertActualAsUpdateCount(statement.getUpdateCount(), statement.getWarnings());
+        expectedResult.assertActualAsUpdateCount(xContext, statement.getUpdateCount(), statement.getWarnings());
       }
 
     } catch (SQLException e) {
-      expectedResult.assertActualAsException(e);
+      expectedResult.assertActualAsException(xContext, e);
 
     } finally {
 

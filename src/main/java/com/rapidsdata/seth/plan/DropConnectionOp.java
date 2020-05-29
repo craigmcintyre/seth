@@ -53,20 +53,20 @@ public class DropConnectionOp extends Operation
       }
 
     } catch (BadConnectionNameException | DefaultConnectionNameException e) {
-      expectedResult.assertActualAsFailure(e.getMessage());
+      expectedResult.assertActualAsFailure(xContext, e.getMessage());
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
       return;
 
     } catch (SQLException e) {
-      expectedResult.assertActualAsException(e);
+      expectedResult.assertActualAsException(xContext, e);
 
       // Since the above call returned, we must have expected this failure otherwise
       // an exception would have been thrown. Job done.
       return;
     }
 
-    expectedResult.assertActualAsSuccess(null);
+    expectedResult.assertActualAsSuccess(xContext, null);
   }
 }

@@ -142,6 +142,9 @@ public class Seth {
 
     ExecutorService threadPool = Executors.newCachedThreadPool();
 
+    // TODO: Populate this with e.g. rounding arg.
+    Options appOptions = new Options();
+
     // Create the main run context.
     AppContext appContext = new AppContextImpl(jvmStartTime,
                                                args,
@@ -149,7 +152,8 @@ public class Seth {
                                                args.url,
                                                args.relativity,
                                                logger,
-                                               threadPool);
+                                               threadPool,
+                                               appOptions);
 
     // Create the ResultWriter
     ResultWriter resultWriter;

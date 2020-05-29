@@ -2,7 +2,9 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
+import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.contexts.AppContext;
+import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.ExpectedResultFailureException;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.exceptions.SethBrownBagException;
@@ -40,10 +42,11 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
   public ContainsRowsExpectedResult(String description,
                                     OperationMetadata opMetadata,
                                     AppContext appContext,
+                                    Options options,
                                     boolean invert,
                                     List<ExpectedRow> expectedRows)
   {
-    super(ExpectedResultType.CONTAINS_ROWS, description, opMetadata, appContext, expectedRows, null);
+    super(ExpectedResultType.CONTAINS_ROWS, description, opMetadata, appContext, options, expectedRows, null);
 
     this.invert = invert;
   }
@@ -66,23 +69,26 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
 
   /**
    * Compares the actual result, being a ResultSet, with the expected result.
+   * @param xContext The context that the operator was executed within.
    * @param rs The ResultSet to be compared to the expected result.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsResultSet(ResultSet rs, SQLWarning warnings) throws FailureException
+  public void assertActualAsResultSet(ExecutionContext xContext, ResultSet rs, SQLWarning warnings) throws FailureException
   {
     if (invert) {
-      assertActualDoesNotContainExpectedRows(rs);
+      assertActualDoesNotContainExpectedRows(xContext, rs);
 
     } else {
-      assertActualContainsAllExpectedRows(rs);
+      assertActualContainsAllExpectedRows(xContext, rs);
     }
   }
 
-  private void assertActualDoesNotContainExpectedRows(ResultSet rs) throws FailureException
+  private void assertActualDoesNotContainExpectedRows(ExecutionContext xContext, ResultSet rs) throws FailureException
   {
+    LinkedList<Options> optionList = Options.listOf(xContext.getAppOptions(), xContext.getTestOptions(), resultOptions);
+
     try {
       // For each actual row
       while (rs.next()) {
@@ -93,7 +99,7 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
           ExpectedRow expectedRow = erIterator.next();
 
           // Compare the current actual row to this expected row.
-          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round)) {
+          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round, optionList)) {
             // The current row matches one that we shouldn't have.
 
             final String commentDesc = "A row was returned that matches one on the 'DOES NOT CONTAIN' expected row list.";
@@ -117,11 +123,13 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
     }
   }
 
-  private void assertActualContainsAllExpectedRows(ResultSet rs) throws FailureException
+  private void assertActualContainsAllExpectedRows(ExecutionContext xContext, ResultSet rs) throws FailureException
   {
     try {
       // Make a copy of the expected row list so we can remove entries from it as we match them.
       List<ExpectedRow> remainingExpectedRows = new LinkedList<ExpectedRow>(expectedRows);
+
+      LinkedList<Options> optionList = Options.listOf(xContext.getAppOptions(), xContext.getTestOptions(), resultOptions);
 
       // For each actual row
       while (rs.next()) {
@@ -139,7 +147,7 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
           ExpectedRow expectedRow = erIterator.next();
 
           // Compare the current actual row to this expected row.
-          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round)) {
+          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round, optionList)) {
             // We got a match! Remove this expected row.
             erIterator.remove();
 
@@ -186,13 +194,13 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
 
   /**
    * Compares the actual result, being an update count, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param updateCount The update count to be compared to the expected result.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsUpdateCount(long updateCount, SQLWarning warnings) throws FailureException
+  public void assertActualAsUpdateCount(ExecutionContext xContext, long updateCount, SQLWarning warnings) throws FailureException
   {
     // Not what was expected.
     final String commentDesc = "An affected row count was received instead of a ResultSet.";
@@ -202,12 +210,12 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
 
   /**
    * Compares the actual result, being a SQLException, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsException(SQLException e) throws FailureException
+  public void assertActualAsException(ExecutionContext xContext, SQLException e) throws FailureException
   {
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
@@ -218,12 +226,12 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
   /**
    * Compares the actual result, being an Exception, with the expected result.
    * Because this is a general exception, the stack trace will be included.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param e The exception to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsException(Exception e) throws FailureException
+  public void assertActualAsException(ExecutionContext xContext, Exception e) throws FailureException
   {
     // Not what was expected.
     final String commentDesc = "An exception was received instead of a ResultSet.";
@@ -233,12 +241,12 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
 
   /**
    * Compares the actual result, being a general purpose statement of success, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param warnings Any warnings from executing the statement. May be null.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsSuccess(SQLWarning warnings) throws FailureException
+  public void assertActualAsSuccess(ExecutionContext xContext, SQLWarning warnings) throws FailureException
   {
     final String commentDesc = "The operation did not return a ResultSet as was expected.";
     final String actualResultDesc = "success";
@@ -247,12 +255,12 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
 
   /**
    * Compares the actual result, being a general purpose failure with an error message, with the expected result.
-   *
+   * @param xContext The context that the operator was executed within.
    * @param msg The error message to be compared to the expected result.
    * @throws FailureException if the expected result does not match with this actual result.
    */
   @Override
-  public void assertActualAsFailure(String msg) throws FailureException
+  public void assertActualAsFailure(ExecutionContext xContext, String msg) throws FailureException
   {
     // Not what was expected.
     final String commentDesc = "An error message was received instead of a ResultSet.";

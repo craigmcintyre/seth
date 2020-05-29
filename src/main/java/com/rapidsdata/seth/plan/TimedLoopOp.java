@@ -80,7 +80,7 @@ public class TimedLoopOp extends Operation
         }
       }
 
-      expectedResult.assertActualAsSuccess(null);
+      expectedResult.assertActualAsSuccess(xContext, null);
 
     } finally {
       // Accumulate the number of operation steps we executed.
