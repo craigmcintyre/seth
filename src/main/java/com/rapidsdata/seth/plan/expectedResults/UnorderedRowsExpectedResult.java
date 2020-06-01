@@ -104,7 +104,7 @@ public class UnorderedRowsExpectedResult extends RowDataExpectedResult
           ExpectedRow expectedRow = erIterator.next();
 
           // Compare the current actual row to this expected row.
-          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round, optionList)) {
+          if (expectedRow.compareTo(rs, optionList)) {
             // We got a match! Remove this expected row.
             erIterator.remove();
             gotMatch = true;
@@ -124,7 +124,7 @@ public class UnorderedRowsExpectedResult extends RowDataExpectedResult
         // the actual row the closest.
         List<ScoredExpectedRow> closestMatches = ExpectedRow.findClosestMatchOf(remainingExpectedRows,
                                                                                 rs,
-                                                                                appContext.getCommandLineArgs().round,
+                                                                                optionList,
                                                                                 MAX_CLOSEST_MATCHES);
 
         if (closestMatches.size() > 0) {

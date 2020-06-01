@@ -42,12 +42,11 @@ public class ExpectedRow
   /**
    * Compares the expected row to the row that the cursor is at in the ResultSet parameter.
    * @param rs The resultset which has the cursor on the current row to be compared.
-   * @param rounding the rounding to be applied to floats and decimals.
    * @param optionList a list of any options on the whole expected result, test file, application, etc.
    * @return true if the rows compare equally or false if they are different.
    * @throws SQLException
    */
-  public boolean compareTo(ResultSet rs, int rounding, LinkedList<Options> optionList) throws SQLException
+  public boolean compareTo(ResultSet rs, LinkedList<Options> optionList) throws SQLException
   {
     ResultSetMetaData rsmd = rs.getMetaData();
 
@@ -60,6 +59,8 @@ public class ExpectedRow
         actualColumnCount != expectedColumnDefCount) {
       return false;
     }
+
+    int rounding = Options.NO_ROUNDING;
 
     // Compare column by column
     int defIndex = -1;
@@ -110,6 +111,10 @@ public class ExpectedRow
 
         case DECIMAL:
           BigDecimal expectedDecimal = (BigDecimal) expectedVal;
+          optionList.addFirst(rowOptions);
+          rounding = Options.getRounding(optionList);
+          optionList.removeFirst();
+
           if (wasNull || !equalRounded(expectedDecimal, rs.getBigDecimal(rsIndex), rounding)) {
             return false;
           }
@@ -117,6 +122,10 @@ public class ExpectedRow
 
         case FLOAT:
           // Compare floating points up to the requested level of precision
+          optionList.addFirst(rowOptions);
+          rounding = Options.getRounding(optionList);
+          optionList.removeFirst();
+
           if (wasNull || !equalRounded((ComparableFloat) expectedVal, rs.getString(rsIndex), rounding)) {
             return false;
           }
@@ -130,7 +139,7 @@ public class ExpectedRow
 
           // Any row options override result options.
           optionList.addFirst(rowOptions);
-          boolean ignoreCase = Options.ignoreCase(optionList);
+          boolean ignoreCase = Options.getIgnoreCase(optionList);
           optionList.removeFirst();
 
           if ( (ignoreCase && !expectedString.equalsIgnoreCase(rs.getString(rsIndex))) ||
@@ -197,7 +206,7 @@ public class ExpectedRow
 
   private boolean equalRounded(BigDecimal x, BigDecimal y, int round)
   {
-    if (round != CommandLineArgs.NO_ROUNDING) {
+    if (round != Options.NO_ROUNDING) {
       MathContext mc = new MathContext(round, RoundingMode.DOWN);
 
       x = x.round(mc);
@@ -210,7 +219,7 @@ public class ExpectedRow
 
   private boolean equalRounded(ComparableFloat cf, String y, int round)
   {
-    if (round == CommandLineArgs.NO_ROUNDING) {
+    if (round == Options.NO_ROUNDING) {
       return cf.comparesTo(y);
     }
 
@@ -813,7 +822,7 @@ public class ExpectedRow
             columnScore = ERScoring.compareWithNull(expectedDecimal);
 
           } else {
-            if (rounding == CommandLineArgs.NO_ROUNDING) {
+            if (rounding == Options.NO_ROUNDING) {
               columnScore = ERScoring.compare(rs.getBigDecimal(rsIndex), expectedDecimal);
 
             } else {
@@ -828,7 +837,7 @@ public class ExpectedRow
 
         case FLOAT:
           ComparableFloat cf = (ComparableFloat) expectedVal;
-          if (rounding == CommandLineArgs.NO_ROUNDING) {
+          if (rounding == Options.NO_ROUNDING) {
             if (wasNull)    { columnScore = ERScoring.compareWithNull(cf.toDouble()); }
             else            { columnScore = ERScoring.compare(rs.getDouble(rsIndex), cf.toDouble()); }
 
@@ -901,11 +910,11 @@ public class ExpectedRow
    * Returns the ExpectedRow that most closely matches the row that the ResultSet argument is currently set at.
    * @param expectedRows the list of ExpectedRows to be compared.
    * @param rs an actual ResultSet, set at the current row to be compared.
-   * @param rounding the number of decimal places of rounding to apply to floats/decimals before comparing them.
+   * @param optionList the list of options that may apply to this operation.
    * @param maxNumRows the maximum number of rows to be returned.
    * @return A list of ScoredExpectedRows that most closely matches the actual row, in descending order.
    */
-  public static List<ScoredExpectedRow> findClosestMatchOf(List<ExpectedRow> expectedRows, ResultSet rs, int rounding, int maxNumRows)
+  public static List<ScoredExpectedRow> findClosestMatchOf(List<ExpectedRow> expectedRows, ResultSet rs, LinkedList<Options> optionList, int maxNumRows)
                                                           throws SQLException
   {
     assert (expectedRows.size() > 0);
@@ -920,6 +929,11 @@ public class ExpectedRow
     SortedSet<ScoredExpectedRow> sortedSet = new TreeSet<>();
 
     for (ExpectedRow er : expectedRows) {
+      optionList.addFirst(er.rowOptions);
+      int rounding = Options.getRounding(optionList);
+      optionList.removeFirst();
+
+
       // calculate the Levenstein-like distance of this expected row to the actual row.
       double score = er.distanceFrom(rs, rounding);
 

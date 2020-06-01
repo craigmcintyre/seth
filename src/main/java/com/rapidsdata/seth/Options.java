@@ -8,7 +8,14 @@ import java.util.List;
 
 public class Options extends HashMap<String, Object>
 {
-  public static final String CASE_INSENSITIVE = "ignorecase";
+  /** Name of the key for comparing strings case insensitively. Default is case sensitive. */
+  public static final String CASE_INSENSITIVE_KEY = "ignorecase";
+
+  /** Name of the key for rounding numeric values to N decimal places before comparing. Default is no rounding. */
+  public static final String ROUNDING_KEY = "rounding";
+
+  public static final int NO_ROUNDING = -1;
+
 
   public Options()
   {
@@ -76,7 +83,7 @@ public class Options extends HashMap<String, Object>
     return list;
   }
 
-  public static boolean ignoreCase(List<Options> optionList)
+  public static boolean getIgnoreCase(List<Options> optionList)
   {
     // Iterate through each non-null option entry. Earlier options override later ones.
     for (Options options : optionList) {
@@ -84,8 +91,8 @@ public class Options extends HashMap<String, Object>
         continue;
       }
 
-      if (options.containsKey(CASE_INSENSITIVE)) {
-        Object objVal = options.get(CASE_INSENSITIVE);
+      if (options.containsKey(CASE_INSENSITIVE_KEY)) {
+        Object objVal = options.get(CASE_INSENSITIVE_KEY);
 
         if ( (objVal instanceof Boolean && !((Boolean) objVal)) ||
              (objVal instanceof Integer && ((Integer) objVal) == 0) ||
@@ -102,5 +109,37 @@ public class Options extends HashMap<String, Object>
 
     // Overall default.
     return false;
+  }
+
+  public static int getRounding(List<Options> optionList)
+  {
+    for (Options options : optionList) {
+      if (options == null) {
+        continue;
+      }
+
+      if (options.containsKey(ROUNDING_KEY)) {
+        Object objVal = options.get(ROUNDING_KEY);
+
+        if (objVal instanceof Number) {
+          int intVal = ((Number) objVal).intValue();
+
+          if (intVal >= 0 || intVal == NO_ROUNDING) {
+            return intVal;
+          }
+        }
+      }
+    }
+
+    return NO_ROUNDING;
+  }
+
+  public static void setRounding(Options options, int value) throws IllegalArgumentException
+  {
+    if (value < 0 && value != NO_ROUNDING) {
+      throw new IllegalArgumentException("Invalid value specified for option \"" + ROUNDING_KEY + "\": " + value);
+    }
+
+    options.put(ROUNDING_KEY, value);
   }
 }

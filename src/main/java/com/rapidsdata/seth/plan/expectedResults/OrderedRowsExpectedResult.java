@@ -91,7 +91,7 @@ public class OrderedRowsExpectedResult extends RowDataExpectedResult
           throw new ExpectedResultFailureException(opMetadata, commentDesc, actualResultDesc, expectedRowsDesc);
         }
 
-        if (!expectedRow.compareTo(rs, appContext.getCommandLineArgs().round, optionList)) {
+        if (!expectedRow.compareTo(rs, optionList)) {
           final String commentDesc = "The actual row does not match the expected row.";
 
           List<ExpectedRow> expectedRows = new ArrayList<ExpectedRow>();

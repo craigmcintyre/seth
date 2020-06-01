@@ -138,6 +138,18 @@ public class TestPlanGenerator extends SethBaseVisitor
     return plan;
   }
 
+  /**
+   * Used to parse and return a set of options.
+   * @param tree
+   * @return a parsed set of options used.
+   */
+  public Options generateOptionsFor(ParseTree tree)
+  {
+    visit(tree);
+
+    return options;
+  }
+
 
   public ExpectedResult generateExpectedResultFor(ParseTree tree)
   {
@@ -804,11 +816,15 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
-  public Void visitOpts(SethParser.OptsContext ctx)
+  public Void visitOptionList(SethParser.OptionListContext ctx)
   {
+    ArrayList<ExpectedColumnType> oldColumnDefs = columnDefs; // backup
+    columnDefs = null;
+
     this.options = new Options();
     visitChildren(ctx);
 
+    columnDefs = oldColumnDefs; // restore
     return null;
   }
 

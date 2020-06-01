@@ -5,20 +5,25 @@ package com.rapidsdata.seth;
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.AppContextImpl;
 import com.rapidsdata.seth.exceptions.InvalidResultFormatException;
+import com.rapidsdata.seth.exceptions.PlanningException;
 import com.rapidsdata.seth.exceptions.SethBrownBagException;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 import com.rapidsdata.seth.logging.*;
+import com.rapidsdata.seth.parser.SethLexer;
+import com.rapidsdata.seth.parser.SethParser;
+import com.rapidsdata.seth.plan.TestPlanGenerator;
+import com.rapidsdata.seth.plan.TestPlanner;
 import com.rapidsdata.seth.results.ResultWriter;
 import com.rapidsdata.seth.results.ResultWriterFactory;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.ParserProperties;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Driver;
@@ -142,8 +147,12 @@ public class Seth {
 
     ExecutorService threadPool = Executors.newCachedThreadPool();
 
-    // TODO: Populate this with e.g. rounding arg.
+    // Extract any command line arguments.
     Options appOptions = new Options();
+
+    if (args.opts != null) {
+      extractAppOptions(appOptions, args.opts);
+    }
 
     // Create the main run context.
     AppContext appContext = new AppContextImpl(jvmStartTime,
@@ -435,5 +444,60 @@ public class Seth {
     PrintWriter pw = new PrintWriter(sw);
     t.printStackTrace(pw);
     return sw.toString();
+  }
+
+  /**
+   * Use ANTLR to parse and extract all of the options specified on the command line.
+   * @param appOptions the Options object to add all of the options to.
+   * @param cmdLineOpts the string containing the command line options.
+   * @throws PlanningException
+   */
+  private void extractAppOptions(Options appOptions, String cmdLineOpts)
+  {
+    if (cmdLineOpts.trim().isEmpty()) {
+      return;
+    }
+
+    SethLexer lexer = new SethLexer(new ANTLRInputStream(cmdLineOpts));
+    SethParser parser = new SethParser(new CommonTokenStream(lexer));
+
+    parser.setErrorHandler(new DefaultErrorStrategy() {
+      @Override public void recover(Parser recognizer, RecognitionException e) { bail(); }
+      @Override public void sync(Parser recognizer) { }
+
+      @Override public Token recoverInline(Parser recognizer) {
+        InputMismatchException e = new InputMismatchException(recognizer);
+        Token t = e.getOffendingToken();
+        String near = getTokenErrorDisplay(t);
+        String expected = e.getExpectedTokens().toString(recognizer.getTokenNames());
+
+        String msg = String.format("Syntax error in option arguments near %s; expected %s", near, expected);
+        throw new IllegalArgumentException(msg);
+      }
+
+      public void bail() { throw new IllegalArgumentException("Invalid options specified."); }
+    });
+
+    ParseTree tree;
+    Options options;
+
+    try {
+      tree = parser.optionList();
+
+      TestPlanGenerator generator = new TestPlanGenerator(parser, null, null, null, null);
+      options = generator.generateOptionsFor(tree);
+
+    } catch (SethBrownBagException e) {
+      if (e.getCause() instanceof PlanningException) {
+        throw new IllegalArgumentException("Invalid options specified", e.getCause());
+
+      } else {
+        throw new SethSystemException("Unhandled exception " + e.getClass().getSimpleName(), e.getCause());
+      }
+    }
+
+    if (options != null) {
+      appOptions.putAll(options);
+    }
   }
 }

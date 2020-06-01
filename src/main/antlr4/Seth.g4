@@ -53,12 +53,12 @@ useConnectionStmt   : USE CONNECTION? connName=STR ;
 dropConnectionStmt  : DROP CONNECTION? ( connName=STR )? ;
 includeFileStmt     : INCLUDE FILE?  filePath=STR ;
 failStatement       : FAIL (msg=STR)? ;
-setOptionsStatement  : SET (OPTIONS | OPTION) opts ;
+setOptionsStatement  : SET (OPTIONS | OPTION) optionList ;
 unsetOptionsStatement: UNSET (OPTIONS | OPTION) optKey (',' optKey)* ;
 emptyStatement      : ;
 
 
-expectedResult      : ( '[' opts ']' )?
+expectedResult      : opts?
                      ( success
                      | mute
                      | failure
@@ -72,7 +72,8 @@ expectedResult      : ( '[' opts ']' )?
                      | resultFile
                      );
 
-opts                : opt ( ',' opt )* ;
+opts                : '[' optionList ']' ;
+optionList          : opt ( ',' opt )* ;
 opt                 : optKey ( '=' optVal)? ;
 optKey              : (ID | STR) ;
 optVal              : booleanVal | integerVal | decimalVal | floatVal | stringVal | idVal ;

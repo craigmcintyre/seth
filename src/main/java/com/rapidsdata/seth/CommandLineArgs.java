@@ -40,11 +40,11 @@ public class CommandLineArgs
           usage     = "The path to the text file containing the list of test files to be run.")
   public File listFile = null;
 
-  @Option(name      = "--round",
+  @Option(name      = "--opt",
+          aliases   = {"--options"},
           required  = false,
-          usage     = "Round numeric values to N decimal places before comparing (default is no rounding).")
-  public int round = NO_ROUNDING;
-  public static final int NO_ROUNDING = -999999;
+          usage     = "Options that will apply to all test files executed. Specified as \"key=value\" or simply just \"key\".")
+  public String opts = null;
 
   @Option(name      = "--unordered",
           required  = false,

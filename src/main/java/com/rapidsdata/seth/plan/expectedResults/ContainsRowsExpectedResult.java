@@ -99,7 +99,7 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
           ExpectedRow expectedRow = erIterator.next();
 
           // Compare the current actual row to this expected row.
-          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round, optionList)) {
+          if (expectedRow.compareTo(rs, optionList)) {
             // The current row matches one that we shouldn't have.
 
             final String commentDesc = "A row was returned that matches one on the 'DOES NOT CONTAIN' expected row list.";
@@ -147,7 +147,7 @@ public class ContainsRowsExpectedResult extends RowDataExpectedResult
           ExpectedRow expectedRow = erIterator.next();
 
           // Compare the current actual row to this expected row.
-          if (expectedRow.compareTo(rs, appContext.getCommandLineArgs().round, optionList)) {
+          if (expectedRow.compareTo(rs, optionList)) {
             // We got a match! Remove this expected row.
             erIterator.remove();
 
