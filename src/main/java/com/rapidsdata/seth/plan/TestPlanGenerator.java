@@ -18,7 +18,6 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
@@ -479,6 +478,43 @@ public class TestPlanGenerator extends SethBaseVisitor
   }
 
   @Override
+  public Void visitSetOptionsStatement(SethParser.SetOptionsStatementContext ctx)
+  {
+    this.options = new Options();
+
+    visitChildren(ctx);
+
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
+
+    Operation op = new SetOptionsOp(opMetadata, expectedResult, options);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
+  public Void visitUnsetOptionsStatement(SethParser.UnsetOptionsStatementContext ctx)
+  {
+    List<String> keys = new ArrayList<String>();
+
+    visitChildren(ctx);
+
+    for (SethParser.OptKeyContext keyCtx : ctx.optKey()) {
+      String key = (keyCtx.ID() != null ? keyCtx.ID().getText() : cleanString(keyCtx.STR().getText()));
+      keys.add(key);
+    }
+
+    OperationMetadata opMetadata = opMetadataStack.pop();
+    ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, appContext, options);
+
+    Operation op = new UnsetOptionsOp(opMetadata, expectedResult, keys);
+    currentOpQueueStack.peek().add(op);
+
+    return null;
+  }
+
+  @Override
   public Void visitFailStatement(SethParser.FailStatementContext ctx)
   {
     visitChildren(ctx);
@@ -782,7 +818,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     ArrayList<Object> oldColumnVals = this.columnVals;  // backup
     this.columnVals = new ArrayList<Object>(1);
 
-    String key = (ctx.ID() != null ? ctx.ID().getText() : cleanString(ctx.STR().getText()));
+    String key = (ctx.optKey().ID() != null ? ctx.optKey().ID().getText() : cleanString(ctx.optKey().STR().getText()));
     key = key.toLowerCase();
 
     visitChildren(ctx);

@@ -34,6 +34,8 @@ singularStatements : (  sleepStatement
                       | dropConnectionStmt
                       | includeFileStmt
                       | failStatement
+                      | setOptionsStatement
+                      | unsetOptionsStatement
                       | emptyStatement
                      ) ';' ;
 
@@ -51,10 +53,12 @@ useConnectionStmt   : USE CONNECTION? connName=STR ;
 dropConnectionStmt  : DROP CONNECTION? ( connName=STR )? ;
 includeFileStmt     : INCLUDE FILE?  filePath=STR ;
 failStatement       : FAIL (msg=STR)? ;
+setOptionsStatement  : SET (OPTIONS | OPTION) opts ;
+unsetOptionsStatement: UNSET (OPTIONS | OPTION) optKey (',' optKey)* ;
 emptyStatement      : ;
 
 
-expectedResult      : opts?
+expectedResult      : ( '[' opts ']' )?
                      ( success
                      | mute
                      | failure
@@ -68,8 +72,9 @@ expectedResult      : opts?
                      | resultFile
                      );
 
-opts                : '[' opt ( ',' opt )*  ']' ;
-opt                 : (ID | STR) ( '=' optVal)? ;
+opts                : opt ( ',' opt )* ;
+opt                 : optKey ( '=' optVal)? ;
+optKey              : (ID | STR) ;
 optVal              : booleanVal | integerVal | decimalVal | floatVal | stringVal | idVal ;
 
 resultFile          : RESULT FILE? ':' filePath=STR ;
@@ -157,6 +162,7 @@ strList             : STR ( (',')? STR )* ;
 
 // lexer ------------------------------------------------------
 
+// None of these tokens can be IDs.
 
 AFFECTED              : A F F E C T E D;
 ALL                   : A L L;
@@ -189,6 +195,8 @@ MUST                  : M U S T;
 MUTE                  : M U T E;
 NOT                   : N O T;
 NULL                  : N U L L;
+OPTIONS               : O P T I O N S;
+OPTION                : O P T I O N;
 ORDERED               : O R D E R E D;
 PREFIX                : P R E F I X;
 RESULT                : R E S U L T;
@@ -197,6 +205,7 @@ ROWS                  : R O W S;
 ROW                   : R O W;
 SECONDS               : S E C O N D S;
 SECOND                : S E C O N D;
+SET                   : S E T;
 SHUFFLE               : S H U F F L E;
 SLEEP                 : S L E E P;
 SUCCESS               : S U C C E S S;
@@ -211,6 +220,7 @@ TIME                  : T I M E;
 TO                    : T O;
 TRUE                  : T R U E;
 UNORDERED             : U N O R D E R E D;
+UNSET                 : U N S E T;
 USE                   : U S E;
 WARNINGS              : W A R N I N G S;
 WARNING               : W A R N I N G;
