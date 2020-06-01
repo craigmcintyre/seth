@@ -41,15 +41,17 @@ public class Options extends HashMap<String, Object>
         sb.append(key);
       }
 
-      sb.append(" = ");
+      if (val != null) {
+        sb.append(" = ");
 
-      if (val instanceof String) {
-        sb.append("'");
-        sb.append(val.toString());
-        sb.append("'");
+        if (val instanceof String) {
+          sb.append("'");
+          sb.append(val.toString());
+          sb.append("'");
 
-      } else {
-        sb.append(val.toString());
+        } else {
+          sb.append(val.toString());
+        }
       }
     }
 

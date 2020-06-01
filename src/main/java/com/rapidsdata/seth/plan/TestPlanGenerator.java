@@ -779,15 +779,18 @@ public class TestPlanGenerator extends SethBaseVisitor
   @Override
   public Void visitOpt(SethParser.OptContext ctx)
   {
+    ArrayList<Object> oldColumnVals = this.columnVals;  // backup
     this.columnVals = new ArrayList<Object>(1);
+
     String key = (ctx.ID() != null ? ctx.ID().getText() : cleanString(ctx.STR().getText()));
+    key = key.toLowerCase();
 
     visitChildren(ctx);
 
     Object value = (columnVals.size() > 0 ? columnVals.get(0) : null);
     this.options.put(key, value);
 
-    this.columnVals = null;
+    this.columnVals = oldColumnVals;  // restore
     return null;
   }
 
@@ -1327,9 +1330,8 @@ public class TestPlanGenerator extends SethBaseVisitor
     this.columnDefs = new ArrayList<ExpectedColumnType>();
     this.columnVals = new ArrayList<Object>();
 
-    if (ctx.opts() != null) {
-      this.options = new Options();
-    }
+    Options oldOptions = this.options;
+    this.options = null;
 
     visitChildren(ctx);
 
@@ -1351,7 +1353,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     this.columnDefs = null;
     this.columnVals = null;
-    this.options    = null;
+    this.options    = oldOptions;  // restore the options.
 
     return null;
   }

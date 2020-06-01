@@ -754,7 +754,7 @@ public class ResultSetFormatter
     for (ExpectedRow er : expectedRows) {
       ResultSetFormatter.updateColumnWidths(columnWidths, er);
 
-      int optLen = er.getRowOptions().toString().length() + 1;
+      int optLen = (er.getRowOptions() == null ? 0 : er.getRowOptions().toString().length() + 1);
       optionWidth = Math.max(optionWidth, optLen);
     }
 
@@ -791,7 +791,7 @@ public class ResultSetFormatter
     for (ExpectedRow er : expectedRows) {
       ResultSetFormatter.updateColumnWidths(columnWidths, er);
 
-      int optLen = er.getRowOptions().toString().length() + 1;
+      int optLen = (er.getRowOptions() == null ? 0 : er.getRowOptions().toString().length() + 1);
       optionWidth = Math.max(optionWidth, optLen);
     }
 
@@ -830,7 +830,7 @@ public class ResultSetFormatter
     for (ExpectedRow er : expectedRows) {
       ResultSetFormatter.updateColumnWidths(columnWidths, er);
 
-      int optLen = er.getRowOptions().toString().length() + 1;
+      int optLen = (er.getRowOptions() == null ? 0 : er.getRowOptions().toString().length() + 1);
       optionWidth = Math.max(optionWidth, optLen);
     }
 
