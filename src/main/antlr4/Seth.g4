@@ -112,7 +112,7 @@ rowCount            : ROWS ':' count=INT ;
 rowRange            : ROW RANGE ':' lowerInclusivity=( '[' | '(' ) (lowerVal=INT)? ',' (upperVal=INT)? upperInclusivity=( ']' | ')' ) ;
 affectedRowsCount   : AFFECTED ':' count=INT ;
 
-resultSet           : columnNames? rowData+ ;
+resultSet           : (columnNames? rowData+ | columnNames) ;
 columnNames         : '[' columnName (',' columnName)* ']' ;
 columnName          : stringVal | dontCareVal | ignoreRemainingColumns ;
 rowData             : opts? '(' columnData (',' columnData)* ')' ;
