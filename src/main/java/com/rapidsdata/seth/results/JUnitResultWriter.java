@@ -15,6 +15,7 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -94,9 +95,26 @@ public class JUnitResultWriter extends LoggableResultWriter
       Element testCase = document.createElement("testcase");
       root.appendChild(testCase);
 
+      String parentStr;
+
+      try {
+        parentStr = testResult.getTestFile().getCanonicalFile().getParent();
+
+        // Hack for RapidsSE
+        int idx = parentStr.lastIndexOf("/tests/");
+        if (idx != -1) {
+          parentStr = parentStr.substring(idx + "/tests/".length());
+        }
+
+      } catch (IOException e) {
+        e.printStackTrace();
+        throw new SethBrownBagException(e);
+      }
+
       testCase.setAttribute("name", testResult.getTestName() + context.getCommandLineArgs().testSuffix);
       testCase.setAttribute("time", nanosToSeconds(testResult.getExecutionTimeNs(), 3));
-      testCase.setAttribute("classname", testResult.getTestFile().getAbsolutePath() + context.getCommandLineArgs().testSuffix);
+      testCase.setAttribute("classname", parentStr);
+      //testCase.setAttribute("classname", testResult.getTestFile().getAbsolutePath() + context.getCommandLineArgs().testSuffix);
 
       switch (testResult.getStatus()) {
         case FAILED:
