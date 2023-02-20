@@ -1645,77 +1645,30 @@ public class TestPlanGenerator extends SethBaseVisitor
     // This initially caters for the sign outside of the interval string.
     boolean isMinus = ctx.minus != null;
 
-    if (strVal.startsWith("-")) {
-      isMinus = !isMinus;
-    }
+    ComparableInterval.IntervalType intervalType;
+    if      (ctx.y   != null) intervalType = ComparableInterval.IntervalType.YEAR;
+    else if (ctx.m   != null) intervalType = ComparableInterval.IntervalType.MONTH;
+    else if (ctx.y2m != null) intervalType = ComparableInterval.IntervalType.YEAR_TO_MONTH;
+    else throw wrapException( new SyntaxException("Invalid interval type",
+                                                  testFile,
+                                                  ctx.start.getLine(),
+                                                  ctx.start.getCharPositionInLine(),
+                                                  null) );
 
-    // Validate the string syntax
-    if (!strVal.matches("\\s*[+-]?\\s*\\d+(-\\d+)?")) {
-      final String msg = "Invalid year-month interval format.";
-      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-    }
-
-    Period period = Period.ZERO;
-    long val;
-
-    try {
-
-      if (ctx.m != null) {
-        // month only
-        val = Long.valueOf(strVal);
-
-        if (val < 0 || val > 11) {
-          final String msg = "Interval month value must be between [0,11].";
-          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-        }
-
-        if (isMinus) {
-          val = -val;
-        }
-        period = period.plusMonths(val);
-
-      } else {
-        // Could be year only or year-month
-        Pattern p = Pattern.compile("\\d+");
-        Matcher m = p.matcher(strVal);
-
-        if (!m.find()) {
-          final String msg = "Invalid interval year value.";
-          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-        }
-
-        // We've got the years
-        val = Long.valueOf(m.group());
-        period = period.plusYears(val);
-
-        // Is there a months component too?
-        if (ctx.y2m != null) {
-          if (!m.find()) {
-            final String msg = "Invalid interval month value.";
-            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-          }
-
-          val = Long.valueOf(m.group());
-
-          if (val < 0 || val > 11) {
-            final String msg = "Interval month value must be between [0,11].";
-            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-          }
-
-          period = period.plusMonths(val);
-        }
-      }
-
-    } catch (NumberFormatException e) {
-      final String msg = "Unable to convert value to a long: " + strVal;
-      throw new SethSystemException(msg, e);
+    ComparableInterval interval = ComparableInterval.parseIntervalStringComponent(strVal, isMinus, intervalType);
+    if (interval == null) {
+      throw wrapException( new SyntaxException("Invalid interval literal",
+                                               testFile,
+                                               ctx.start.getLine(),
+                                               ctx.start.getCharPositionInLine(),
+                                               null) );
     }
 
     if (this.columnDefs != null) {
       this.columnDefs.add(ExpectedColumnType.INTERVAL);
     }
 
-    this.columnVals.add(period);
+    this.columnVals.add(interval);
 
     return null;
   }
@@ -1732,245 +1685,37 @@ public class TestPlanGenerator extends SethBaseVisitor
     // This initially caters for the sign outside of the interval string.
     boolean isMinus = ctx.minus != null;
 
-    if (strVal.startsWith("-")) {
-      isMinus = !isMinus;
-    }
+    ComparableInterval.IntervalType intervalType;
+    if      (ctx.d != null)   intervalType = ComparableInterval.IntervalType.DAY;
+    else if (ctx.d2h != null) intervalType = ComparableInterval.IntervalType.DAY_TO_HOUR;
+    else if (ctx.d2m != null) intervalType = ComparableInterval.IntervalType.DAY_TO_MINUTE;
+    else if (ctx.d2s != null) intervalType = ComparableInterval.IntervalType.DAY_TO_SECOND;
+    else if (ctx.h   != null) intervalType = ComparableInterval.IntervalType.HOUR;
+    else if (ctx.h2m != null) intervalType = ComparableInterval.IntervalType.HOUR_TO_MINUTE;
+    else if (ctx.h2s != null) intervalType = ComparableInterval.IntervalType.HOUR_TO_SECOND;
+    else if (ctx.m   != null) intervalType = ComparableInterval.IntervalType.MINUTE;
+    else if (ctx.m2s != null) intervalType = ComparableInterval.IntervalType.MINUTE_TO_SECOND;
+    else if (ctx.s   != null) intervalType = ComparableInterval.IntervalType.SECOND;
+    else throw wrapException( new SyntaxException("Invalid interval type",
+          testFile,
+          ctx.start.getLine(),
+          ctx.start.getCharPositionInLine(),
+          null) );
 
-    // Validate the string syntax
-    final String[] formats = {
-        "\\s*[+-]?\\s*\\d+( \\d+(:\\d+(:\\d+(\\.\\d+)?)?)?)?",  // day-time or day or hour or minute.
-        "\\s*[+-]?\\s*\\d+(:\\d+(:\\d+(\\.\\d+)?)?)?",          // hour to minute or hour to second.
-        "\\s*[+-]?\\s*\\d+(:\\d+(\\.\\d+)?)?",                  // minute to second.
-        "\\s*[+-]?\\s*\\d+(\\.\\d+)?",                          // second only.
-    };
-    if (!strVal.matches(formats[0]) &&
-        !strVal.matches(formats[1]) &&
-        !strVal.matches(formats[2]) &&
-        !strVal.matches(formats[3])) {
-      final String msg = "Invalid day-time interval format.";
-      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-    }
-
-    Duration duration = Duration.ZERO;
-    long val;
-
-    Pattern p = Pattern.compile("\\d+");
-    Matcher m = p.matcher(strVal);
-
-    try {
-
-      if (!m.find()) {
-        final String msg = "Invalid day-time interval value.";
-        throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-      }
-
-      // Read the first value.
-      val = Long.valueOf(m.group());
-
-      if (isMinus) {
-        val = -val;
-      }
-
-      if (ctx.d != null) {
-        // days only
-        duration = duration.plusDays(val);
-
-      } else if (ctx.h != null) {
-        // hours only
-        duration = duration.plusHours(val);
-
-      } else if (ctx.m != null) {
-        // minutes only
-        duration = duration.plusMinutes(val);
-
-      } else if (ctx.s != null) {
-        // seconds only
-        duration = duration.plusSeconds(val);
-
-        // fractional seconds
-        if (m.find()) {
-          String s = strVal.substring(m.start(), m.end());
-          int numDigits = s.length();
-
-          // read the fractional seconds
-          val = Long.valueOf(m.group());
-
-          if (isMinus) {
-            val = -val;
-          }
-
-          // Convert to nanoseconds
-          val = val * (long) Math.pow(10, 9 - numDigits);
-          duration = duration.plusNanos(val);
-        }
-
-      } else if (ctx.d2h != null || ctx.d2m != null || ctx.d2s != null) {
-        // day to hour
-        duration = duration.plusDays(val);
-
-        if (!m.find()) {
-          final String msg = "Missing hour field in day-time interval value.";
-          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-        }
-
-        // read the hour
-        val = Long.valueOf(m.group());
-
-        if (isMinus) {
-          val = -val;
-        }
-
-        duration = duration.plusHours(val);
-
-        if (ctx.d2m != null || ctx.d2s != null) {
-          if (!m.find()) {
-            final String msg = "Missing minute field in day-time interval value.";
-            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-          }
-
-          // read the minute
-          val = Long.valueOf(m.group());
-
-          if (isMinus) {
-            val = -val;
-          }
-
-          duration = duration.plusMinutes(val);
-
-          if (ctx.d2s != null) {
-            if (!m.find()) {
-              final String msg = "Missing second field in day-time interval value.";
-              throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-            }
-
-            // read the second
-            val = Long.valueOf(m.group());
-
-            if (isMinus) {
-              val = -val;
-            }
-
-            duration = duration.plusSeconds(val);
-
-            // fractional seconds
-            if (m.find()) {
-              String s = strVal.substring(m.start(), m.end());
-              int numDigits = s.length();
-
-              // read the fractional seconds
-              val = Long.valueOf(m.group());
-
-              if (isMinus) {
-                val = -val;
-              }
-
-              // Convert to nanoseconds
-              val = val * (long) Math.pow(10, 9 - numDigits);
-              duration = duration.plusNanos(val);
-            }
-          }
-        }
-
-      } else if (ctx.h2m != null || ctx.h2s != null) {
-        // hours to minutes or hours to seconds.
-        duration = duration.plusHours(val);
-
-        if (!m.find()) {
-          final String msg = "Missing minute field in day-time interval value.";
-          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-        }
-
-        // read the minute
-        val = Long.valueOf(m.group());
-
-        if (isMinus) {
-          val = -val;
-        }
-
-        duration = duration.plusMinutes(val);
-
-        if (ctx.h2s != null) {
-          if (!m.find()) {
-            final String msg = "Missing second field in day-time interval value.";
-            throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-          }
-
-          // read the second
-          val = Long.valueOf(m.group());
-
-          if (isMinus) {
-            val = -val;
-          }
-
-          duration = duration.plusSeconds(val);
-
-          // fractional seconds
-          if (m.find()) {
-            String s = strVal.substring(m.start(), m.end());
-            int numDigits = s.length();
-
-            // read the fractional seconds
-            val = Long.valueOf(m.group());
-
-            if (isMinus) {
-              val = -val;
-            }
-
-            // Convert to nanoseconds
-            val = val * (long) Math.pow(10, 9 - numDigits);
-            duration = duration.plusNanos(val);
-          }
-        }
-
-      } else if (ctx.m2s != null) {
-        // minutes to seconds.
-        duration = duration.plusMinutes(val);
-
-        if (!m.find()) {
-          final String msg = "Missing seconds field in day-time interval value.";
-          throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, msg);
-        }
-
-        // read the seconds
-        val = Long.valueOf(m.group());
-
-        if (isMinus) {
-          val = -val;
-        }
-
-        duration = duration.plusSeconds(val);
-
-        // fractional seconds
-        if (m.find()) {
-          String s = strVal.substring(m.start(), m.end());
-          int numDigits = s.length();
-
-          // read the fractional seconds
-          val = Long.valueOf(m.group());
-
-          if (isMinus) {
-            val = -val;
-          }
-
-          // Convert to nanoseconds
-          val = val * (long) Math.pow(10, 9 - numDigits);
-          duration = duration.plusNanos(val);
-        }
-
-      } else {
-        throw new SethSystemException("Shouldn't get here.");
-      }
-
-    } catch (NumberFormatException e) {
-      final String msg = "Unable to convert value to a long: " + strVal;
-      throw new SethSystemException(msg, e);
+    ComparableInterval interval = ComparableInterval.parseIntervalStringComponent(strVal, isMinus, intervalType);
+    if (interval == null) {
+      throw wrapException( new SyntaxException("Invalid interval literal",
+          testFile,
+          ctx.start.getLine(),
+          ctx.start.getCharPositionInLine(),
+          null) );
     }
 
     if (this.columnDefs != null) {
       this.columnDefs.add(ExpectedColumnType.INTERVAL);
     }
 
-    this.columnVals.add(duration);
+    this.columnVals.add(interval);
 
     return null;
   }
