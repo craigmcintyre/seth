@@ -163,17 +163,15 @@ public class ComparableInterval
    * This parses an interval literal of the form: INTERVAL [-]'...' <intervalType>
    * @param literal A string representing the full interval literal, including
    *                the INTERVAL keyword
-   * @return a ComparableInterval
-   * @throws SyntaxException
+   * @return a ComparableInterval or null if it could not be parsed.
    */
-  public static ComparableInterval parseIntervalLiteral(String literal, File file, int line, int pos)
-  throws SyntaxException
+  public static ComparableInterval parseIntervalLiteral(String literal)
   {
     Pattern pattern = Pattern.compile("\\s*INTERVAL\\s+(-?)'([^']+)'\\s+([a-zA-z ]+)$", Pattern.CASE_INSENSITIVE);
     Matcher matcher = pattern.matcher(literal);
 
     if (!matcher.matches() || matcher.groupCount() != 3) {
-      throw new SyntaxException("Invalid INTERVAL literal format", file, line, pos, null);
+      return null;
     }
 
     boolean isNegative = (matcher.group(1) != null && matcher.group(1).equals("-"));
@@ -185,16 +183,11 @@ public class ComparableInterval
 
     IntervalType eType = IntervalType.fromString(intervalTypeStr);
     if (eType == IntervalType.UNKNOWN) {
-      throw new SyntaxException("Invalid INTERVAL sub type", file, line, pos, null);
+      return null;
     }
 
-    // Parse the string in this interval literal
+    // Parse the string in this interval literal. Result may be null.
     ComparableInterval interval = parseIntervalStringComponent(intervalStr, isNegative, eType);
-
-    if (interval == null) {
-      throw new SyntaxException("Invalid INTERVAL literal string component", file, line, pos, null);
-    }
-
     return interval;
   }
 
@@ -467,7 +460,7 @@ public class ComparableInterval
    * @param intervalStr the string description of a PGInterval type
    * @return a ComparableInterval instance, or null if it could not be parsed.
    */
-  public static ComparableInterval parsePostgresObjectToString(String intervalStr, boolean isNegative)
+  public static ComparableInterval parsePostgresObjectToString(String intervalStr)
   {
     assert(intervalStr != null);
 
@@ -479,6 +472,8 @@ public class ComparableInterval
                                              "(?:(-?\\d+)\\.?(\\d+)? secs?)?");
 
     Matcher matcher = pattern.matcher(intervalStr);
+
+    boolean isNegative = false;
 
     String valueStr;
     int year  = 0;
@@ -589,7 +584,7 @@ public class ComparableInterval
    * @param intervalStr the string description of a PGInterval type
    * @return a ComparableInterval instance, or null if it could not be parsed.
    */
-  public static ComparableInterval parsePostgresString(String intervalStr, boolean isNegative)
+  public static ComparableInterval parsePostgresString(String intervalStr)
   {
     assert(intervalStr != null);
 
@@ -599,6 +594,8 @@ public class ComparableInterval
                                              "(?:(-?\\d+):(\\d+):(\\d+)\\.?(\\d+)?)?");
 
     Matcher matcher = pattern.matcher(intervalStr);
+
+    boolean isNegative = false;
 
     String valueStr;
     int year  = 0;

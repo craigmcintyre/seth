@@ -188,10 +188,49 @@ public class ExpectedRow
           break;
 
         case INTERVAL:
-          throw new SethSystemException("Interval not yet implemented.");
-          // year-month intervals are represented by Period classes.
-          // day-time intevals are represented by Duration classes.
-          //break;
+          ComparableInterval expectedInterval = (ComparableInterval) expectedVal;
+
+          if (wasNull) {
+            return false;
+          }
+
+          if (rsmd.getColumnType(rsIndex) == Types.OTHER &&
+              rsmd.getColumnTypeName(rsIndex).toLowerCase().startsWith("interval")) {
+
+            // Try parsing an SE interval
+            ComparableInterval actualInterval = ComparableInterval.parseIntervalLiteral(rs.getString(rsIndex));
+            if (actualInterval != null) {
+              if( !expectedInterval.comparesTo(actualInterval)) {
+                return false;
+              }
+              break;  // Matched
+            }
+
+            // Try parsing a Postgres interval via rs.getObject(i).toString()
+            actualInterval = ComparableInterval.parsePostgresString(rs.getString(rsIndex));
+            if (actualInterval != null) {
+              if( !expectedInterval.comparesTo(actualInterval)) {
+                return false;
+              }
+              break;  // Matched
+            }
+
+            // Try parsing a Postgres interval via rs.getString(i)
+            actualInterval = ComparableInterval.parsePostgresObjectToString(rs.getObject(rsIndex).toString());
+            if (actualInterval != null) {
+              if( !expectedInterval.comparesTo(actualInterval)) {
+                return false;
+              }
+              break;  // Matched
+            }
+
+            // Give up, we don't know how to parse this interval type.
+            return false;
+
+          } else {
+            // Actual result is not an interval type
+            return false;
+          }
 
         case IGNORE_REMAINING: // Falls through
         default:
@@ -451,9 +490,8 @@ public class ExpectedRow
           break;
 
         case INTERVAL:
-          StringBuilder tempSb = new StringBuilder(128);
-          formatInterval(tempSb, objectVal);
-          columnVal = tempSb.toString();
+          ComparableInterval interval = (ComparableInterval) objectVal;
+          columnVal = interval.toString();
           padding = columnWidths[colIndex] - columnVal.length();
 
           if (!padLeft) {
@@ -546,9 +584,8 @@ public class ExpectedRow
         return len;
 
       case INTERVAL:
-        StringBuilder sb = new StringBuilder(128);
-        formatInterval(sb, val);
-        return sb.toString().length();
+        ComparableInterval interval = (ComparableInterval) val;
+        return interval.toString().length();
 
       default:
         throw new SethSystemException("Unhandled data type: " + type.name());
@@ -581,168 +618,6 @@ public class ExpectedRow
     }
 
     return padLefts;
-  }
-
-  /**
-   * Formats an interval type to a string and writes it to the StringBuilder parameter.
-   * @param sb where the interval type is to be rendered to.
-   * @param val the interval value.
-   */
-  private void formatInterval(StringBuilder sb, Object val)
-  {
-    String intervalType;
-
-    sb.append("INTERVAL ");
-
-    if (val instanceof Period) {
-      Period period = (Period) val;
-      intervalType = formatPeriodInterval(sb, period);
-
-    } else if (val instanceof Duration) {
-      Duration duration = (Duration) val;
-      intervalType = formatDurationInterval(sb, duration);
-
-    } else {
-      throw new SethSystemException("Unrecognised interval type: " + val.getClass().getName());
-    }
-    sb.append("' ");
-    sb.append(intervalType);
-  }
-
-  /**
-   * Formats a Period interval type to a string and writes it to the StringBuilder parameter.
-   * @param sb where the interval type is to be rendered to.
-   * @param period The Period interval value to render.
-   * @return The exact type of SQL interval that was rendered (e.g. YEARS TO MONTHS, MONTHS, ...).
-   */
-  private String formatPeriodInterval(StringBuilder sb, Period period)
-  {
-    if (period.getYears() < 0 || period.getMonths() < 0) {
-      sb.append('-');
-    }
-
-    sb.append("'");
-
-    String intervalType;
-
-    if (period.getYears() != 0 && period.getMonths() != 0) {
-      intervalType = "YEAR TO MONTH";
-      sb.append(Math.abs(period.getYears()));
-      sb.append('-');
-      sb.append(Math.abs(period.getMonths()));
-
-    } else if (period.getMonths() != 0) {
-      intervalType = "MONTH";
-      sb.append(Math.abs(period.getMonths()));
-
-    } else {
-      intervalType = "YEAR";
-      sb.append(Math.abs(period.getYears()));
-    }
-
-    return intervalType;
-  }
-
-  /**
-   * Formats a Duration interval type to a string and writes it to the StringBuilder parameter.
-   * @param sb where the interval type is to be rendered to.
-   * @param duration The Duration interval value to render.
-   * @return The exact type of SQL interval that was rendered (e.g. DAYS TO MINUTES, SECONDS, ...).
-   */
-  private String formatDurationInterval(StringBuilder sb, Duration duration)
-  {
-    String intervalType;
-
-    long days = duration.toDays();
-    duration = duration.minusDays(days);
-    long hours = duration.toHours();
-    duration = duration.minusHours(hours);
-    long minutes = duration.toMinutes();
-    duration = duration.minusMinutes(minutes);
-    long seconds = ((duration.getSeconds() * 1000000000) + duration.getNano()) / 1000000000;
-    long nanos   = ((duration.getSeconds() * 1000000000) + duration.getNano()) % 1000000000;
-
-    if (days < 0 || hours < 0 || minutes < 0 || seconds < 0 || nanos < 0) {
-      sb.append('-');
-    }
-
-    sb.append("'");
-
-    if (days != 0) {
-      intervalType = "DAY";
-      sb.append(String.format("%02d", Math.abs(days)));
-
-      if (hours != 0 || minutes != 0 || seconds != 0 || nanos != 0) {
-        intervalType = "DAY TO HOUR";
-        sb.append(" ");
-        sb.append(String.format("%02d", Math.abs(hours)));
-
-        if (minutes != 0 || seconds != 0 || nanos != 0) {
-          intervalType = "DAY TO MINUTE";
-          sb.append(":");
-          sb.append(String.format("%02d", Math.abs(minutes)));
-
-          if (seconds != 0 || nanos != 0) {
-            intervalType = "DAY TO SECOND";
-            sb.append(":");
-            sb.append(String.format("%02d", Math.abs(seconds)));
-
-            if (nanos != 0) {
-              sb.append(".");
-              sb.append(String.format("%09d", Math.abs(nanos)));
-            }
-          }
-        }
-      }
-
-    } else if (hours != 0) {
-      intervalType = "HOUR";
-      sb.append(String.format("%02d", Math.abs(hours)));
-
-      if (minutes != 0 || seconds != 0 || nanos != 0) {
-        intervalType = "HOUR TO MINUTE";
-        sb.append(":");
-        sb.append(String.format("%02d", Math.abs(minutes)));
-
-        if (seconds != 0 || nanos != 0) {
-          intervalType = "HOUR TO SECOND";
-          sb.append(":");
-          sb.append(String.format("%02d", Math.abs(seconds)));
-
-          if (nanos != 0) {
-            sb.append(".");
-            sb.append(String.format("%09d", Math.abs(nanos)));
-          }
-        }
-      }
-
-    } else if (minutes != 0) {
-      intervalType = "MINUTE";
-      sb.append(String.format("%02d", Math.abs(minutes)));
-
-      if (seconds != 0 || nanos != 0) {
-        intervalType = "MINUTE TO SECOND";
-        sb.append(":");
-        sb.append(String.format("%02d", Math.abs(seconds)));
-
-        if (nanos != 0) {
-          sb.append(".");
-          sb.append(String.format("%09d", Math.abs(nanos)));
-        }
-      }
-
-    } else {
-      // seconds
-      intervalType = "SECOND";
-      sb.append(String.format("%02d", Math.abs(seconds)));
-
-      if (nanos != 0) {
-        sb.append(".");
-        sb.append(String.format("%09d", Math.abs(nanos)));
-      }
-    }
-
-    return intervalType;
   }
 
   /**
