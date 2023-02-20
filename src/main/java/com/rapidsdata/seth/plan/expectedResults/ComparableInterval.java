@@ -2,6 +2,9 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
+import com.rapidsdata.seth.exceptions.SyntaxException;
+
+import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,13 +35,13 @@ public class ComparableInterval
     SECOND ("SECOND", "%6$d.%7$06d"),
     DAY_TO_HOUR ("DAY TO HOUR", "%3$d %4$d"),
     DAY_TO_MINUTE ("DAY TO MINUTE", "%3$d %4$d:%5$d"),
-    DAY_TO_SECOND ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d.%7$06d"),
+    DAY_TO_SECOND ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d"),
     HOUR_TO_MINUTE ("HOUR TO MINUTE", "%4$d:%5$d"),
-    HOUR_TO_SECOND ("HOUR TO SECOND", "%4$d:%5$d:%6$d.%7$06d"),
-    MINUTE_TO_SECOND ("MINUTE TO SECOND", "%5$d:%6$d.%7$06d"),
-    UNKNOWN ("", "%1$d-%2$d-%3$d %4$d:%5$d:%6$d.%7$06d"),
+    HOUR_TO_SECOND ("HOUR TO SECOND", "%4$d:%5$d:%6$d"),
+    MINUTE_TO_SECOND ("MINUTE TO SECOND", "%5$d:%6$d"),
+    UNKNOWN ("", "%1$d-%2$d-%3$d %4$d:%5$d:%6$d"),
     UNKNOWN_YEAR_MONTH ("YEAR TO MONTH", "%1$d-%2$d"),
-    UNKNOWN_DAY_TIME ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d.%7$06d");
+    UNKNOWN_DAY_TIME ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d");
 
     public final String desc;
     public final String format;
@@ -47,6 +50,30 @@ public class ComparableInterval
     {
       this.desc = desc;
       this.format = format;
+    }
+
+    /**
+     * Given a string like "YEAR TO MONTH", return the associated enum
+     */
+    public static IntervalType fromString(String typeStr)
+    {
+      typeStr = typeStr.trim();
+
+      if (typeStr.equalsIgnoreCase("YEAR"))              return YEAR;
+      if (typeStr.equalsIgnoreCase("MONTH"))             return MONTH;
+      if (typeStr.equalsIgnoreCase("YEAR TO MONTH"))     return YEAR_TO_MONTH;
+      if (typeStr.equalsIgnoreCase("DAY"))               return DAY;
+      if (typeStr.equalsIgnoreCase("HOUR"))              return HOUR;
+      if (typeStr.equalsIgnoreCase("MINUTE"))            return MINUTE;
+      if (typeStr.equalsIgnoreCase("SECOND"))            return SECOND;
+      if (typeStr.equalsIgnoreCase("DAY TO HOUR"))       return DAY_TO_HOUR;
+      if (typeStr.equalsIgnoreCase("DAY TO MINUTE"))     return DAY_TO_MINUTE;
+      if (typeStr.equalsIgnoreCase("DAY TO SECOND"))     return DAY_TO_SECOND;
+      if (typeStr.equalsIgnoreCase("HOUR TO MINUTE"))    return HOUR_TO_MINUTE;
+      if (typeStr.equalsIgnoreCase("HOUR TO SECOND"))    return HOUR_TO_SECOND;
+      if (typeStr.equalsIgnoreCase("MINUTE TO SECOND"))  return MINUTE_TO_SECOND;
+
+      return UNKNOWN;
     }
   }
 
@@ -106,17 +133,17 @@ public class ComparableInterval
   public ComparableInterval(IntervalType type, boolean isNegative, int days, int hours, int minutes, int seconds, int micros)
   {
     assert(type == IntervalType.DAY ||
-        type == IntervalType.HOUR ||
-        type == IntervalType.MINUTE ||
-        type == IntervalType.SECOND ||
-        type == IntervalType.DAY_TO_HOUR ||
-        type == IntervalType.DAY_TO_MINUTE ||
-        type == IntervalType.DAY_TO_SECOND ||
-        type == IntervalType.HOUR_TO_MINUTE ||
-        type == IntervalType.HOUR_TO_SECOND ||
-        type == IntervalType.MINUTE_TO_SECOND ||
-        type == IntervalType.UNKNOWN ||
-        type == IntervalType.UNKNOWN_DAY_TIME);
+           type == IntervalType.HOUR ||
+           type == IntervalType.MINUTE ||
+           type == IntervalType.SECOND ||
+           type == IntervalType.DAY_TO_HOUR ||
+           type == IntervalType.DAY_TO_MINUTE ||
+           type == IntervalType.DAY_TO_SECOND ||
+           type == IntervalType.HOUR_TO_MINUTE ||
+           type == IntervalType.HOUR_TO_SECOND ||
+           type == IntervalType.MINUTE_TO_SECOND ||
+           type == IntervalType.UNKNOWN ||
+           type == IntervalType.UNKNOWN_DAY_TIME);
 
     assert (micros > 0);
     assert (micros < 1000000);
@@ -133,31 +160,53 @@ public class ComparableInterval
   }
 
   /**
-   * Return a comparable interval from a RapidsSE interval column value that has been
-   * retrieved as resultSet.getObject(i).toString() or
-   * resultSet.toString(i)
-   * This parses a string that looks like these examples:
-   *  "INTERVAL '0-1' YEAR TO MONTH"
-   *  "INTERVAL -'2' MONTH"
-   *  "INTERVAL '-1 2:3:4.5' DAY TO SECOND"
-   *  That is, a normal SQL interval.
+   * This parses an interval literal of the form: INTERVAL [-]'...' <intervalType>
+   * @param literal A string representing the full interval literal, including
+   *                the INTERVAL keyword
+   * @return a ComparableInterval
+   * @throws SyntaxException
+   */
+  public static ComparableInterval parseIntervalLiteral(String literal, File file, int line, int pos)
+  throws SyntaxException
+  {
+    Pattern pattern = Pattern.compile("\\s*INTERVAL\\s+(-?)'([^']+)'\\s+([a-zA-z ]+)$", Pattern.CASE_INSENSITIVE);
+    Matcher matcher = pattern.matcher(literal);
+
+    if (!matcher.matches() || matcher.groupCount() != 3) {
+      throw new SyntaxException("Invalid INTERVAL literal format", file, line, pos, null);
+    }
+
+    boolean isNegative = (matcher.group(1) != null && matcher.group(1).equals("-"));
+    String intervalStr = matcher.group(2);
+    String intervalTypeStr = matcher.group(3);
+
+    assert(intervalStr != null);
+    assert(!intervalStr.isEmpty());
+
+    IntervalType eType = IntervalType.fromString(intervalTypeStr);
+    if (eType == IntervalType.UNKNOWN) {
+      throw new SyntaxException("Invalid INTERVAL sub type", file, line, pos, null);
+    }
+
+    // Parse the string in this interval literal
+    ComparableInterval interval = parseIntervalStringComponent(intervalStr, isNegative, eType);
+
+    if (interval == null) {
+      throw new SyntaxException("Invalid INTERVAL literal string component", file, line, pos, null);
+    }
+
+    return interval;
+  }
+
+  /**
+   * Parse the string component of an interval literal (not including the quotes).
    * @param intervalStr the string description of a PGInterval type
    * @return a ComparableInterval instance, or null if it could not be parsed.
    */
-  public static ComparableInterval parseRapidsSEIntervalString(String intervalStr, boolean isNegative)
+  public static ComparableInterval parseIntervalStringComponent(String intervalStr,
+                                                                boolean isNegative,
+                                                                IntervalType eType)
   {
-    assert(intervalStr != null);
-
-    Pattern pattern = Pattern.compile("(?:(-?\\d+) years?)?\\s?" +
-        "(?:(-?\\d+) mons?)?\\s?" +
-        "(?:(-?\\d+) days?)?\\s?" +
-        "(?:(-?\\d+) hours?)?\\s?" +
-        "(?:(-?\\d+) mins?)?\\s?" +
-        "(?:(-?\\d+)\\.?(\\d+)? secs?)?");
-
-    Matcher matcher = pattern.matcher(intervalStr);
-
-    String valueStr;
     int year  = 0;
     int month = 0;
     int day   = 0;
@@ -166,50 +215,227 @@ public class ComparableInterval
     int sec   = 0;
     int micro = 0;
 
-    int numGroups = matcher.groupCount();
+    Pattern pattern;
+    Matcher matcher;
+    String microStr;
 
     try {
-      switch (numGroups) {
-        case 7:
-          valueStr = matcher.group(7);
-          if (valueStr != null && !valueStr.isEmpty())    {
-            micro = Integer.parseInt(valueStr);
+      switch (eType) {
+
+        case YEAR:
+          year = Integer.parseInt(intervalStr);
+          break;
+
+        case MONTH:
+          month = Integer.parseInt(intervalStr);
+          break;
+
+        case YEAR_TO_MONTH:
+          pattern = Pattern.compile("(-?\\d+)-(\\d+)");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 2 ||
+              matcher.group(1) == null  ||
+              matcher.group(2) == null)  {
+            return null;
+          }
+
+          year  = Integer.parseInt(matcher.group(1));
+          month = Integer.parseInt(matcher.group(2));
+          break;
+
+        case DAY:
+          day = Integer.parseInt(intervalStr);
+          break;
+
+        case HOUR:
+          hour = Integer.parseInt(intervalStr);
+          break;
+
+        case MINUTE:
+          min = Integer.parseInt(intervalStr);
+          break;
+
+        case SECOND:
+          pattern = Pattern.compile("(-?\\d+)(?:\\.(\\d*))?");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 2 ||
+              matcher.group(1) == null)  {
+            return null;
+          }
+
+          sec  = Integer.parseInt(matcher.group(1));
+
+          microStr = matcher.group(2);
+          if (microStr != null && !microStr.isEmpty()) {
+            micro = Integer.parseInt(microStr);
+
+            if (microStr.length() > 6) {
+              return null;
+            }
 
             // Correct micros for missing leading zeros
-            int powers = 6 - valueStr.length();
+            int powers = 6 - microStr.length();
             while (powers > 0) {
               micro = micro * 10;
               --powers;
             }
           }
-          // fall through
-        case 6:
-          valueStr = matcher.group(6);
-          if (valueStr != null && !valueStr.isEmpty())    { sec = Integer.parseInt(valueStr);   }
-          // fall through
-        case 5:
-          valueStr = matcher.group(5);
-          if (valueStr != null && !valueStr.isEmpty())    { min = Integer.parseInt(valueStr);   }
-          // fall through
-        case 4:
-          valueStr = matcher.group(4);
-          if (valueStr != null && !valueStr.isEmpty())    { hour = Integer.parseInt(valueStr);  }
-          // fall through
-        case 3:
-          valueStr = matcher.group(3);
-          if (valueStr != null && !valueStr.isEmpty())    { day = Integer.parseInt(valueStr);   }
-          // fall through
-        case 2:
-          valueStr = matcher.group(2);
-          if (valueStr != null && !valueStr.isEmpty())    { month = Integer.parseInt(valueStr); }
-          // fall through
-        case 1:
-          valueStr = matcher.group(1);
-          if (valueStr != null && !valueStr.isEmpty())    { year = Integer.parseInt(valueStr);  }
           break;
 
-        default:
-          // Not able to parse this interval string.
+        case DAY_TO_HOUR:
+          pattern = Pattern.compile("(-?\\d+) (\\d+)");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 2 ||
+              matcher.group(1) == null  ||
+              matcher.group(2) == null)  {
+            return null;
+          }
+
+          day  = Integer.parseInt(matcher.group(1));
+          hour = Integer.parseInt(matcher.group(2));
+          break;
+
+        case DAY_TO_MINUTE:
+          pattern = Pattern.compile("(-?\\d+) (\\d+):(\\d+)");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 3 ||
+              matcher.group(1) == null  ||
+              matcher.group(2) == null  ||
+              matcher.group(3) == null)  {
+            return null;
+          }
+
+          day  = Integer.parseInt(matcher.group(1));
+          hour = Integer.parseInt(matcher.group(2));
+          min  = Integer.parseInt(matcher.group(3));
+          break;
+
+        case DAY_TO_SECOND:
+          pattern = Pattern.compile("(-?\\d+) (\\d+):(\\d+):(\\d+)(?:\\.(\\d*))?");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 5 ||
+              matcher.group(1) == null  ||
+              matcher.group(2) == null  ||
+              matcher.group(3) == null  ||
+              matcher.group(4) == null)  {
+            return null;
+          }
+
+          day  = Integer.parseInt(matcher.group(1));
+          hour = Integer.parseInt(matcher.group(2));
+          min  = Integer.parseInt(matcher.group(3));
+          sec  = Integer.parseInt(matcher.group(4));
+
+          microStr = matcher.group(5);
+          if (microStr != null && !microStr.isEmpty()) {
+            micro = Integer.parseInt(microStr);
+
+            if (microStr.length() > 6) {
+              return null;
+            }
+
+            // Correct micros for missing leading zeros
+            int powers = 6 - microStr.length();
+            while (powers > 0) {
+              micro = micro * 10;
+              --powers;
+            }
+          }
+          break;
+
+        case HOUR_TO_MINUTE:
+          pattern = Pattern.compile("(-?\\d+):(\\d+)");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 2 ||
+              matcher.group(1) == null  ||
+              matcher.group(2) == null)  {
+            return null;
+          }
+
+          hour = Integer.parseInt(matcher.group(1));
+          min  = Integer.parseInt(matcher.group(2));
+          break;
+
+        case HOUR_TO_SECOND:
+          pattern = Pattern.compile("(-?\\d+):(\\d+):(\\d+)(?:\\.(\\d*))?");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 4 ||
+              matcher.group(1) == null  ||
+              matcher.group(2) == null  ||
+              matcher.group(3) == null) {
+            return null;
+          }
+
+          hour = Integer.parseInt(matcher.group(1));
+          min  = Integer.parseInt(matcher.group(2));
+          sec  = Integer.parseInt(matcher.group(3));
+
+          microStr = matcher.group(4);
+          if (microStr != null && !microStr.isEmpty()) {
+            micro = Integer.parseInt(microStr);
+
+            if (microStr.length() > 6) {
+              return null;
+            }
+
+            // Correct micros for missing leading zeros
+            int powers = 6 - microStr.length();
+            while (powers > 0) {
+              micro = micro * 10;
+              --powers;
+            }
+          }
+          break;
+
+        case MINUTE_TO_SECOND:
+          pattern = Pattern.compile("(-?\\d+):(\\d+)(?:\\.(\\d*))?");
+          matcher = pattern.matcher(intervalStr);
+
+          if (!matcher.matches() ||
+              matcher.groupCount() != 3 ||
+              matcher.group(1) == null  ||
+              matcher.group(2) == null) {
+            return null;
+          }
+
+          min  = Integer.parseInt(matcher.group(1));
+          sec  = Integer.parseInt(matcher.group(2));
+
+          microStr = matcher.group(3);
+          if (microStr != null && !microStr.isEmpty()) {
+            micro = Integer.parseInt(microStr);
+
+            if (microStr.length() > 6) {
+              return null;
+            }
+
+            // Correct micros for missing leading zeros
+            int powers = 6 - microStr.length();
+            while (powers > 0) {
+              micro = micro * 10;
+              --powers;
+            }
+          }
+          break;
+
+        default:                  // fall through
+        case UNKNOWN:             // fall through
+        case UNKNOWN_YEAR_MONTH:  // fall through
+        case UNKNOWN_DAY_TIME:
           return null;
       }
     } catch (NumberFormatException e) {
@@ -227,26 +453,6 @@ public class ComparableInterval
       sec    = Math.abs(sec);
       micro  = Math.abs(micro);
     }
-
-    // Try to determine the type of interval based on the non-zero values.
-    // We use the UNKNOWN_* to do a very soft comparison of the interval type.
-    IntervalType eType;
-
-    if (year != 0 || month != 0) {
-      if (day != 0 || hour != 0 || min != 0 || sec != 0 || micro != 0) {
-        eType = IntervalType.UNKNOWN;
-      } else {
-        eType = IntervalType.UNKNOWN_YEAR_MONTH;
-      }
-
-    } else if (day != 0 || hour != 0 || min != 0 || sec != 0 || micro != 0) {
-      eType = IntervalType.UNKNOWN_DAY_TIME;
-
-    } else {
-      // All values zero
-      eType = IntervalType.UNKNOWN;
-    }
-
 
     return new ComparableInterval(eType, isNegative,
         year, month,
@@ -394,8 +600,6 @@ public class ComparableInterval
 
     Matcher matcher = pattern.matcher(intervalStr);
 
-    // TODO: Extract negative before time
-
     String valueStr;
     int year  = 0;
     int month = 0;
@@ -495,6 +699,15 @@ public class ComparableInterval
         day, hour, min, sec, micro);
   }
 
+  /**
+   * Compare two ComparableInterval instances. This is a nuanced compare.
+   * If one of the instances has an UNKNOWN* type then we compare as best as
+   * we can. Otherwise we are strict on the interval sub-type comparison.
+   * We also compare values by normalising down to months or seconds, depending
+   * on the type. So 12 months and 1 year will compare equally.
+   * @param other the other ComparableInstance to compare to.
+   * @return true if they are logically equal or false if they are not.
+   */
   public boolean comparesTo(ComparableInterval other)
   {
     if (other == null) {
@@ -540,7 +753,7 @@ public class ComparableInterval
           break;
 
         case SECOND:
-          if (this.seconds != other.seconds &&
+          if (this.seconds != other.seconds ||
               this.micros  != other.micros)   return false;
           break;
 
@@ -554,7 +767,7 @@ public class ComparableInterval
 
         case DAY_TO_SECOND:     // fall through
         case UNKNOWN_DAY_TIME:
-          if (this.normalisedDaysToSeconds() != other.normalisedDaysToSeconds() &&
+          if (this.normalisedDaysToSeconds() != other.normalisedDaysToSeconds() ||
               this.micros  != other.micros)  return false;
           break;
 
@@ -563,18 +776,18 @@ public class ComparableInterval
           break;
 
         case HOUR_TO_SECOND:
-          if (this.normalisedHoursToSeconds() != other.normalisedHoursToSeconds() &&
+          if (this.normalisedHoursToSeconds() != other.normalisedHoursToSeconds() ||
               this.micros  != other.micros)  return false;
           break;
 
         case MINUTE_TO_SECOND:
-          if (this.normalisedMinutesToSeconds() != other.normalisedMinutesToSeconds() &&
+          if (this.normalisedMinutesToSeconds() != other.normalisedMinutesToSeconds() ||
               this.micros  != other.micros)  return false;
           break;
 
         case UNKNOWN:
-          if (this.normalisedYearsToMonths() != other.normalisedYearsToMonths() &&
-              this.normalisedDaysToSeconds() != other.normalisedDaysToSeconds() &&
+          if (this.normalisedYearsToMonths() != other.normalisedYearsToMonths() ||
+              this.normalisedDaysToSeconds() != other.normalisedDaysToSeconds() ||
               this.micros  != other.micros)   return false;
           break;
 
@@ -585,9 +798,23 @@ public class ComparableInterval
       // is an UNKNOWN* interval type. So let's normalise all the year-month fields
       // and normalise all of the day-time fields and compare.
 
-      if (this.normalisedYearsToMonths() != other.normalisedYearsToMonths() &&
-          this.normalisedDaysToSeconds() != other.normalisedDaysToSeconds() &&
-          this.micros  != other.micros)   return false;
+      if (this.normalisedYearsToMonths() != other.normalisedYearsToMonths() ||
+          this.normalisedDaysToSeconds() != other.normalisedDaysToSeconds() ||
+          this.micros  != other.micros)
+        return false;
+    }
+
+    // Finally check the negative sign if we have a non-zero interval.
+    if (this.isNegative != other.isNegative &&
+           (this.years   != 0 ||
+            this.months  != 0 ||
+            this.days    != 0 ||
+            this.hours   != 0 ||
+            this.minutes != 0 ||
+            this.seconds != 0 ||
+            this.micros  != 0)
+    ) {
+      return false;
     }
 
     // The intervals must be equal.
@@ -764,8 +991,22 @@ public class ComparableInterval
                             this.days,
                             this.hours,
                             this.minutes,
-                            this.seconds,
-                            this.micros));
+                            this.seconds));
+
+    if (this.micros != 0) {
+
+      switch (this.type) {
+        case DAY_TO_SECOND:
+        case HOUR_TO_SECOND:
+        case MINUTE_TO_SECOND:
+        case SECOND:
+          sb.append(String.format(".%06d", this.micros));
+          break;
+
+        default:
+          break;
+      }
+    }
 
     sb.append("' ");
     sb.append(this.type.desc);
@@ -785,185 +1026,104 @@ public class ComparableInterval
   private static void testComparison()
   {
     Object[][] vals = {
-        //ExpectedVal ActualVal   ExpectedResult
-        {  "1"         ,  "1"          , true  },
-        {  "1"         ,  "1."         , true  },
-        {  "1"         ,  "1.0"        , true  },
-        {  "1"         ,  "1e0"        , true  },
-        {  "1"         ,  "11e-1"      , true  },
-        { "-1"         , "-1"          , true  },
-        { "-1"         , "-1."         , true  },
-        { "-1"         , "-1.0"        , true  },
-        { "-1"         , "-1e0"        , true  },
-        { "-1"         , "-11e-1"      , true  },
+        // Format: ExpectedVal, ActualVal, ExpectedResult
 
-        {  "10"        ,  "10"         , true  },
-        {  "10"        ,  "10."        , true  },
-        {  "10"        ,  "10.0"       , true  },
-        {  "10"        ,  "10e0"       , true  },
-        {  "10"        ,  "101e-1"     , true  },
-        { "-10"        , "-10"         , true  },
-        { "-10"        , "-10."        , true  },
-        { "-10"        , "-10.0"       , true  },
-        { "-10"        , "-10e0"       , true  },
-        { "-10"        , "-101e-1"     , true  },
+        // (1) Simple date equivalence
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 1, 2),
+            new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 0, 14),
+            true },
 
-        {  "10000"     ,  "10000"      , true  },
-        {  "10000"     ,  "10000."     , true  },
-        {  "10000"     ,  "10000.0"    , true  },
-        {  "10000"     ,  "10000e0"    , true  },
-        {  "10000"     ,  "100001e-1"  , true  },
-        { "-10000"     , "-10000"      , true  },
-        { "-10000"     , "-10000."     , true  },
-        { "-10000"     , "-10000.0"    , true  },
-        { "-10000"     , "-10000e0"    , true  },
-        { "-10000"     , "-100001e-1"  , true  },
-        { "-10000"     , "-10000001e-3", true  },
+        // (2) Simple date equivalence with an UNKNOWN
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 1, 2),
+            new ComparableInterval(IntervalType.UNKNOWN,           false, 0, 14),
+            true },
 
-        {  "10.00"     ,  "10"         , true  },
-        {  "10.00"     ,  "10."        , true  },
-        {  "10.00"     ,  "10.0"       , true  },
-        {  "10.00"     ,  "10e0"       , true  },
-        {  "10.00"     ,  "10001e-3"   , true  },
-        { "-10.00"     , "-10"         , true  },
-        { "-10.00"     , "-10."        , true  },
-        { "-10.00"     , "-10.0"       , true  },
-        { "-10.00"     , "-10e0"       , true  },
-        { "-10.00"     , "-10001e-3"   , true  },
+        // (3) Simple date equivalence with an UNKNOWN_YEAR_MONTH
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 1, 2),
+            new ComparableInterval(IntervalType.UNKNOWN_YEAR_MONTH,false, 0, 14),
+            true },
 
-        {  "10000.1"   ,  "10000.1"    , true  },
-        {  "10000.1"   ,  "10000.10"   , true  },
-        {  "10000.1"   ,  "10000.1e0"  , true  },
-        {  "10000.1"   ,  "1000019e-2" , true  },
-        { "-10000.1"   , "-10000.1"    , true  },
-        { "-10000.1"   , "-10000.10"   , true  },
-        { "-10000.1"   , "-10000.1e0"  , true  },
-        { "-10000.1"   , "-1000019e-2" , true  },
-        { "-10000.1"   , "-10000101e-3", true  },
+        // (4) False comparison: interval values not equal
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 1, 2),
+            new ComparableInterval(IntervalType.UNKNOWN,           false, 0, 15),
+            false },
 
-        {  "1e3"       ,  "1000"       , true  },
-        {  "1e3"       ,  "1000."      , true  },
-        {  "1e3"       ,  "1000.0"     , true  },
-        {  "1e3"       ,  "10e2"       , true  },
-        {  "1e3"       ,  "11e2"       , true  },
-        { "-1e3"       , "-1000"       , true  },
-        { "-1e3"       , "-1000."      , true  },
-        { "-1e3"       , "-1000.0"     , true  },
-        { "-1e3"       , "-10e2"       , true  },
-        { "-1e3"       , "-11e2"       , true  },
+        // (5) False comparison: sign is not equal and values are equivalent
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 1, 2),
+            new ComparableInterval(IntervalType.UNKNOWN,           true , 0, 14),
+            false },
 
-        {  "1.e3"      ,  "1000"       , true  },
-        {  "1.e3"      ,  "1000."      , true  },
-        {  "1.e3"      ,  "1000.0"     , true  },
-        {  "1.e3"      ,  "10e2"       , true  },
-        {  "1.e3"      ,  "11e2"       , true  },
-        { "-1.e3"      , "-1000"       , true  },
-        { "-1.e3"      , "-1000."      , true  },
-        { "-1.e3"      , "-1000.0"     , true  },
-        { "-1.e3"      , "-10e2"       , true  },
-        { "-1.e3"      , "-11e2"       , true  },
+        // (6) True comparison: sign not equal but values are zero
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 0, 0),
+            new ComparableInterval(IntervalType.UNKNOWN,           true , 0, 0),
+            true },
 
-        {  "1.0e3"     ,  "1000"       , true  },
-        {  "1.0e3"     ,  "1000."      , true  },
-        {  "1.0e3"     ,  "1000.0"     , true  },
-        {  "1.0e3"     ,  "10e2"       , true  },
-        {  "1.0e3"     ,  "101e1"      , true  },
-        { "-1.0e3"     , "-1000"       , true  },
-        { "-1.0e3"     , "-1000."      , true  },
-        { "-1.0e3"     , "-1000.0"     , true  },
-        { "-1.0e3"     , "-10e2"       , true  },
-        { "-1.0e3"     , "-101e1"      , true  },
+        // (7) False comparison: Sign is not equal and values are the same
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 1, 0),
+            new ComparableInterval(IntervalType.UNKNOWN,           true , 1, 0),
+            false },
 
-        {  "10e2"      ,  "1000"       , true  },
-        {  "10e2"      ,  "1000."      , true  },
-        {  "10e2"      ,  "1000.0"     , true  },
-        {  "10e2"      ,  "10e2"       , true  },
-        {  "10e2"      ,  "101e1"      , true  },
-        { "-10e2"      , "-1000"       , true  },
-        { "-10e2"      , "-1000."      , true  },
-        { "-10e2"      , "-1000.0"     , true  },
-        { "-10e2"      , "-10e2"       , true  },
-        { "-10e2"      , "-101e1"      , true  },
+        // (8) False comparison: different interval types
+        {   new ComparableInterval(IntervalType.YEAR_TO_MONTH,     false, 1, 2),
+            new ComparableInterval(IntervalType.MONTH,             false, 0, 14),
+            false },
 
-        {  "0.1"       ,  "0.1"        , true  },
-        {  "0.1"       ,  "0.10"       , true  },
-        {  "0.1"       ,  "0.11"       , true  },
-        {  "0.1"       ,  "1e-1"       , true  },
-        {  "0.1"       ,  "11e-2"      , true  },
-        { "-0.1"       , "-0.1"        , true  },
-        { "-0.1"       , "-0.10"       , true  },
-        { "-0.1"       , "-0.11"       , true  },
-        { "-0.1"       , "-1e-1"       , true  },
-        { "-0.1"       , "-11e-2"      , true  },
+        // (9) False comparison: invalid interval type involving an UNKNOWN*
+        {   new ComparableInterval(IntervalType.HOUR_TO_MINUTE,    false, 0, 2, 14, 0,    0),
+            new ComparableInterval(IntervalType.UNKNOWN_YEAR_MONTH,false, 0, 0,  0, 8040, 0),
+            false },
 
-        {  "0.01"      ,  "0.01"       , true  },
-        {  "0.01"      ,  "0.010"      , true  },
-        {  "0.01"      ,  "0.011"      , true  },
-        {  "0.01"      ,  "1e-2"       , true  },
-        {  "0.01"      ,  "11e-3"      , true  },
-        { "-0.01"      , "-0.01"       , true  },
-        { "-0.01"      , "-0.010"      , true  },
-        { "-0.01"      , "-0.011"      , true  },
-        { "-0.01"      , "-1e-2"       , true  },
-        { "-0.01"      , "-11e-3"      , true  },
+        // (10) False comparison: Cannot compare unknown day-time and unknown year-month
+        {   new ComparableInterval(IntervalType.UNKNOWN_YEAR_MONTH,false, 1, 0),
+            new ComparableInterval(IntervalType.UNKNOWN_DAY_TIME,  false, 365, 0, 0, 0, 0),
+            false },
 
-        {  "1.e-2"     ,  "0.01"       , true  },
-        {  "1.e-2"     ,  "0.010"      , true  },
-        {  "1.e-2"     ,  "0.011"      , true  },
-        {  "1.e-2"     ,  "1e-2"       , true  },
-        {  "1.e-2"     ,  "11e-3"      , true  },
-        { "-1.e-2"     , "-0.01"       , true  },
-        { "-1.e-2"     , "-0.010"      , true  },
-        { "-1.e-2"     , "-0.011"      , true  },
-        { "-1.e-2"     , "-1e-2"       , true  },
-        { "-1.e-2"     , "-11e-3"      , true  },
+        // (11) False comparison: different interval values within the type range
+        {   new ComparableInterval(IntervalType.MONTH,             false, 1, 2),
+            new ComparableInterval(IntervalType.MONTH,             false, 0, 14),
+            false },
 
-        {  "1.0e-2"    ,  "0.01"       , true  },
-        {  "1.0e-2"    ,  "0.010"      , true  },
-        {  "1.0e-2"    ,  "0.0101"     , true  },
-        {  "1.0e-2"    ,  "1e-2"       , true  },
-        {  "1.0e-2"    ,  "101e-4"     , true  },
-        { "-1.0e-2"    , "-0.01"       , true  },
-        { "-1.0e-2"    , "-0.010"      , true  },
-        { "-1.0e-2"    , "-0.0101"     , true  },
-        { "-1.0e-2"    , "-1e-2"       , true  },
-        { "-1.0e-2"    , "-101e-4"     , true  },
-
-
-        { "3.14e0"     , "3.14159"     , true  },
-        { "3.14e0"     , "3.1"         , false },
-        { "3.14e0"     , "3.149"       , true  },
-        { "3.14e0"     , "314e-2"      , true  },
-        { "100"        , "10e1"        , true  },
-        { "100.0"      , "10e1"        , true  },
-        { "100."       , "1001e-1"     , true  },
-        { "100"        , "100e0"       , true  },
-        { "100"        , "1001e-1"     , true  },
-        { "100.0"      , "1001e-1"     , false },
-        { "123"        , "1.23e2"      , true  },
-        { "123"        , "1.2e2"       , false },
-
-        { "6.022e23"   , "602200000000000000000000e0", true },
-        { "6.022e23"   , "602210000000000000000000e0", true },
+        // (12) True comparison: time values are equivalent, with an UNKNOWN
+        {   new ComparableInterval(IntervalType.HOUR_TO_MINUTE,    false, 0, 2, 14, 0,    0),
+            new ComparableInterval(IntervalType.UNKNOWN_DAY_TIME,  false, 0, 0,  0, 8040, 0),
+            true },
     };
 
-    for (int i = 0; i < vals.length; i++) {
-      String expected = (String) vals[i][0];
-      String actual   = (String) vals[i][1];
-      boolean expectedResult = (boolean) vals[i][2];
+    int numPassed = 0;
+    int numFailed = 0;
 
-      ComparableInterval cf = new ComparableInterval(expected);
-      boolean actualResult = cf.comparesTo(actual);
+    int i = 0;
+    for (Object[] val : vals) {
+      ++i;
+      ComparableInterval expected = (ComparableInterval) val[0];
+      ComparableInterval actual   = (ComparableInterval) val[1];
 
-      String fmt = "%s: expected = %-12s actual = %-12s precision = %d,  expected result = %5b,  actual result = %5b";
+      boolean expectedResult = (boolean) val[2];
+      boolean actualResult   = expected.comparesTo(actual);
+
+      String fmt = "(%02d) %s: expected = %-36s ; actual = %-36s ; expected result = %5b ; actual result = %5b";
       String resultStr = "PASS";
 
       if (expectedResult != actualResult) {
         resultStr = "FAIL";
+        ++numFailed;
+      } else {
+        ++numPassed;
       }
 
-      String msg = String.format(fmt, resultStr, expected, actual, cf.properPrecision, expectedResult, actualResult);
+      String msg = String.format(fmt, i, resultStr, expected, actual, expectedResult, actualResult);
       System.out.println(msg);
     }
+
+    String passSummary;
+    if (numFailed > 0) {
+      passSummary = String.format("Test summary: %02d PASSED and %02d FAILED", numPassed, numFailed);
+    } else {
+      passSummary = String.format("Test summary: All %02d tests PASSED", numPassed);
+    }
+
+    System.out.println();
+    System.out.println(passSummary);
+    System.out.println();
   }
 }
