@@ -28,6 +28,7 @@ public class ERScoring
   public static long compareWithNull(LocalDate val)       { return NULL_SCORE; }
   public static long compareWithNull(LocalTime val)       { return NULL_SCORE; }
   public static long compareWithNull(LocalDateTime val)   { return NULL_SCORE; }
+  public static long compareWithNull(ComparableInterval val) { return NULL_SCORE; }
 
 
   public static long compare (boolean val1, boolean val2)
@@ -106,6 +107,103 @@ public class ERScoring
 
     double score = Math.abs(geomeanOf(dateScore, timeScore));
     return score;
+  }
+
+  public static double compare (ComparableInterval val1, ComparableInterval val2)
+  {
+    double score1 = 0;
+    double score2 = 0;
+
+    // It's easier if the interval types are the same
+    if (val1.getType() == val2.getType()) {
+      switch (val1.getType()) {
+
+        case YEAR:
+          score1 = val1.getYears();
+          score2 = val2.getYears();
+          break;
+        case MONTH:
+          score1 = val1.getMonths();
+          score2 = val2.getMonths();
+          break;
+        case YEAR_TO_MONTH:       // fall through
+        case UNKNOWN_YEAR_MONTH:
+          score1 = val1.getNormalisedYearsAndMonths();
+          score2 = val2.getNormalisedYearsAndMonths();
+          break;
+        case DAY:
+          score1 = val1.getDays();
+          score2 = val2.getDays();
+          break;
+        case HOUR:
+          score1 = val1.getHours();
+          score2 = val2.getHours();
+          break;
+        case MINUTE:
+          score1 = val1.getMinutes();
+          score2 = val2.getMinutes();
+          break;
+        case SECOND:
+          score1 = val1.getSeconds() + (double) val1.getMicros() / 1000000.0;
+          score2 = val2.getSeconds() + (double) val2.getMicros() / 1000000.0;
+          break;
+        case DAY_TO_HOUR:
+          score1 = val1.getNormalisedDaysAndHours();
+          score2 = val2.getNormalisedDaysAndHours();
+          break;
+        case DAY_TO_MINUTE:
+          score1 = val1.getNormalisedDaysHoursAndMins();
+          score2 = val2.getNormalisedDaysHoursAndMins();
+          break;
+        case DAY_TO_SECOND:     // fall through
+        case UNKNOWN_DAY_TIME:
+          score1 = val1.getNormalisedDaysHoursMinsAndSecs() + (double) val1.getMicros() / 1000000.0;
+          score2 = val2.getNormalisedDaysHoursMinsAndSecs() + (double) val2.getMicros() / 1000000.0;
+          break;
+        case HOUR_TO_MINUTE:
+          score1 = val1.getNormalisedHoursAndMins();
+          score2 = val2.getNormalisedHoursAndMins();
+          break;
+        case HOUR_TO_SECOND:
+          score1 = val1.getNormalisedHoursMinsAndSecs() + (double) val1.getMicros() / 1000000.0;
+          score2 = val2.getNormalisedHoursMinsAndSecs() + (double) val2.getMicros() / 1000000.0;
+          break;
+        case MINUTE_TO_SECOND:
+          score1 = val1.getNormalisedMinsAndSecs();
+          score2 = val2.getNormalisedMinsAndSecs();
+          break;
+        case UNKNOWN:
+          score1 = val1.getNormalisedYearsAndMonths() * (30L * 86400) + (long) val1.getNormalisedDaysHoursMinsAndSecs() + (double) val1.getMicros() / 1000000.0;
+          score2 = val2.getNormalisedYearsAndMonths() * (30L * 86400) + (long) val2.getNormalisedDaysHoursMinsAndSecs() + (double) val2.getMicros() / 1000000.0;
+          break;
+      }
+    } else {
+      // The interval types are different
+      ComparableInterval.IntervalType type1 = val1.getType();
+      ComparableInterval.IntervalType type2 = val2.getType();
+
+      if (type1.isYearMonthType && type2.isYearMonthType) {
+        score1 = val1.getNormalisedYearsAndMonths();
+        score2 = val2.getNormalisedYearsAndMonths();
+
+      } else if (type1.isDayTimeType && type2.isDayTimeType) {
+        score1 = val1.getNormalisedDaysHoursMinsAndSecs() + (double) val1.getMicros() / 1000000.0;
+        score2 = val2.getNormalisedDaysHoursMinsAndSecs() + (double) val2.getMicros() / 1000000.0;
+
+      } else {
+        // Unknown or mixed types
+        score1 = val1.getNormalisedYearsAndMonths() * (30L * 86400) + (long) val1.getNormalisedDaysHoursMinsAndSecs() + (double) val1.getMicros() / 1000000.0;
+        score2 = val2.getNormalisedYearsAndMonths() * (30L * 86400) + (long) val2.getNormalisedDaysHoursMinsAndSecs() + (double) val2.getMicros() / 1000000.0;
+      }
+    }
+
+    if (score1 == 0.0) {
+      score1 += 1.0;
+      score2 += 1.0;
+    }
+
+    double finalScore = Math.abs(score1 - score2) * NUMERIC_SCORE_SCALING / score1;
+    return finalScore;
   }
 
 

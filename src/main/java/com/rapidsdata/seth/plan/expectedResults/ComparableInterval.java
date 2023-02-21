@@ -5,6 +5,10 @@ package com.rapidsdata.seth.plan.expectedResults;
 import com.rapidsdata.seth.exceptions.SyntaxException;
 
 import java.io.File;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,30 +30,34 @@ public class ComparableInterval
 {
   public enum IntervalType
   {
-    YEAR ("YEAR", "%1$d"),
-    MONTH ("MONTH", "%2$d"),
-    YEAR_TO_MONTH ("YEAR TO MONTH", "%1$d-%2$d"),
-    DAY ("DAY", "%3$d"),
-    HOUR ("HOUR", "%4$d"),
-    MINUTE ("MINUTE", "%5$d"),
-    SECOND ("SECOND", "%6$d.%7$06d"),
-    DAY_TO_HOUR ("DAY TO HOUR", "%3$d %4$d"),
-    DAY_TO_MINUTE ("DAY TO MINUTE", "%3$d %4$d:%5$d"),
-    DAY_TO_SECOND ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d"),
-    HOUR_TO_MINUTE ("HOUR TO MINUTE", "%4$d:%5$d"),
-    HOUR_TO_SECOND ("HOUR TO SECOND", "%4$d:%5$d:%6$d"),
-    MINUTE_TO_SECOND ("MINUTE TO SECOND", "%5$d:%6$d"),
-    UNKNOWN ("", "%1$d-%2$d-%3$d %4$d:%5$d:%6$d"),
-    UNKNOWN_YEAR_MONTH ("YEAR TO MONTH", "%1$d-%2$d"),
-    UNKNOWN_DAY_TIME ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d");
+    YEAR ("YEAR", "%1$d", true, false),
+    MONTH ("MONTH", "%2$d", true, false),
+    YEAR_TO_MONTH ("YEAR TO MONTH", "%1$d-%2$d", true, false),
+    DAY ("DAY", "%3$d", false, true),
+    HOUR ("HOUR", "%4$d", false, true),
+    MINUTE ("MINUTE", "%5$d", false, true),
+    SECOND ("SECOND", "%6$d.%7$06d", false, true),
+    DAY_TO_HOUR ("DAY TO HOUR", "%3$d %4$d", false, true),
+    DAY_TO_MINUTE ("DAY TO MINUTE", "%3$d %4$d:%5$d", false, true),
+    DAY_TO_SECOND ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d", false, true),
+    HOUR_TO_MINUTE ("HOUR TO MINUTE", "%4$d:%5$d", false, true),
+    HOUR_TO_SECOND ("HOUR TO SECOND", "%4$d:%5$d:%6$d", false, true),
+    MINUTE_TO_SECOND ("MINUTE TO SECOND", "%5$d:%6$d", false, true),
+    UNKNOWN ("", "%1$d-%2$d-%3$d %4$d:%5$d:%6$d", false, false),
+    UNKNOWN_YEAR_MONTH ("YEAR TO MONTH", "%1$d-%2$d", true, false),
+    UNKNOWN_DAY_TIME ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d", false, true);
 
     public final String desc;
     public final String format;
+    public final boolean isYearMonthType;
+    public final boolean isDayTimeType;
 
-    private IntervalType(String desc, String format)
+    private IntervalType(String desc, String format, boolean isYearMonthType, boolean isDayTimeType)
     {
       this.desc = desc;
       this.format = format;
+      this.isYearMonthType = isYearMonthType;
+      this.isDayTimeType = isDayTimeType;
     }
 
     /**
@@ -157,6 +165,74 @@ public class ComparableInterval
     this.minutes    = minutes;
     this.seconds    = seconds;
     this.micros     = micros;
+  }
+
+  /**
+   * @return the type of this interval
+   */
+  public IntervalType getType()
+  {
+    return this.type;
+  }
+
+  public int getYears()     { return this.years; }
+  public int getMonths()    { return this.months; }
+  public int getDays()      { return this.days; }
+  public int getHours()     { return this.hours; }
+  public int getMinutes()   { return this.minutes; }
+  public int getSeconds()   { return this.seconds; }
+  public int getMicros()    { return this.micros; }
+  public int getNormalisedYearsAndMonths()       { return this.normalisedYearsToMonths(); }
+  public int getNormalisedDaysAndHours()         { return this.normalisedDaysToHours(); }
+  public int getNormalisedDaysHoursAndMins()     { return this.normalisedDaysToMinutes(); }
+  public int getNormalisedDaysHoursMinsAndSecs() { return this.normalisedDaysToSeconds(); }
+  public int getNormalisedHoursAndMins()         { return this.normalisedHoursToMinutes(); }
+  public int getNormalisedHoursMinsAndSecs()     { return this.normalisedHoursToSeconds(); }
+  public int getNormalisedMinsAndSecs()          { return this.normalisedMinutesToSeconds(); }
+
+  /**
+   * Tries to create a ComparableInterval from a specific column of the current row
+   * of the resultSet. Returns null if it cannot create one.
+   * @param rs
+   * @param columnIdx
+   * @return a ComparableInterval instance, or null
+   */
+  public static ComparableInterval fromResultSet(ResultSet rs, int columnIdx)
+  {
+    try {
+      ResultSetMetaData rsmd = rs.getMetaData();
+
+      boolean isIndexType = rsmd.getColumnType(columnIdx) == Types.OTHER &&
+                            rsmd.getColumnTypeName(columnIdx).toLowerCase().startsWith("interval");
+
+      if (!isIndexType) {
+        return null;
+      }
+
+      // Try parsing an SE interval
+      ComparableInterval actualInterval = ComparableInterval.parseIntervalLiteral(rs.getString(columnIdx));
+      if (actualInterval != null) {
+        return actualInterval;
+      }
+
+      // Try parsing a Postgres interval via rs.getObject(i).toString()
+      actualInterval = ComparableInterval.parsePostgresString(rs.getString(columnIdx));
+      if (actualInterval != null) {
+        return actualInterval;
+      }
+
+      // Try parsing a Postgres interval via rs.getString(i)
+      actualInterval = ComparableInterval.parsePostgresObjectToString(rs.getObject(columnIdx).toString());
+      if (actualInterval != null) {
+        return actualInterval;
+      }
+
+      // Give up, we don't know how to parse this interval type.
+      return null;
+
+    } catch (SQLException e) {
+      return null;
+    }
   }
 
   /**
@@ -473,6 +549,10 @@ public class ComparableInterval
 
     Matcher matcher = pattern.matcher(intervalStr);
 
+    if (!matcher.matches()) {
+      return null;
+    }
+
     boolean isNegative = false;
 
     String valueStr;
@@ -594,6 +674,10 @@ public class ComparableInterval
                                              "(?:(-?\\d+):(\\d+):(\\d+)\\.?(\\d+)?)?");
 
     Matcher matcher = pattern.matcher(intervalStr);
+
+    if (!matcher.matches()) {
+      return null;
+    }
 
     boolean isNegative = false;
 

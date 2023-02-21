@@ -14,6 +14,8 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import static com.rapidsdata.seth.plan.expectedResults.ExpectedColumnType.IGNORE_REMAINING;
+
 public class ExpectedRow
 {
   private final List<ExpectedColumnType> columnDefs;
@@ -55,7 +57,7 @@ public class ExpectedRow
 
     // If the last column definition is not '...' then the number of expected columns
     // should equal the number of actual columns.
-    if (columnDefs.get(expectedColumnDefCount - 1) != ExpectedColumnType.IGNORE_REMAINING &&
+    if (columnDefs.get(expectedColumnDefCount - 1) != IGNORE_REMAINING &&
         actualColumnCount != expectedColumnDefCount) {
       return false;
     }
@@ -70,7 +72,7 @@ public class ExpectedRow
       ExpectedColumnType type = columnDefs.get(defIndex);
       int rsIndex = defIndex + 1; // rs.getXXXX() uses 1-based indexes.
 
-      if (type == ExpectedColumnType.IGNORE_REMAINING) {
+      if (type == IGNORE_REMAINING) {
         // We don't care about comparing this column or any other remaining ones.
         break;
       }
@@ -194,43 +196,15 @@ public class ExpectedRow
             return false;
           }
 
-          if (rsmd.getColumnType(rsIndex) == Types.OTHER &&
-              rsmd.getColumnTypeName(rsIndex).toLowerCase().startsWith("interval")) {
-
-            // Try parsing an SE interval
-            ComparableInterval actualInterval = ComparableInterval.parseIntervalLiteral(rs.getString(rsIndex));
-            if (actualInterval != null) {
-              if( !expectedInterval.comparesTo(actualInterval)) {
-                return false;
-              }
-              break;  // Matched
-            }
-
-            // Try parsing a Postgres interval via rs.getObject(i).toString()
-            actualInterval = ComparableInterval.parsePostgresString(rs.getString(rsIndex));
-            if (actualInterval != null) {
-              if( !expectedInterval.comparesTo(actualInterval)) {
-                return false;
-              }
-              break;  // Matched
-            }
-
-            // Try parsing a Postgres interval via rs.getString(i)
-            actualInterval = ComparableInterval.parsePostgresObjectToString(rs.getObject(rsIndex).toString());
-            if (actualInterval != null) {
-              if( !expectedInterval.comparesTo(actualInterval)) {
-                return false;
-              }
-              break;  // Matched
-            }
-
-            // Give up, we don't know how to parse this interval type.
-            return false;
-
-          } else {
-            // Actual result is not an interval type
+          ComparableInterval actualInterval = ComparableInterval.fromResultSet(rs, rsIndex);
+          if (actualInterval == null) {
             return false;
           }
+
+          if( !expectedInterval.comparesTo(actualInterval)) {
+            return false;
+          }
+          break;  // Matched
 
         case IGNORE_REMAINING: // Falls through
         default:
@@ -637,7 +611,7 @@ public class ExpectedRow
 
     // If the last column definition is not '...' then the number of expected columns
     // should equal the number of actual columns.
-    if (columnDefs.get(expectedColumnDefCount - 1) != ExpectedColumnType.IGNORE_REMAINING &&
+    if (columnDefs.get(expectedColumnDefCount - 1) != IGNORE_REMAINING &&
         actualColumnCount != expectedColumnDefCount) {
       // Not enough information to compute a score.
       return -1f;
@@ -651,7 +625,7 @@ public class ExpectedRow
       ExpectedColumnType type = columnDefs.get(defIndex);
       int rsIndex = defIndex + 1; // rs.getXXXX() uses 1-based indexes.
 
-      if (type == ExpectedColumnType.IGNORE_REMAINING) {
+      if (type == IGNORE_REMAINING) {
         // We don't care about comparing this column or any other remaining ones.
         break;
       }
@@ -752,10 +726,19 @@ public class ExpectedRow
           break;
 
         case INTERVAL:
-          throw new SethSystemException("Interval not yet implemented.");
-          // year-month intervals are represented by Period classes.
-          // day-time intevals are represented by Duration classes.
-          //break;
+          ComparableInterval expectedInterval = (ComparableInterval) expectedVal;
+          if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedInterval); }
+          else {
+            ComparableInterval actualInterval = ComparableInterval.fromResultSet(rs, rsIndex);
+
+            if (actualInterval == null) {
+              // Actual value is not a parseable interval
+              columnScore = ERScoring.compareWithNull(expectedInterval);
+            } else {
+              columnScore = ERScoring.compare(actualInterval, expectedInterval);
+            }
+          }
+          break;
 
         case IGNORE_REMAINING: // Falls through
         default:
