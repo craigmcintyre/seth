@@ -124,7 +124,7 @@ public class ComparableInterval
                              int years, int months,
                              int days, int hours, int minutes, int seconds, int micros)
   {
-    assert (micros > 0);
+    assert (micros >= 0);
     assert (micros < 1000000);
 
     this.type       = type;
@@ -153,7 +153,7 @@ public class ComparableInterval
            type == IntervalType.UNKNOWN ||
            type == IntervalType.UNKNOWN_DAY_TIME);
 
-    assert (micros > 0);
+    assert (micros >= 0);
     assert (micros < 1000000);
 
     this.type       = type;
