@@ -2,9 +2,6 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
-import com.rapidsdata.seth.exceptions.SyntaxException;
-
-import java.io.File;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -87,18 +84,18 @@ public class ComparableInterval
 
   final IntervalType type;
   final boolean isNegative;
-  final int years;
-  final int months;
-  final int days;
-  final int hours;
-  final int minutes;
-  final int seconds;
-  final int micros;
+  final long years;
+  final long months;
+  final long days;
+  final long hours;
+  final long minutes;
+  final long seconds;
+  final long micros;
 
   /**
    * Constructor of a year-month interval
    */
-  public ComparableInterval(IntervalType type, boolean isNegative, int years, int months)
+  public ComparableInterval(IntervalType type, boolean isNegative, long years, long months)
   {
     assert(type == IntervalType.YEAR ||
            type == IntervalType.MONTH ||
@@ -121,8 +118,8 @@ public class ComparableInterval
    * Constructor of a day-time interval
    */
   private ComparableInterval(IntervalType type, boolean isNegative,
-                             int years, int months,
-                             int days, int hours, int minutes, int seconds, int micros)
+                             long years, long months,
+                             long days, long hours, long minutes, long seconds, long micros)
   {
     assert (micros >= 0);
     assert (micros < 1000000);
@@ -138,7 +135,7 @@ public class ComparableInterval
     this.micros     = micros;
   }
 
-  public ComparableInterval(IntervalType type, boolean isNegative, int days, int hours, int minutes, int seconds, int micros)
+  public ComparableInterval(IntervalType type, boolean isNegative, long days, long hours, long minutes, long seconds, long micros)
   {
     assert(type == IntervalType.DAY ||
            type == IntervalType.HOUR ||
@@ -175,20 +172,20 @@ public class ComparableInterval
     return this.type;
   }
 
-  public int getYears()     { return this.years; }
-  public int getMonths()    { return this.months; }
-  public int getDays()      { return this.days; }
-  public int getHours()     { return this.hours; }
-  public int getMinutes()   { return this.minutes; }
-  public int getSeconds()   { return this.seconds; }
-  public int getMicros()    { return this.micros; }
-  public int getNormalisedYearsAndMonths()       { return this.normalisedYearsToMonths(); }
-  public int getNormalisedDaysAndHours()         { return this.normalisedDaysToHours(); }
-  public int getNormalisedDaysHoursAndMins()     { return this.normalisedDaysToMinutes(); }
-  public int getNormalisedDaysHoursMinsAndSecs() { return this.normalisedDaysToSeconds(); }
-  public int getNormalisedHoursAndMins()         { return this.normalisedHoursToMinutes(); }
-  public int getNormalisedHoursMinsAndSecs()     { return this.normalisedHoursToSeconds(); }
-  public int getNormalisedMinsAndSecs()          { return this.normalisedMinutesToSeconds(); }
+  public long getYears()     { return this.years; }
+  public long getMonths()    { return this.months; }
+  public long getDays()      { return this.days; }
+  public long getHours()     { return this.hours; }
+  public long getMinutes()   { return this.minutes; }
+  public long getSeconds()   { return this.seconds; }
+  public long getMicros()    { return this.micros; }
+  public long getNormalisedYearsAndMonths()       { return this.normalisedYearsToMonths(); }
+  public long getNormalisedDaysAndHours()         { return this.normalisedDaysToHours(); }
+  public long getNormalisedDaysHoursAndMins()     { return this.normalisedDaysToMinutes(); }
+  public long getNormalisedDaysHoursMinsAndSecs() { return this.normalisedDaysToSeconds(); }
+  public long getNormalisedHoursAndMins()         { return this.normalisedHoursToMinutes(); }
+  public long getNormalisedHoursMinsAndSecs()     { return this.normalisedHoursToSeconds(); }
+  public long getNormalisedMinsAndSecs()          { return this.normalisedMinutesToSeconds(); }
 
   /**
    * Tries to create a ComparableInterval from a specific column of the current row
@@ -276,13 +273,13 @@ public class ComparableInterval
                                                                 boolean isNegative,
                                                                 IntervalType eType)
   {
-    int year  = 0;
-    int month = 0;
-    int day   = 0;
-    int hour  = 0;
-    int min   = 0;
-    int sec   = 0;
-    int micro = 0;
+    long year  = 0;
+    long month = 0;
+    long day   = 0;
+    long hour  = 0;
+    long min   = 0;
+    long sec   = 0;
+    long micro = 0;
 
     Pattern pattern;
     Matcher matcher;
@@ -292,11 +289,11 @@ public class ComparableInterval
       switch (eType) {
 
         case YEAR:
-          year = Integer.parseInt(intervalStr);
+          year = Long.parseLong(intervalStr);
           break;
 
         case MONTH:
-          month = Integer.parseInt(intervalStr);
+          month = Long.parseLong(intervalStr);
           break;
 
         case YEAR_TO_MONTH:
@@ -310,20 +307,20 @@ public class ComparableInterval
             return null;
           }
 
-          year  = Integer.parseInt(matcher.group(1));
-          month = Integer.parseInt(matcher.group(2));
+          year  = Long.parseLong(matcher.group(1));
+          month = Long.parseLong(matcher.group(2));
           break;
 
         case DAY:
-          day = Integer.parseInt(intervalStr);
+          day = Long.parseLong(intervalStr);
           break;
 
         case HOUR:
-          hour = Integer.parseInt(intervalStr);
+          hour = Long.parseLong(intervalStr);
           break;
 
         case MINUTE:
-          min = Integer.parseInt(intervalStr);
+          min = Long.parseLong(intervalStr);
           break;
 
         case SECOND:
@@ -336,18 +333,18 @@ public class ComparableInterval
             return null;
           }
 
-          sec  = Integer.parseInt(matcher.group(1));
+          sec  = Long.parseLong(matcher.group(1));
 
           microStr = matcher.group(2);
           if (microStr != null && !microStr.isEmpty()) {
-            micro = Integer.parseInt(microStr);
+            micro = Long.parseLong(microStr);
 
             if (microStr.length() > 6) {
               return null;
             }
 
             // Correct micros for missing leading zeros
-            int powers = 6 - microStr.length();
+            long powers = 6 - microStr.length();
             while (powers > 0) {
               micro = micro * 10;
               --powers;
@@ -366,8 +363,8 @@ public class ComparableInterval
             return null;
           }
 
-          day  = Integer.parseInt(matcher.group(1));
-          hour = Integer.parseInt(matcher.group(2));
+          day  = Long.parseLong(matcher.group(1));
+          hour = Long.parseLong(matcher.group(2));
           break;
 
         case DAY_TO_MINUTE:
@@ -382,9 +379,9 @@ public class ComparableInterval
             return null;
           }
 
-          day  = Integer.parseInt(matcher.group(1));
-          hour = Integer.parseInt(matcher.group(2));
-          min  = Integer.parseInt(matcher.group(3));
+          day  = Long.parseLong(matcher.group(1));
+          hour = Long.parseLong(matcher.group(2));
+          min  = Long.parseLong(matcher.group(3));
           break;
 
         case DAY_TO_SECOND:
@@ -400,21 +397,21 @@ public class ComparableInterval
             return null;
           }
 
-          day  = Integer.parseInt(matcher.group(1));
-          hour = Integer.parseInt(matcher.group(2));
-          min  = Integer.parseInt(matcher.group(3));
-          sec  = Integer.parseInt(matcher.group(4));
+          day  = Long.parseLong(matcher.group(1));
+          hour = Long.parseLong(matcher.group(2));
+          min  = Long.parseLong(matcher.group(3));
+          sec  = Long.parseLong(matcher.group(4));
 
           microStr = matcher.group(5);
           if (microStr != null && !microStr.isEmpty()) {
-            micro = Integer.parseInt(microStr);
+            micro = Long.parseLong(microStr);
 
             if (microStr.length() > 6) {
               return null;
             }
 
             // Correct micros for missing leading zeros
-            int powers = 6 - microStr.length();
+            long powers = 6 - microStr.length();
             while (powers > 0) {
               micro = micro * 10;
               --powers;
@@ -433,8 +430,8 @@ public class ComparableInterval
             return null;
           }
 
-          hour = Integer.parseInt(matcher.group(1));
-          min  = Integer.parseInt(matcher.group(2));
+          hour = Long.parseLong(matcher.group(1));
+          min  = Long.parseLong(matcher.group(2));
           break;
 
         case HOUR_TO_SECOND:
@@ -449,20 +446,20 @@ public class ComparableInterval
             return null;
           }
 
-          hour = Integer.parseInt(matcher.group(1));
-          min  = Integer.parseInt(matcher.group(2));
-          sec  = Integer.parseInt(matcher.group(3));
+          hour = Long.parseLong(matcher.group(1));
+          min  = Long.parseLong(matcher.group(2));
+          sec  = Long.parseLong(matcher.group(3));
 
           microStr = matcher.group(4);
           if (microStr != null && !microStr.isEmpty()) {
-            micro = Integer.parseInt(microStr);
+            micro = Long.parseLong(microStr);
 
             if (microStr.length() > 6) {
               return null;
             }
 
             // Correct micros for missing leading zeros
-            int powers = 6 - microStr.length();
+            long powers = 6 - microStr.length();
             while (powers > 0) {
               micro = micro * 10;
               --powers;
@@ -481,19 +478,19 @@ public class ComparableInterval
             return null;
           }
 
-          min  = Integer.parseInt(matcher.group(1));
-          sec  = Integer.parseInt(matcher.group(2));
+          min  = Long.parseLong(matcher.group(1));
+          sec  = Long.parseLong(matcher.group(2));
 
           microStr = matcher.group(3);
           if (microStr != null && !microStr.isEmpty()) {
-            micro = Integer.parseInt(microStr);
+            micro = Long.parseLong(microStr);
 
             if (microStr.length() > 6) {
               return null;
             }
 
             // Correct micros for missing leading zeros
-            int powers = 6 - microStr.length();
+            long powers = 6 - microStr.length();
             while (powers > 0) {
               micro = micro * 10;
               --powers;
@@ -556,13 +553,13 @@ public class ComparableInterval
     boolean isNegative = false;
 
     String valueStr;
-    int year  = 0;
-    int month = 0;
-    int day   = 0;
-    int hour  = 0;
-    int min   = 0;
-    int sec   = 0;
-    int micro = 0;
+    long year  = 0;
+    long month = 0;
+    long day   = 0;
+    long hour  = 0;
+    long min   = 0;
+    long sec   = 0;
+    long micro = 0;
 
     int numGroups = matcher.groupCount();
 
@@ -571,10 +568,10 @@ public class ComparableInterval
         case 7:
           valueStr = matcher.group(7);
           if (valueStr != null && !valueStr.isEmpty())    {
-            micro = Integer.parseInt(valueStr);
+            micro = Long.parseLong(valueStr);
 
           // Correct micros for missing leading zeros
-            int powers = 6 - valueStr.length();
+            long powers = 6 - valueStr.length();
             while (powers > 0) {
               micro = micro * 10;
               --powers;
@@ -583,27 +580,27 @@ public class ComparableInterval
           // fall through
         case 6:
           valueStr = matcher.group(6);
-          if (valueStr != null && !valueStr.isEmpty())    { sec = Integer.parseInt(valueStr);   }
+          if (valueStr != null && !valueStr.isEmpty())    { sec = Long.parseLong(valueStr);   }
           // fall through
         case 5:
           valueStr = matcher.group(5);
-          if (valueStr != null && !valueStr.isEmpty())    { min = Integer.parseInt(valueStr);   }
+          if (valueStr != null && !valueStr.isEmpty())    { min = Long.parseLong(valueStr);   }
           // fall through
         case 4:
           valueStr = matcher.group(4);
-          if (valueStr != null && !valueStr.isEmpty())    { hour = Integer.parseInt(valueStr);  }
+          if (valueStr != null && !valueStr.isEmpty())    { hour = Long.parseLong(valueStr);  }
           // fall through
         case 3:
           valueStr = matcher.group(3);
-          if (valueStr != null && !valueStr.isEmpty())    { day = Integer.parseInt(valueStr);   }
+          if (valueStr != null && !valueStr.isEmpty())    { day = Long.parseLong(valueStr);   }
           // fall through
         case 2:
           valueStr = matcher.group(2);
-          if (valueStr != null && !valueStr.isEmpty())    { month = Integer.parseInt(valueStr); }
+          if (valueStr != null && !valueStr.isEmpty())    { month = Long.parseLong(valueStr); }
           // fall through
         case 1:
           valueStr = matcher.group(1);
-          if (valueStr != null && !valueStr.isEmpty())    { year = Integer.parseInt(valueStr);  }
+          if (valueStr != null && !valueStr.isEmpty())    { year = Long.parseLong(valueStr);  }
           break;
 
         default:
@@ -682,13 +679,13 @@ public class ComparableInterval
     boolean isNegative = false;
 
     String valueStr;
-    int year  = 0;
-    int month = 0;
-    int day   = 0;
-    int hour  = 0;
-    int min   = 0;
-    int sec   = 0;
-    int micro = 0;
+    long year  = 0;
+    long month = 0;
+    long day   = 0;
+    long hour  = 0;
+    long min   = 0;
+    long sec   = 0;
+    long micro = 0;
 
     int numGroups = matcher.groupCount();
 
@@ -697,10 +694,10 @@ public class ComparableInterval
         case 7:
           valueStr = matcher.group(7);
           if (valueStr != null && !valueStr.isEmpty())    {
-            micro = Integer.parseInt(valueStr);
+            micro = Long.parseLong(valueStr);
 
             // Correct micros for missing leading zeros
-            int powers = 6 - valueStr.length();
+            long powers = 6 - valueStr.length();
             while (powers > 0) {
               micro = micro * 10;
               --powers;
@@ -709,27 +706,27 @@ public class ComparableInterval
           // fall through
         case 6:
           valueStr = matcher.group(6);
-          if (valueStr != null && !valueStr.isEmpty())    { sec = Integer.parseInt(valueStr);   }
+          if (valueStr != null && !valueStr.isEmpty())    { sec = Long.parseLong(valueStr);   }
           // fall through
         case 5:
           valueStr = matcher.group(5);
-          if (valueStr != null && !valueStr.isEmpty())    { min = Integer.parseInt(valueStr);   }
+          if (valueStr != null && !valueStr.isEmpty())    { min = Long.parseLong(valueStr);   }
           // fall through
         case 4:
           valueStr = matcher.group(4);
-          if (valueStr != null && !valueStr.isEmpty())    { hour = Integer.parseInt(valueStr);  }
+          if (valueStr != null && !valueStr.isEmpty())    { hour = Long.parseLong(valueStr);  }
           // fall through
         case 3:
           valueStr = matcher.group(3);
-          if (valueStr != null && !valueStr.isEmpty())    { day = Integer.parseInt(valueStr);   }
+          if (valueStr != null && !valueStr.isEmpty())    { day = Long.parseLong(valueStr);   }
           // fall through
         case 2:
           valueStr = matcher.group(2);
-          if (valueStr != null && !valueStr.isEmpty())    { month = Integer.parseInt(valueStr); }
+          if (valueStr != null && !valueStr.isEmpty())    { month = Long.parseLong(valueStr); }
           // fall through
         case 1:
           valueStr = matcher.group(1);
-          if (valueStr != null && !valueStr.isEmpty())    { year = Integer.parseInt(valueStr);  }
+          if (valueStr != null && !valueStr.isEmpty())    { year = Long.parseLong(valueStr);  }
           break;
 
         default:
@@ -990,7 +987,7 @@ public class ComparableInterval
   /**
    * Returns the year and months normalised to months.
    */
-  private int normalisedYearsToMonths()
+  private long normalisedYearsToMonths()
   {
     return this.years * 12 + this.months;
   }
@@ -998,7 +995,7 @@ public class ComparableInterval
   /**
    * Returns the day, hour normalised to hours.
    */
-  private int normalisedDaysToHours()
+  private long normalisedDaysToHours()
   {
     return this.days * 24 +
         this.hours;
@@ -1007,7 +1004,7 @@ public class ComparableInterval
   /**
    * Returns the day, hour, minute normalised to minutes.
    */
-  private int normalisedDaysToMinutes()
+  private long normalisedDaysToMinutes()
   {
     return this.days * 1440 +
         this.hours * 60 +
@@ -1017,7 +1014,7 @@ public class ComparableInterval
   /**
    * Returns the day, hour, minute and whole seconds normalised to seconds.
    */
-  private int normalisedDaysToSeconds()
+  private long normalisedDaysToSeconds()
   {
     return this.days * 86400 +
            this.hours * 3600 +
@@ -1028,7 +1025,7 @@ public class ComparableInterval
   /**
    * Returns the hour, minute normalised to minutes.
    */
-  private int normalisedHoursToMinutes()
+  private long normalisedHoursToMinutes()
   {
     return this.hours * 60 +
            this.minutes;
@@ -1037,7 +1034,7 @@ public class ComparableInterval
   /**
    * Returns the hour, minute and whole seconds normalised to seconds.
    */
-  private int normalisedHoursToSeconds()
+  private long normalisedHoursToSeconds()
   {
     return this.hours * 3600 +
            this.minutes * 60 +
@@ -1047,7 +1044,7 @@ public class ComparableInterval
   /**
    * Returns the minutes and whole seconds normalised to seconds.
    */
-  private int normalisedMinutesToSeconds()
+  private long normalisedMinutesToSeconds()
   {
     return this.minutes * 60 +
            this.seconds;
