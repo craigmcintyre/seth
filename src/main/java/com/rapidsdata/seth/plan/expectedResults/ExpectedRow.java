@@ -170,7 +170,16 @@ public class ExpectedRow
             return false;
           }
 
-          LocalTime actualTime = rs.getTime(rsIndex).toLocalTime();
+          LocalTime actualTime;
+
+          // Special case, to support time with fractional seconds.
+          if (rs.getObject(rsIndex) instanceof LocalTime) {
+            actualTime = (LocalTime) rs.getObject(rsIndex);
+          } else {
+            // normal case
+            actualTime = rs.getTime(rsIndex).toLocalTime();
+          }
+
           if (!expectedTime.equals(actualTime)) {
             return false;
           }
@@ -716,7 +725,13 @@ public class ExpectedRow
         case TIME:
           LocalTime expectedTime = (LocalTime) expectedVal;
           if (wasNull)    { columnScore = ERScoring.compareWithNull(expectedTime); }
-          else            { columnScore = ERScoring.compare(rs.getTime(rsIndex).toLocalTime(), expectedTime); }
+          else            {
+            if (rs.getObject(rsIndex) instanceof LocalTime) {
+              columnScore = ERScoring.compare( (LocalTime)rs.getObject(rsIndex), expectedTime);
+            } else {
+              columnScore = ERScoring.compare(rs.getTime(rsIndex).toLocalTime(), expectedTime);
+            }
+          }
           break;
 
         case TIMESTAMP:

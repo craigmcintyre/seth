@@ -12,6 +12,7 @@ import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -156,7 +157,13 @@ public class RecordNewExpectedResult extends ExpectedResult
 
             // Time
             case Types.TIME:
-              Time timeVal = rs.getTime(i);
+              Object timeVal;
+              if (rs.getObject(i) instanceof LocalTime) {
+                timeVal = rs.getObject(i);
+              } else {
+                timeVal = rs.getTime(i);
+              }
+
               if (rs.wasNull()) {
                 columnValue = NULL_STR;
               } else {

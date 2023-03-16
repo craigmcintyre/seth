@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,7 +89,11 @@ public class ResultSetFormatter
           case Types.TIME:
           case Types.TIME_WITH_TIMEZONE:
             sb.append("TIME '");
-            sb.append(rs.getTime(colIndex).toString());
+            if (rs.getObject(colIndex) instanceof LocalTime) {
+              sb.append( ((LocalTime) rs.getObject(colIndex)).toString());
+            } else {
+              sb.append(rs.getTime(colIndex).toString());
+            }
             sb.append("'");
             break;
 
@@ -263,7 +268,11 @@ public class ResultSetFormatter
 
           case Types.TIME:
           case Types.TIME_WITH_TIMEZONE:
-            columnVal = "TIME '" + rs.getTime(colIndex).toString() + "'";
+            if (rs.getObject(colIndex) instanceof LocalTime) {
+              columnVal = "TIME '" + ((LocalTime) rs.getObject(colIndex)).toString() + "'";
+            } else {
+              columnVal = "TIME '" + rs.getTime(colIndex).toString() + "'";
+            }
             padding = columnWidths[colIndex-1] - columnVal.length();
 
             sb.append(columnVal);
@@ -390,7 +399,11 @@ public class ResultSetFormatter
 
           case Types.TIME:
           case Types.TIME_WITH_TIMEZONE:
-            row.add("TIME '" + rs.getTime(colIndex).toString() + "'");
+            if (rs.getObject(colIndex) instanceof LocalTime) {
+              row.add("TIME '" + ((LocalTime) rs.getObject(colIndex)).toString() + "'");
+            } else {
+              row.add("TIME '" + rs.getTime(colIndex).toString() + "'");
+            }
             break;
 
           case Types.TIMESTAMP:
@@ -494,7 +507,11 @@ public class ResultSetFormatter
 
           case Types.TIME:
           case Types.TIME_WITH_TIMEZONE:
-            actualColumnWidth = rs.getTime(colIndex).toString().length() + 7; // for "TIME '" + "'"
+            if (rs.getObject(colIndex) instanceof LocalTime) {
+              actualColumnWidth = rs.getObject(colIndex).toString().length() + 7; // for "TIME '" + "'"
+            } else {
+              actualColumnWidth = rs.getTime(colIndex).toString().length() + 7; // for "TIME '" + "'"
+            }
             break;
 
           case Types.TIMESTAMP:
