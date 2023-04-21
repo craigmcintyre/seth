@@ -448,10 +448,17 @@ public class ResultSetFormatter
   public static void updateColumnWidths(int[] columnWidths, ResultSet rs) throws SQLException
   {
     ResultSetMetaData rsmd = rs.getMetaData();
-    int numColumns = rsmd.getColumnCount();
-    assert (columnWidths.length == numColumns);
+    int numRsColumns = rsmd.getColumnCount();
+    assert (columnWidths.length >= numRsColumns);
 
-    for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
+    for (int colIndex = 1; colIndex <= columnWidths.length; colIndex++) {
+
+      if (colIndex > numRsColumns) {
+        // We've got less columns in the actual result than we expected.
+        columnWidths[colIndex - 1] = Math.max(0, columnWidths[colIndex - 1]);
+        continue;
+      }
+
       int columnType = rsmd.getColumnType(colIndex);
 
       int actualColumnWidth = 0;
@@ -740,21 +747,20 @@ public class ResultSetFormatter
    */
   public static AlignmentInfo alignRows(ResultSet rs, List<? extends ExpectedRow> expectedRows) throws SQLException
   {
-    // Let's align the actual row and the expected rows. First we need to get the widths of them
-    int[] columnWidths;
+    // Determine the number of columns as the maximum of actual result columns and
+    // expected row columns.
+    int numColumns = 0;
+
+    for (ExpectedRow er : expectedRows) {
+      numColumns = Math.max(numColumns, er.getColumnDefs().size());
+    }
 
     if (rs != null) {
-      columnWidths = new int[rs.getMetaData().getColumnCount()];
-
-    } else {
-      int numColumns = 0;
-
-      for (ExpectedRow er : expectedRows) {
-        numColumns = Math.max(er.getColumnDefs().size(), numColumns);
-      }
-
-      columnWidths = new int[numColumns];
+      numColumns = Math.max(numColumns, rs.getMetaData().getColumnCount());
     }
+
+    // Let's align the actual row and the expected rows. First we need to get the widths of them
+    int[] columnWidths = new int[numColumns];
 
     for (int i = 0; i < columnWidths.length; i++) {
       columnWidths[i] = 0;
@@ -910,10 +916,17 @@ public class ResultSetFormatter
 
   protected static void updatePadLeft(boolean[] padLeft, ResultSetMetaData rsmd) throws SQLException
   {
-    int numColumns = rsmd.getColumnCount();
-    assert (padLeft.length == numColumns);
+    int numRsColumns = rsmd.getColumnCount();
+    assert (padLeft.length >= numRsColumns);
 
-    for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
+    for (int colIndex = 1; colIndex <= padLeft.length; colIndex++) {
+
+      if (colIndex > numRsColumns) {
+        // There are fewer actual result columns than expected result columns.
+        padLeft[colIndex - 1] = false;
+        continue;
+      }
+
       int columnType = rsmd.getColumnType(colIndex);
 
       switch (columnType) {
