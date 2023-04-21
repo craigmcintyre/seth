@@ -33,7 +33,7 @@ public class ComparableInterval
     DAY ("DAY", "%3$d", false, true),
     HOUR ("HOUR", "%4$d", false, true),
     MINUTE ("MINUTE", "%5$d", false, true),
-    SECOND ("SECOND", "%6$d.%7$06d", false, true),
+    SECOND ("SECOND", "%6$d", false, true),
     DAY_TO_HOUR ("DAY TO HOUR", "%3$d %4$d", false, true),
     DAY_TO_MINUTE ("DAY TO MINUTE", "%3$d %4$d:%5$d", false, true),
     DAY_TO_SECOND ("DAY TO SECOND", "%3$d %4$d:%5$d:%6$d", false, true),
