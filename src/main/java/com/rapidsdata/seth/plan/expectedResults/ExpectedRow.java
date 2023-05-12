@@ -448,12 +448,16 @@ public class ExpectedRow
             columnVal += '.';
 
             // Don't show trailing zeros of fractional seconds.
-            long fractionalSecs = localDateTime.getNano();
-            while (fractionalSecs % 10 == 0) {
+            long fractionalSecs = localDateTime.getNano() / 1000;
+            int width = 6;
+
+            while (fractionalSecs % 10 == 0 && width > 0) {
               fractionalSecs = fractionalSecs / 10;
+              --width;
             }
 
-            columnVal += String.valueOf(fractionalSecs);
+            String fmtStr = "%0" + String.valueOf(width) + "d";
+            columnVal += String.format(fmtStr, fractionalSecs);
           }
 
           columnVal += "'";

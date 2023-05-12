@@ -14,9 +14,11 @@ statement         : (sethStatement | serverStatement) expected=expectedResult? ;
 
 serverStatement      : enclosedServerStatement | nakedServerStatement ;
 enclosedServerStatement  : '{' ~('}')+ '}' ;
-nakedServerStatement     : {_input.LT(1).getType() != CLEANUP}?   // Server statements cannot start with CLEANUP.
-                           (~(';' | '}'))+ ';';                   // The parser gets confused without this
-                                                                  // semantic predicate.
+nakedServerStatement     : {_input.LT(1).getType() != CLEANUP &&      // Server statements cannot start with these certain tokens.
+                            _input.LT(1).getType() != ROWS &&         // Otherwise an incorrectly specified result set gets confused
+                            _input.LT(1).getType() != UNORDERED &&    // as a nakedServerStatement.
+                            _input.LT(1).getType() != ORDERED}?       // The parser gets confused without this semantic predicate.
+                           (~(';' | '}'))+ ';';
 
 
 sethStatement     : compoundStatements | singularStatements ;
