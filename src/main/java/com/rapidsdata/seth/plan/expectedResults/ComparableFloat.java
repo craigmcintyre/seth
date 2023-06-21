@@ -68,6 +68,28 @@ public class ComparableFloat
   }
 
   /**
+   * Compares floating point number represented by the double parameter to the
+   * floating point number in this object. The numbers are compared up to the
+   * level of precision in this ComparableFloat object.
+   * @param actualValue the number to be compared to the ComparableFloat.
+   * @return true if the numbers are equal, up to the precision of this ComparableFloat,
+   *         or false if they are not equal.
+   */
+  public boolean comparesTo(double actualValue)
+  {
+    BigDecimal actualBigDecimal;
+
+    try {
+      actualBigDecimal = new BigDecimal(actualValue, mathContext);
+
+    } catch (NumberFormatException e) {
+      return false;
+    }
+
+    return comparesTo(actualBigDecimal);
+  }
+
+  /**
    * Compares the BigDecimal parameter to this floating point number, up to the precision
    * of this floating point number.
    * @param actualBigDecimal the number to be compared.
@@ -110,7 +132,8 @@ public class ComparableFloat
   private int getPrecision(String value)
   {
     BigDecimal input = new BigDecimal(value);
-
+    return input.precision();
+/*
     int sigDigits;
 
     value = value.trim();
@@ -127,12 +150,23 @@ public class ComparableFloat
 
       int decPointIndex = value.indexOf('.');
       if (decPointIndex != -1 && value.length() > (decPointIndex + 1)) {
+        int hasSign = 0;
+        int hasDot = 0;
+        int zeroPrefix = 0;
+
         if (value.startsWith("-") || value.startsWith("+")) {
-          sigDigits = value.length() - 1 /*sign*/ - 1 /*decimal point*/;
-        } else {
-          sigDigits = value.length() - 1 /*decimal point*/;
+          hasSign = 1;
         }
 
+        if (decPointIndex != -1 && value.length() > (decPointIndex + 1)) {
+          hasDot = 1;
+        }
+
+//        if (Integer.parseInt(value.substring(0, decPointIndex)) == 0) {
+//          zeroPrefix = 1;
+//        }
+
+        sigDigits = value.length() - hasSign - hasDot - zeroPrefix;
         return sigDigits;
       }
     }
@@ -150,6 +184,7 @@ public class ComparableFloat
     }
 
     return sigDigits;
+    */
   }
 
   /**
@@ -176,6 +211,21 @@ public class ComparableFloat
 
   public static void main(String[] args)
   {
+    double f = 0.12;
+    BigDecimal bd= new BigDecimal(f);
+    System.out.printf("%.53f\n", f);
+    System.out.printf("%.53e\n", f);
+    System.out.printf("%.53g\n", f);
+    System.out.println(bd.toString());
+    System.out.println(bd.toEngineeringString());
+//    BigDecimal t = new BigDecimal("100.00");
+//    ComparableFloat expected = new ComparableFloat("0.1e0");
+//    double f = 0.1f;
+//    System.out.printf("%e\n", f);
+//
+//    boolean b = expected.comparesTo(f);
+//    System.out.println(b ? "equal" : "unequal");
+
     testPrecision();
     System.out.println();
     System.out.println();
@@ -206,19 +256,25 @@ public class ComparableFloat
         {"1.1e3",    2 },
         {"10e2",     2 },
         {"0",        1 },
-        {"0.1",      2 },
-        {"0.01",     3 },
-        {"0.010",    4 },
-        {"0.0100",   5 },
+        {"0.1",      1 },
+        {"0.01",     1 },
+        {"0.010",    2 },
+        {"0.0100",   3 },
+        {"0.12e0",   2 },
+        {"0.120e0",  3 },
+        {"0.1200e0", 4 },
+        {"0.012e0",  2 },
+        {"0.0120e0", 3 },
+        {"0.01200e0",4 },
         {"10.0100",  6 },
         {"42.10e0",  4 },
         {"42.100e0", 5 },
         {"0042.10e0",4 },
         {"42000.0e0",6 },
-        {"1e-1",     2 },
-        {"1e-2",     3 },
-        {"10e-2",    3 },
-        {"1.0e-2",   4 },
+        {"1e-1",     1 },
+        {"1e-2",     1 },
+        {"10e-2",    2 },
+        {"1.0e-2",   2 },
     };
 
     for (int i=0; i<vals.length; i++) {

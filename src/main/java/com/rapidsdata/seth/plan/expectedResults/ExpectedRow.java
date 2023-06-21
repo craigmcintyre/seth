@@ -128,7 +128,7 @@ public class ExpectedRow
           rounding = Options.getRounding(optionList);
           optionList.removeFirst();
 
-          if (wasNull || !equalRounded((ComparableFloat) expectedVal, rs.getString(rsIndex), rounding)) {
+          if (wasNull || !equalRounded((ComparableFloat) expectedVal, rs.getDouble(rsIndex), rounding)) {
             return false;
           }
           break;
@@ -238,6 +238,38 @@ public class ExpectedRow
     return x.equals(y);
   }
 
+  private boolean equalRounded(ComparableFloat cf, double y, int round)
+  {
+    if (round == Options.NO_ROUNDING) {
+      // This will look very odd, but there is a reason for it, and it is
+      // mainly because Java does some weird stuff with floating point numbers
+      // it cannot represent precisely.
+      //
+      // e.g. the float value 0.12 cannot be represented exactly. But if we print it
+      // to a string then no matter how many digits are used it will always print as
+      // "0.12". But if we take the same float value and convert it to a BigDecimal
+      // then we get the value 0.119999999999999995559...
+      //
+      // This means that we cannot compare an expected and actual value of 0.12
+      // unless we loosen the expected value to 0.1 or use some rounding.
+      // So to be user friendly we first convert the float to a string (with the
+      // implied rounding that occurs) and then convert that string to a BigDecimal
+      // for comparison. We are in control how many digits we use when we print
+      // the float to the string, whereas if we simply asked the JDBC driver for
+      // the string representation of this value (the previous implementation)
+      // then we are at the whims of the JDBC driver.
+      String strVal = String.format("%.40e", y);
+
+      return cf.comparesTo(strVal);
+    }
+
+    MathContext mc = new MathContext(round, RoundingMode.DOWN);
+
+    BigDecimal bdx = new BigDecimal(cf.toString(), mc);
+    BigDecimal bdy = new BigDecimal(y, mc);
+
+    return bdx.equals(bdy);
+  }
 
   private boolean equalRounded(ComparableFloat cf, String y, int round)
   {

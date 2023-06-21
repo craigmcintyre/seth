@@ -4,6 +4,7 @@ package com.rapidsdata.seth.plan.expectedResults;
 
 import com.rapidsdata.seth.exceptions.SethSystemException;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -68,13 +69,7 @@ public class ResultSetFormatter
           case Types.DOUBLE:
           case Types.FLOAT:
           case Types.REAL:
-            String s = String.valueOf(rs.getDouble(colIndex));
-            sb.append(s);
-
-            // Give it an exponent if it doesn't have one.
-            if (!s.contains("e") && !s.contains("E")) {
-              sb.append("e0");
-            }
+            sb.append(formatFloat(rs.getDouble(colIndex), 13)); // width of 13 ensures at least 6 decimal digits
             break;
 
           case Types.JAVA_OBJECT:
@@ -230,7 +225,7 @@ public class ResultSetFormatter
           case Types.DOUBLE:
           case Types.FLOAT:
           case Types.REAL:
-            columnVal = String.format("%e", rs.getDouble(colIndex));
+            columnVal = formatFloat(rs.getDouble(colIndex), columnWidths[colIndex-1]);
             padding = columnWidths[colIndex-1] - columnVal.length();
 
             // left padding
@@ -385,7 +380,7 @@ public class ResultSetFormatter
           case Types.DOUBLE:
           case Types.FLOAT:
           case Types.REAL:
-            row.add(String.format("%e", rs.getDouble(colIndex)));
+            row.add(formatFloat(rs.getDouble(colIndex), 13)); // width of 13 ensures at least 6 decimal digits
             break;
 
           case Types.JAVA_OBJECT:
@@ -1009,4 +1004,48 @@ public class ResultSetFormatter
 
     return sb.toString();
   }
+
+  /**
+   * Format this floating point value to a string, ensuring that the
+   * last digit displayed is not rounded. Try to fit the result to the
+   * column width provided and maintain the scientific notation.
+   * @param f
+   * @param width
+   * @return the floating point value as a string
+   */
+  private static String formatFloat(double f, int width)
+  {
+    String extStr = String.format("%.40e", f);
+
+    // We need to work out how many digits after the period we can fit.
+    // So work out the length of the exponent and the length of the
+    // part before the period.
+
+    int expLen = extStr.length() - extStr.indexOf('e');
+    int prePeriodLen = extStr.indexOf('.') + 1; // including the period
+    int remainder = width - expLen - prePeriodLen;
+
+    if (remainder <= 0) {
+      remainder = 1;
+    }
+
+    String strVal = extStr.substring(0, prePeriodLen + remainder + 1) +
+                    extStr.substring(extStr.indexOf('e'));
+
+    return strVal;
+  }
+
+//  public static void main(String[] args)
+//  {
+//    double f = -10.;
+//    String strVal;
+//
+//    strVal = String.format("%e", f);
+//    System.out.printf("Default value = %s\n", strVal);
+//
+//    for (int i=1; i<20; i++) {
+//      strVal = formatFloat(f, i);
+//      System.out.printf("Width %d = %s\n", i, strVal);
+//    }
+//  }
 }
