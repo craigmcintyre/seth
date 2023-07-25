@@ -32,8 +32,8 @@ public class CommandLineArgs
 
   @Option(name      = "-u",
           required  = false,
-          usage     = "The JDBC connection URL to use to connect to the system under test. The default is \"jdbc:rapidsse://localhost:4335\".")
-  public String url = "jdbc:rapidsse://localhost:4335";
+          usage     = "The JDBC connection URL to use to connect to the system under test. The default is \"jdbc:se://localhost:9123\".")
+  public String url = "jdbc:se://localhost:9123";
 
   @Option(name      = "-f",
           required  = false,

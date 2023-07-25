@@ -179,6 +179,8 @@
                                 <exclude>seth.sh</exclude>
                                 <exclude>rapidsse-jdbc-*-sources.jar</exclude>
                                 <exclude>rapidsse-jdbc-*.jar</exclude>
+                                <exclude>se-jdbc-*-sources.jar</exclude>
+                                <exclude>se-jdbc-*.jar</exclude>
                                 <exclude>rapids-jdbc-*-sources.jar</exclude>
                                 <exclude>rapids-jdbc-*.jar</exclude>
                             </excludes>
