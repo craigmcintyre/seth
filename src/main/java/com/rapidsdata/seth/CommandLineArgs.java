@@ -125,10 +125,16 @@ public class CommandLineArgs
 
     } catch (SQLException e) {
       final String msg = "Could not load the JDBC driver for the url \"" + url +"\"." +
-                         System.lineSeparator() + "Please check that this url is correct " +
-                         "and that the appropriate JDBC driver is included in the classpath." +
+                         System.lineSeparator() + "Please check that this url is correct, " +
+                         "that the appropriate JDBC driver is included in the classpath " +
+                         "and that the Java environment meets minimum requirement for the driver." +
                          System.lineSeparator() + "The current classpath is: " +
-                         ManagementFactory.getRuntimeMXBean().getClassPath() + System.lineSeparator();
+                         ManagementFactory.getRuntimeMXBean().getClassPath() + System.lineSeparator() +
+                         "The Java VM is: " +
+                         ManagementFactory.getRuntimeMXBean().getVmVendor() + " " +
+                         ManagementFactory.getRuntimeMXBean().getVmName() + " " +
+                         ManagementFactory.getRuntimeMXBean().getVmVersion() + System.lineSeparator()
+                         ;
       throw new CmdLineException(parser, msg, e);
     }
 

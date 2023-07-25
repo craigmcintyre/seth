@@ -52,12 +52,22 @@ public class Seth {
   /** The thing to log messages to. */
   private TestLogger logger;
 
+  private static final int minimumJavaVer = 11;
+
   /**
    * The main entry point for the SE Test Harness
    * @param arguments The arguments provided to the application.
    */
   public static void main(String[] arguments)
   {
+    // Check Java version meets minimum
+    int currentJavaVer = getCurrentJavaVer();
+    if (currentJavaVer < minimumJavaVer) {
+      System.err.println("Seth requires Java >= " + minimumJavaVer +
+                         ". The current Java version is " + currentJavaVer);
+      System.exit(1);
+    }
+
     // Parse the command line arguments
     CommandLineArgs args = new CommandLineArgs();
     ParserProperties parserProperties = ParserProperties.defaults().withShowDefaults(false).withOptionSorter(null);
@@ -499,5 +509,23 @@ public class Seth {
     if (options != null) {
       appOptions.putAll(options);
     }
+  }
+
+  private static int getCurrentJavaVer()
+  {
+    String version = System.getProperty("java.version");
+
+    if(version.startsWith("1.")) {
+      version = version.substring(2, 3);
+
+    } else {
+      int dot = version.indexOf(".");
+
+      if(dot != -1) {
+        version = version.substring(0, dot);
+      }
+    }
+
+    return Integer.parseInt(version);
   }
 }
