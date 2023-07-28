@@ -89,6 +89,14 @@
             <artifactId>args4j</artifactId>
             <version>2.33</version>
         </dependency>
+<!--
+        <dependency>
+            <groupId>com.rapidsdata</groupId>
+            <artifactId>sejdbc</artifactId>
+            <version>1.0.3-SNAPSHOT</version>
+            <scope>system</scope>
+        </dependency>
+-->
     </dependencies>
 
     <scm>
@@ -181,8 +189,6 @@
                                 <exclude>rapidsse-jdbc-*.jar</exclude>
                                 <exclude>se-jdbc-*-sources.jar</exclude>
                                 <exclude>se-jdbc-*.jar</exclude>
-                                <exclude>rapids-jdbc-*-sources.jar</exclude>
-                                <exclude>rapids-jdbc-*.jar</exclude>
                             </excludes>
                         </filter>
                         <filter>
