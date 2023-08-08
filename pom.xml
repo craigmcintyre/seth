@@ -20,14 +20,20 @@
     <repositories>
         <repository>
             <!--
-            This is the CloudRepo.io repository that SETH will be deployed to.
+            This is the CloudRepo.io repository that the SE JDBC driver will be pulled
+            from and that the seshell artifact will be deployed to.
             The username and password are retrieved by looking for the Repository
             Id in the $HOME/.m2/settings.xml file.
             -->
             <!-- the <id> field must match the Unique Identifier in settings.xml -->
             <id>io.cloudrepo</id>
-            <url>https://rapidsdata.mycloudrepo.io/repositories/rdp-repo</url>
+            <url>https://rapidsdata.mycloudrepo.io/repositories/se-repo</url>
             <releases />
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
         </repository>
     </repositories>
 
@@ -89,14 +95,13 @@
             <artifactId>args4j</artifactId>
             <version>2.33</version>
         </dependency>
-<!--
+
         <dependency>
             <groupId>com.rapidsdata</groupId>
             <artifactId>sejdbc</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
-            <scope>system</scope>
+            <version>1.0.3</version>
+            <scope>runtime</scope>
         </dependency>
--->
     </dependencies>
 
     <scm>
