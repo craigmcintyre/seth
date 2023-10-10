@@ -16,6 +16,9 @@ public class Options extends HashMap<String, Object>
 
   public static final int NO_ROUNDING = -1;
 
+  /** Ignore any trailing whitespace in strings values when doing the comparison */
+  public static final String IGNORE_TRAILING_WHITESPACE_KEY = "ignoretrailingspace";
+
 
   public Options()
   {
@@ -96,7 +99,7 @@ public class Options extends HashMap<String, Object>
 
         if ( (objVal instanceof Boolean && !((Boolean) objVal)) ||
              (objVal instanceof Integer && ((Integer) objVal) == 0) ||
-             (objVal instanceof Long && ((Long) objVal) == 0l)
+             (objVal instanceof Long && ((Long) objVal) == 0L)
            ) {
           return false;
         }
@@ -141,5 +144,33 @@ public class Options extends HashMap<String, Object>
     }
 
     options.put(ROUNDING_KEY, value);
+  }
+
+  public static boolean getIgnoreTrailingWhitespace(List<Options> optionList)
+  {
+    // Iterate through each non-null option entry. Earlier options override later ones.
+    for (Options options : optionList) {
+      if (options == null) {
+        continue;
+      }
+
+      if (options.containsKey(IGNORE_TRAILING_WHITESPACE_KEY)) {
+        Object objVal = options.get(IGNORE_TRAILING_WHITESPACE_KEY);
+
+        if ( (objVal instanceof Boolean && !((Boolean) objVal)) ||
+                (objVal instanceof Integer && ((Integer) objVal) == 0) ||
+                (objVal instanceof Long && ((Long) objVal) == 0L)
+        ) {
+          return false;
+        }
+
+        return true;
+      }
+
+      // Not specified at this level. Keep trying another level.
+    }
+
+    // Overall default.
+    return false;
   }
 }

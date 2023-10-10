@@ -85,6 +85,7 @@ public class ExpectedRow
       Object expectedVal = columnValues.get(defIndex);
       Object actualVal = rs.getObject(rsIndex);
       boolean wasNull = rs.wasNull();
+      String actualStr;
 
       switch (type) {
         case DONT_CARE:
@@ -142,10 +143,21 @@ public class ExpectedRow
           // Any row options override result options.
           optionList.addFirst(rowOptions);
           boolean ignoreCase = Options.getIgnoreCase(optionList);
+          boolean ignoreTrailingWhitespace = Options.getIgnoreTrailingWhitespace(optionList);
           optionList.removeFirst();
 
-          if ( (ignoreCase && !expectedString.equalsIgnoreCase(rs.getString(rsIndex))) ||
-               (!ignoreCase && !expectedString.equals(rs.getString(rsIndex))) ) {
+          actualStr = rs.getString(rsIndex);
+
+          if (ignoreTrailingWhitespace) {
+            actualStr = actualStr.stripTrailing();
+
+            // The expected string may also end in whitespace,
+            // so it needs to be stripped as well
+            expectedString = expectedString.stripTrailing();
+          }
+
+          if ( (ignoreCase && !expectedString.equalsIgnoreCase(actualStr)) ||
+               (!ignoreCase && !expectedString.equals(actualStr)) ) {
             return false;
           }
           break;
