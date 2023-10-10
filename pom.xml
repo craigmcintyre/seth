@@ -96,12 +96,14 @@
             <version>2.33</version>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>com.rapidsdata</groupId>
             <artifactId>sejdbc</artifactId>
             <version>1.0.3</version>
             <scope>runtime</scope>
         </dependency>
+        -->
     </dependencies>
 
     <scm>
