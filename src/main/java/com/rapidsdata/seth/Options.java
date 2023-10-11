@@ -11,8 +11,11 @@ public class Options extends HashMap<String, Object>
   /** Name of the key for comparing strings case insensitively. Default is case sensitive. */
   public static final String CASE_INSENSITIVE_KEY = "ignorecase";
 
-  /** Name of the key for rounding numeric values to N decimal places before comparing. Default is no rounding. */
-  public static final String ROUNDING_KEY = "rounding";
+  /** Name of the key for rounding numeric values to N digits of __precision__ before comparing. Default is no rounding. */
+  public static final String PRECISION_ROUNDING_KEY = "precisionrounding";
+
+  /** Name of the key for rounding numeric values to N __decimal places__ before comparing. Default is no rounding. */
+  public static final String DECIMAL_ROUNDING_KEY = "decimalrounding";
 
   public static final int NO_ROUNDING = -1;
 
@@ -114,15 +117,15 @@ public class Options extends HashMap<String, Object>
     return false;
   }
 
-  public static int getRounding(List<Options> optionList)
+  public static int getPrecisionRounding(List<Options> optionList)
   {
     for (Options options : optionList) {
       if (options == null) {
         continue;
       }
 
-      if (options.containsKey(ROUNDING_KEY)) {
-        Object objVal = options.get(ROUNDING_KEY);
+      if (options.containsKey(PRECISION_ROUNDING_KEY)) {
+        Object objVal = options.get(PRECISION_ROUNDING_KEY);
 
         if (objVal instanceof Number) {
           int intVal = ((Number) objVal).intValue();
@@ -137,13 +140,36 @@ public class Options extends HashMap<String, Object>
     return NO_ROUNDING;
   }
 
-  public static void setRounding(Options options, int value) throws IllegalArgumentException
+  public static int getDecimalRounding(List<Options> optionList)
   {
-    if (value < 0 && value != NO_ROUNDING) {
-      throw new IllegalArgumentException("Invalid value specified for option \"" + ROUNDING_KEY + "\": " + value);
+    for (Options options : optionList) {
+      if (options == null) {
+        continue;
+      }
+
+      if (options.containsKey(DECIMAL_ROUNDING_KEY)) {
+        Object objVal = options.get(DECIMAL_ROUNDING_KEY);
+
+        if (objVal instanceof Number) {
+          int intVal = ((Number) objVal).intValue();
+
+          if (intVal >= 0 || intVal == NO_ROUNDING) {
+            return intVal;
+          }
+        }
+      }
     }
 
-    options.put(ROUNDING_KEY, value);
+    return NO_ROUNDING;
+  }
+
+  public static void setPrecisionRounding(Options options, int value) throws IllegalArgumentException
+  {
+    if (value < 0 && value != NO_ROUNDING) {
+      throw new IllegalArgumentException("Invalid value specified for option \"" + PRECISION_ROUNDING_KEY + "\": " + value);
+    }
+
+    options.put(PRECISION_ROUNDING_KEY, value);
   }
 
   public static boolean getIgnoreTrailingWhitespace(List<Options> optionList)

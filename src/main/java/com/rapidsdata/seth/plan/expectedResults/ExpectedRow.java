@@ -2,7 +2,6 @@
 
 package com.rapidsdata.seth.plan.expectedResults;
 
-import com.rapidsdata.seth.CommandLineArgs;
 import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 
@@ -62,7 +61,8 @@ public class ExpectedRow
       return false;
     }
 
-    int rounding = Options.NO_ROUNDING;
+    int precisionRounding = Options.NO_ROUNDING;
+    int decimalRounding = Options.NO_ROUNDING;
 
     // Compare column by column
     int defIndex = -1;
@@ -115,10 +115,18 @@ public class ExpectedRow
         case DECIMAL:
           BigDecimal expectedDecimal = (BigDecimal) expectedVal;
           optionList.addFirst(rowOptions);
-          rounding = Options.getRounding(optionList);
+          precisionRounding = Options.getPrecisionRounding(optionList);
+          decimalRounding = Options.getDecimalRounding(optionList);
           optionList.removeFirst();
 
-          if (wasNull || !equalRounded(expectedDecimal, rs.getBigDecimal(rsIndex), rounding)) {
+          if (wasNull) {
+            return false;
+
+          } else if (precisionRounding != Options.NO_ROUNDING &&
+                     !equalPrecisionRounded(expectedDecimal, rs.getBigDecimal(rsIndex), precisionRounding)) {
+            return false;
+
+          } else if (!equalDecimalRounded(expectedDecimal, rs.getBigDecimal(rsIndex), decimalRounding)) {
             return false;
           }
           break;
@@ -126,10 +134,18 @@ public class ExpectedRow
         case FLOAT:
           // Compare floating points up to the requested level of precision
           optionList.addFirst(rowOptions);
-          rounding = Options.getRounding(optionList);
+          precisionRounding = Options.getPrecisionRounding(optionList);
+          decimalRounding = Options.getDecimalRounding(optionList);
           optionList.removeFirst();
 
-          if (wasNull || !equalRounded((ComparableFloat) expectedVal, rs.getDouble(rsIndex), rounding)) {
+          if (wasNull) {
+            return false;
+
+          } else if (precisionRounding != Options.NO_ROUNDING &&
+                    !equalPrecisionRounded((ComparableFloat) expectedVal, rs.getDouble(rsIndex), precisionRounding)) {
+            return false;
+
+          } else if (!equalDecimalRounded((ComparableFloat) expectedVal, rs.getDouble(rsIndex), decimalRounding)) {
             return false;
           }
           break;
@@ -238,10 +254,10 @@ public class ExpectedRow
   }
 
 
-  private boolean equalRounded(BigDecimal x, BigDecimal y, int round)
+  private boolean equalPrecisionRounded(BigDecimal x, BigDecimal y, int precisionRound)
   {
-    if (round != Options.NO_ROUNDING) {
-      MathContext mc = new MathContext(round, RoundingMode.DOWN);
+    if (precisionRound != Options.NO_ROUNDING) {
+      MathContext mc = new MathContext(precisionRound, RoundingMode.DOWN);
 
       x = x.round(mc);
       y = y.round(mc);
@@ -250,9 +266,20 @@ public class ExpectedRow
     return x.equals(y);
   }
 
-  private boolean equalRounded(ComparableFloat cf, double y, int round)
+  private boolean equalDecimalRounded(BigDecimal x, BigDecimal y, int decimalRound)
   {
-    if (round == Options.NO_ROUNDING) {
+    if (decimalRound != Options.NO_ROUNDING) {
+
+      x = x.setScale(decimalRound, RoundingMode.HALF_UP);
+      y = y.setScale(decimalRound, RoundingMode.HALF_UP);
+    }
+
+    return x.equals(y);
+  }
+
+  private boolean equalPrecisionRounded(ComparableFloat cf, double y, int precisionRound)
+  {
+    if (precisionRound == Options.NO_ROUNDING) {
       // This will look very odd, but there is a reason for it, and it is
       // mainly because Java does some weird stuff with floating point numbers
       // it cannot represent precisely.
@@ -275,7 +302,7 @@ public class ExpectedRow
       return cf.comparesTo(strVal);
     }
 
-    MathContext mc = new MathContext(round, RoundingMode.DOWN);
+    MathContext mc = new MathContext(precisionRound, RoundingMode.DOWN);
 
     BigDecimal bdx = new BigDecimal(cf.toString(), mc);
     BigDecimal bdy = new BigDecimal(y, mc);
@@ -283,7 +310,42 @@ public class ExpectedRow
     return bdx.equals(bdy);
   }
 
-  private boolean equalRounded(ComparableFloat cf, String y, int round)
+  private boolean equalDecimalRounded(ComparableFloat cf, double y, int decimalRound)
+  {
+    if (decimalRound == Options.NO_ROUNDING) {
+      // This will look very odd, but there is a reason for it, and it is
+      // mainly because Java does some weird stuff with floating point numbers
+      // it cannot represent precisely.
+      //
+      // e.g. the float value 0.12 cannot be represented exactly. But if we print it
+      // to a string then no matter how many digits are used it will always print as
+      // "0.12". But if we take the same float value and convert it to a BigDecimal
+      // then we get the value 0.119999999999999995559...
+      //
+      // This means that we cannot compare an expected and actual value of 0.12
+      // unless we loosen the expected value to 0.1 or use some rounding.
+      // So to be user friendly we first convert the float to a string (with the
+      // implied rounding that occurs) and then convert that string to a BigDecimal
+      // for comparison. We are in control how many digits we use when we print
+      // the float to the string, whereas if we simply asked the JDBC driver for
+      // the string representation of this value (the previous implementation)
+      // then we are at the whims of the JDBC driver.
+      String strVal = String.format("%.40e", y);
+
+      return cf.comparesTo(strVal);
+    }
+
+
+    BigDecimal bdx = new BigDecimal(cf.toString());
+    BigDecimal bdy = new BigDecimal(y);
+
+    bdx = bdx.setScale(decimalRound);
+    bdy = bdy.setScale(decimalRound);
+
+    return bdx.equals(bdy);
+  }
+
+  private boolean equalPrecisionRounded(ComparableFloat cf, String y, int round)
   {
     if (round == Options.NO_ROUNDING) {
       return cf.comparesTo(y);
@@ -656,7 +718,7 @@ public class ExpectedRow
    * @param rs the ResultSet that is pointing to an actual row.
    * @return the score. A perfect score would be 0.
    */
-  private double distanceFrom(ResultSet rs, int rounding) throws SQLException
+  private double distanceFrom(ResultSet rs, int precisionRounding, int decimalRounding) throws SQLException
   {
     // The accumulated score for a final geometric mean result.
     double cumulativeScore = 1f;
@@ -727,34 +789,42 @@ public class ExpectedRow
           if (wasNull)  {
             columnScore = ERScoring.compareWithNull(expectedDecimal);
 
-          } else {
-            if (rounding == Options.NO_ROUNDING) {
-              columnScore = ERScoring.compare(rs.getBigDecimal(rsIndex), expectedDecimal);
+          } else if (precisionRounding != Options.NO_ROUNDING) {
+            // Round the numbers and compare as decimals
+            MathContext mc = new MathContext(precisionRounding, RoundingMode.HALF_UP);
+            BigDecimal bd1 = rs.getBigDecimal(rsIndex).round(mc);
+            BigDecimal bd2 = expectedDecimal.round(mc);
+            columnScore = ERScoring.compare(bd1, bd2);
 
-            } else {
-              // Round the numbers and compare as decimals
-              MathContext mc = new MathContext(rounding, RoundingMode.HALF_UP);
-              BigDecimal bd1 = rs.getBigDecimal(rsIndex).round(mc);
-              BigDecimal bd2 = expectedDecimal.round(mc);
-              columnScore = ERScoring.compare(bd1, bd2);
-            }
+          } else if (decimalRounding != Options.NO_ROUNDING) {
+            BigDecimal bd1 = rs.getBigDecimal(rsIndex).setScale(decimalRounding);
+            BigDecimal bd2 = expectedDecimal.setScale(decimalRounding);
+            columnScore = ERScoring.compare(bd1, bd2);
+
+          } else {
+            columnScore = ERScoring.compare(rs.getBigDecimal(rsIndex), expectedDecimal);
           }
           break;
 
         case FLOAT:
           ComparableFloat cf = (ComparableFloat) expectedVal;
-          if (rounding == Options.NO_ROUNDING) {
-            if (wasNull)    { columnScore = ERScoring.compareWithNull(cf.toDouble()); }
-            else            { columnScore = ERScoring.compare(rs.getDouble(rsIndex), cf.toDouble()); }
+          if (wasNull)    {
+            columnScore = ERScoring.compareWithNull(cf.toDouble());
 
-          } else {
+          } else if (precisionRounding != Options.NO_ROUNDING) {
             // Round the numbers and compare as decimals
-            MathContext mc = new MathContext(rounding, RoundingMode.HALF_UP);
+            MathContext mc = new MathContext(precisionRounding, RoundingMode.HALF_UP);
             BigDecimal bd1 = rs.getBigDecimal(rsIndex).round(mc);
             BigDecimal bd2 = cf.toBigDecimal().round(mc);
+            columnScore = ERScoring.compare(bd1, bd2);
 
-            if (wasNull)    { columnScore = ERScoring.compareWithNull(bd1); }
-            else            { columnScore = ERScoring.compare(bd1, bd2); }
+          } else if (decimalRounding != Options.NO_ROUNDING) {
+            BigDecimal bd1 = rs.getBigDecimal(rsIndex).setScale(decimalRounding);
+            BigDecimal bd2 = cf.toBigDecimal().setScale(decimalRounding);
+            columnScore = ERScoring.compare(bd1, bd2);
+
+          } else {
+            columnScore = ERScoring.compare(rs.getDouble(rsIndex), cf.toDouble());
           }
           break;
 
@@ -851,12 +921,13 @@ public class ExpectedRow
 
     for (ExpectedRow er : expectedRows) {
       optionList.addFirst(er.rowOptions);
-      int rounding = Options.getRounding(optionList);
+      int precisionRounding = Options.getPrecisionRounding(optionList);
+      int decimalRounding = Options.getDecimalRounding(optionList);
       optionList.removeFirst();
 
 
       // calculate the Levenstein-like distance of this expected row to the actual row.
-      double score = er.distanceFrom(rs, rounding);
+      double score = er.distanceFrom(rs, precisionRounding, decimalRounding);
 
       if (score >= 0f) {
         ScoredExpectedRow scoredExpectedRow = new ScoredExpectedRow(score, i++, er);
