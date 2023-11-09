@@ -6,6 +6,8 @@ import com.rapidsdata.seth.exceptions.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TestResult
@@ -59,6 +61,9 @@ public class TestResult
   /** The system time when the test was started. */
   private long startTimeNs;
 
+  /** A map of the number of times a command was ignored */
+  private Map<String,Integer> ignoredCmdCounts;
+
   /**
    * Constructor.
    * @param testFile The test file being executed.
@@ -72,6 +77,7 @@ public class TestResult
     this.numStepsExecuted = new AtomicLong(0);
     this.executionTimeNs = 0;
     this.startTimeNs = System.nanoTime();
+    this.ignoredCmdCounts = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
   }
 
   /**
@@ -251,6 +257,13 @@ public class TestResult
     return "";
   }
 
+  /** Accumulate the count of how many times a specific command was ignored. */
+  public void accumulateIgnoredCommand(String cmd)
+  {
+    Integer count = ignoredCmdCounts.get(cmd);
+    ignoredCmdCounts.put(cmd, count == null ? 1 : ++count);
+  }
+
   @Override
   public String toString()
   {
@@ -270,6 +283,12 @@ public class TestResult
 
     msg += testFile.getPath();
     return msg;
+  }
+
+  /** @returns a map of the count of ignored commands for this test. */
+  public Map<String,Integer> getIgnoredCounts()
+  {
+    return ignoredCmdCounts;
   }
 
   /** @returns a TestResult indicating that the given test file was skipped. */

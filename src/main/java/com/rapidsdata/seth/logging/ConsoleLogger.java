@@ -25,7 +25,10 @@ public class ConsoleLogger implements TestLogger
   public void testValidating(File testFile)
   {
     final String msg = String.format(FMT, "Validating", testFile.getPath());
-    System.out.println(msg);
+
+    synchronized(this) {
+      System.out.println(msg);
+    }
   }
 
   /**
@@ -37,7 +40,9 @@ public class ConsoleLogger implements TestLogger
   public void testSkipping(File testFile)
   {
     final String msg = String.format(FMT, "Skipping", testFile.getPath());
-    System.out.println(msg);
+    synchronized(this) {
+      System.out.println(msg);
+    }
   }
 
   /**
@@ -49,7 +54,9 @@ public class ConsoleLogger implements TestLogger
   public void testExecuting(File testFile)
   {
     final String msg = String.format(FMT, "Executing", testFile.getPath());
-    System.out.println(msg);
+    synchronized(this) {
+      System.out.println(msg);
+    }
   }
 
   /**
@@ -64,11 +71,15 @@ public class ConsoleLogger implements TestLogger
     if (result.getStatus() == TestResult.ResultStatus.FAILED) {
       final String msg = String.format(FMT, "Test Failed",
           testFile.getPath() + System.lineSeparator() + indent(result.getFailureDescription()));
-      System.out.println(msg);
+      synchronized(this) {
+        System.out.println(msg);
+      }
 
     } else if (result.getStatus() == TestResult.ResultStatus.ABORTED) {
       final String msg = String.format(FMT, "Test Aborted", testFile.getPath());
-      System.out.println(msg);
+      synchronized(this) {
+        System.out.println(msg);
+      }
     }
 
     // Not printing other result types.
@@ -106,11 +117,13 @@ public class ConsoleLogger implements TestLogger
    * @param indent indent the message for easier reading relative to the current test?
    */
   @Override
-  public void log(String msg, boolean indent)
+  public synchronized void log(String msg, boolean indent)
   {
     String loggable = (indent ? indent(msg): msg);
 
-    System.out.println(loggable);
+    synchronized(this) {
+      System.out.println(loggable);
+    }
   }
 
   /**
@@ -120,7 +133,9 @@ public class ConsoleLogger implements TestLogger
   @Override
   public void warning(String msg)
   {
-    System.out.println("Warning: " + indent(msg));
+    synchronized(this) {
+      System.out.println("Warning: " + indent(msg));
+    }
   }
 
   /**
@@ -130,7 +145,9 @@ public class ConsoleLogger implements TestLogger
   @Override
   public void error(String msg)
   {
-    System.err.println("Error: " + indent(msg));
+    synchronized(this) {
+      System.err.println("Error: " + indent(msg));
+    }
   }
 
   /**

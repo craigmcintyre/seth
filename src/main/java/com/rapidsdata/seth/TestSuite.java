@@ -13,11 +13,10 @@ import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.results.ResultWriter;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /** The class that runs the batch of test files. */
@@ -28,6 +27,9 @@ public class TestSuite
 
   /** The object responsible for writing the final test results. */
   private final ResultWriter resultWriter;
+
+  /** Commands to be ignored when running tests in parallel. */
+  private static final String[] PARALLEL_IGNORE_CMDS = { "trackmemory;", "memoryleaks;" };
 
   /**
    * Constructor
@@ -46,19 +48,26 @@ public class TestSuite
   {
     // A list of results from running all the tests.
     List<TestResult> resultList = new LinkedList<>();
+    List<FutureContext>  futureContextList = new ArrayList<>();
 
     TestPlanner planner = new TestPlanner(appContext);
     Plan plan = null;
 
-    ExecutorService threadPool = appContext.getThreadPool();
     TestLogger logger = appContext.getLogger();
-
     TestContext testContext = null;
-
     List<TestAnnotationInfo> testsToAnnotate = null;
 
     if (appContext.getCommandLineArgs().recordResults) {
       testsToAnnotate = new ArrayList<>();
+    }
+
+    // Create an executor service with a fixed limit for parallelising the tests.
+    int numParallelTests = appContext.getCommandLineArgs().parallelTests;
+    ExecutorService threadPool = Executors.newFixedThreadPool(numParallelTests);
+
+    // if we are running tests in parallel then ignore the memoryleaks and trackmemory commands
+    if (numParallelTests > 1) {
+      Collections.addAll(appContext.getCommandLineArgs().ignoreCommands, PARALLEL_IGNORE_CMDS);
     }
 
     try {
@@ -75,7 +84,7 @@ public class TestSuite
         }
 
         // We need to execute this test file.
-        logger.testExecuting(testableFile.getFile());
+        // logger.testExecuting(testableFile.getFile());
 
         // Make a TestResult to hold the result of the test.
         TestResult testResult = new TestResult(testableFile.getFile(), testName);
@@ -98,10 +107,8 @@ public class TestSuite
           continue;
 
         } catch (Exception e) {
-          // Remove the last result as it is probably incomplete.
-          if (resultList.size() > 0) {
-            resultList.remove(resultList.size() - 1);
-          }
+          // Remove this result as it is probably incomplete.
+          resultList.remove(testResult);
           throw e;
         }
 
@@ -113,15 +120,32 @@ public class TestSuite
 
         // Run each test file asynchronously.
         Future<?> future = threadPool.submit(testRunner);
-
-        // Wait until the test finishes
-        future.get();
-
-        // Log the result of each test file
-        logger.testExecutionFinished(testableFile.getFile(), testResult);
+        FutureContext futureContext = new FutureContext(future, testContext, testResult);
+        futureContextList.add(futureContext);
 
         testContext = null;
       }
+
+      // Wait for all tests to complete
+      for (FutureContext futureContext : futureContextList) {
+        try {
+          futureContext.future.get();
+
+        } catch (ExecutionException e) {
+          // Thrown if the execution of a sub-task throws an exception.
+          String stackTrace = "Unexpected internal exception encountered -" + System.lineSeparator() +
+                  getStackTrace(e);
+          logger.error(stackTrace);
+          resultList.remove(futureContext.testResult);
+
+        } catch (InterruptedException e) {
+          if (futureContext.testContext != null) {
+            futureContext.testContext.abortTest();
+          }
+        }
+      }
+
+      // All tests have now finished.
 
       if (appContext.getCommandLineArgs().recordResults) {
         for (TestAnnotationInfo testToAnnotate : testsToAnnotate) {
@@ -130,29 +154,18 @@ public class TestSuite
             testToAnnotate.annotate();
           } catch (IOException e) {
             String msg = "Could not annotate test: " + testToAnnotate.getOriginalTestFile().toString() +
-                         System.lineSeparator() + getStackTrace(e);
+                    System.lineSeparator() + getStackTrace(e);
             logger.error(msg);
           }
         }
       }
-
-    } catch (ExecutionException e) {
-      // Thrown if the execution of a sub-task throws an exception.
-      String stackTrace = "Unexpected internal exception encountered -" + System.lineSeparator() +
-                          getStackTrace(e);
-      logger.error(stackTrace);
-      resultList.remove(resultList.size() - 1);
-
-    } catch (InterruptedException e) {
-      if (testContext != null) {
-        testContext.abortTest();
-      }
-
     } finally {
       // Write out the results
       if (!resultList.isEmpty()) {
         resultWriter.writeResults(resultList);
       }
+
+      threadPool.shutdownNow();
     }
   }
 
@@ -168,5 +181,18 @@ public class TestSuite
     PrintWriter pw = new PrintWriter(sw);
     t.printStackTrace(pw);
     return sw.toString();
+  }
+
+
+  private static class FutureContext {
+    public Future<?> future;
+    public TestContext testContext;
+    public TestResult testResult;
+
+    public FutureContext(Future<?> future, TestContext testContext, TestResult testResult) {
+      this.future = future;
+      this.testContext = testContext;
+      this.testResult = testResult;
+    }
   }
 }

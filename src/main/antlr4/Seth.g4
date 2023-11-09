@@ -2,6 +2,21 @@
 
 grammar Seth ;
 
+@lexer::members {
+  public String currentFilename = "";
+
+  /**
+   * Replaces special variables with their values in the token.
+   */
+  private void replaceVariables()
+  {
+    setText(
+      getText().replace("${testname}", currentFilename)
+               .replace("${testName}", currentFilename)
+    );
+  }
+}
+
 testFile          : statements cleanupSection? ;
 
 cleanupSection    : CLEANUP statementBlock ;
@@ -260,7 +275,7 @@ fragment X            : 'x' | 'X';
 fragment Y            : 'y' | 'Y';
 fragment Z            : 'z' | 'Z';
 
-fragment ID_LETTER    : 'a' .. 'z' | 'A' .. 'Z' | '_' ;
+fragment ID_LETTER    : 'a' .. 'z' | 'A' .. 'Z' | '_';
 fragment DIGIT        : '0' .. '9' ;
 fragment TWO_DIGITS   : DIGIT DIGIT ;
 fragment FOUR_DIGITS  : DIGIT DIGIT DIGIT DIGIT ;
@@ -271,7 +286,12 @@ fragment DUBLSINGL    : '\'\'' ;
 fragment SINGLE_STR   : '\'' (DUBLSINGL | (~'\''))* '\'' ;
 fragment DOUBLE_STR   : '"'  (DUBLDUBL  | (~'"'))* '"' ;
 
+fragment VARIABLE     : '${' (ID_LETTER | DIGIT)+ '}' ;
+
 ID  : (ID_LETTER (ID_LETTER | DIGIT)*) ;
+VARIABLE_ID : (ID_LETTER | VARIABLE) (ID_LETTER | DIGIT | VARIABLE)*
+              { replaceVariables(); }
+            ;
 
 TSP : FOUR_DIGITS '-' TWO_DIGITS '-' TWO_DIGITS (' ' | T) TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? Z?;
 DTE : FOUR_DIGITS '-' TWO_DIGITS '-' TWO_DIGITS ;
@@ -279,7 +299,7 @@ TME : TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? ;
 FLT : ('+' | '-')? (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
 INT : ('+' | '-')? DIGIT+ ;
 DEC : ('+' | '-')? ( (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ) ;
-STR : SINGLE_STR | DOUBLE_STR ;
+STR : SINGLE_STR | DOUBLE_STR   { replaceVariables(); };
 
 // We put comments and whitespace on a hidden tokeniser channel so that we can reconstruct
 // the original statement and pass it on to the execution engine unchanged.

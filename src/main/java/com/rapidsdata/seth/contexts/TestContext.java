@@ -3,9 +3,11 @@
 package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.Options;
+import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.exceptions.FailureException;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 
 public interface TestContext extends AppContext
@@ -51,6 +53,11 @@ public interface TestContext extends AppContext
   public void markAsFailed(FailureException failure);
 
   /**
+   * Returns the result of the test
+   */
+  public TestResult getResult();
+
+  /**
    * Accumulates a count of test steps that occurred in a given testing thread. Each thread should
    * report the number of test steps is executed when the thread completes.
    * @param count the number of test steps that the testing thread executed.
@@ -90,4 +97,5 @@ public interface TestContext extends AppContext
    * @return the options object that applies to this test.
    */
   public Options getTestOptions();
+
 }

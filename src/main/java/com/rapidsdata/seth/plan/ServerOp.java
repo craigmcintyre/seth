@@ -11,6 +11,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 
 public class ServerOp extends Operation
 {
@@ -51,6 +53,23 @@ public class ServerOp extends Operation
     Statement statement = null;
     ResultSet rs = null;
 
+    String cmd = metadata.getDescription();
+
+    // Check if the command is to be ignored
+    List<String> cmdIgnoreList = xContext.getCommandLineArgs().ignoreCommands;
+    if (!cmdIgnoreList.isEmpty()) {
+      for (String ignorableCmd : cmdIgnoreList) {
+        if (cmd.equalsIgnoreCase(ignorableCmd)) {
+
+          // Record the count of how many times this command was ignored
+          xContext.getResult().accumulateIgnoredCommand(cmd);
+
+          // Don't do anything more with this command
+          return;
+        }
+      }
+    }
+
     try {
       statement = connection.createStatement();
 
@@ -63,7 +82,6 @@ public class ServerOp extends Operation
     }
 
     try {
-      String cmd = metadata.getDescription();
       boolean hasResultSet = statement.execute(cmd);
 
       if (hasResultSet) {

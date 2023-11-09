@@ -7,6 +7,8 @@ import com.rapidsdata.seth.exceptions.SethSystemException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class ResultSummary
 {
@@ -21,6 +23,9 @@ public class ResultSummary
   private final List<TestResult> failedTests;
   private final List<TestResult> skippedTests;
 
+  private final Map<String,Integer> ignoredCmdCounts;
+
+  private final long totalIgnoredSteps;
 
   protected ResultSummary(long testsExecuted,
                           long testsValidated,
@@ -30,7 +35,8 @@ public class ResultSummary
                           long numTestsSkipped,
                           long stepsExecuted,
                           List<TestResult> failedTests,
-                          List<TestResult> skippedTests)
+                          List<TestResult> skippedTests,
+                          Map<String,Integer> ignoredCmdCounts)
   {
     this.numTestsExecuted  = testsExecuted;
     this.numTestsValidated = testsValidated;
@@ -41,6 +47,14 @@ public class ResultSummary
     this.numStepsExecuted  = stepsExecuted;
     this.failedTests       = failedTests;
     this.skippedTests      = skippedTests;
+    this.ignoredCmdCounts  = ignoredCmdCounts;
+
+    long ignoredSteps = 0;
+    for (Map.Entry<String,Integer> ignoredEntry : ignoredCmdCounts.entrySet()) {
+      ignoredSteps += ignoredEntry.getValue();
+    }
+
+    this.totalIgnoredSteps = ignoredSteps;
   }
 
   /**
@@ -59,10 +73,14 @@ public class ResultSummary
     long numTestsAborted   = 0;
     long numTestsSkipped   = 0;
     long numStepsExecuted  = 0;
+    Map<String,Integer> ignoredCmdCounts = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+
 
     for (TestResult result : results) {
       ++numTestsExecuted;
       numStepsExecuted += result.getSteps();
+
+      aggregateIgnoredCommandCounts(ignoredCmdCounts, result.getIgnoredCounts());
 
       switch (result.getStatus()) {
 
@@ -94,10 +112,27 @@ public class ResultSummary
           // Should not happen.
           throw new SethSystemException("Unexpected ResultStatus: " + result.getStatus().name());
       }
+
+
     }
 
-    return new ResultSummary(numTestsExecuted, numTestsValidated, numTestsPassed, numTestsFailed,
-                             numTestsAborted, numTestsSkipped, numStepsExecuted, failedTests, skippedTests);
+    return new ResultSummary(numTestsExecuted, numTestsValidated, numTestsPassed,
+                             numTestsFailed, numTestsAborted, numTestsSkipped,
+                             numStepsExecuted, failedTests, skippedTests,
+                             ignoredCmdCounts);
+  }
+
+
+  /** Aggregate the counts for each ignored command for each test. */
+  private static void aggregateIgnoredCommandCounts(Map<String,Integer> aggIgnoredCmdCounts, Map<String,Integer> testIgnoredCmdCounts)
+  {
+    for (Map.Entry<String,Integer> testEntry : testIgnoredCmdCounts.entrySet()) {
+      String cmd = testEntry.getKey();
+      Integer testCount = testEntry.getValue();
+      Integer aggCount = aggIgnoredCmdCounts.get(cmd);
+
+      aggIgnoredCmdCounts.put(cmd, aggCount == null ? testCount : aggCount + testCount);
+    }
   }
 
   @Override
@@ -105,6 +140,7 @@ public class ResultSummary
   {
     StringBuilder sb = new StringBuilder(1024);
 
+    sb.append(System.lineSeparator());
     sb.append(System.lineSeparator());
     sb.append("*************************").append(System.lineSeparator());
     sb.append(" Summary Of Test Results ").append(System.lineSeparator());
@@ -137,15 +173,36 @@ public class ResultSummary
 
     sb.append(System.lineSeparator());
     sb.append(String.format("Steps Executed : %4d", numStepsExecuted)).append(System.lineSeparator());
+    sb.append(String.format("Steps Ignored  : %4d", totalIgnoredSteps)).append(System.lineSeparator());
 
     sb.append(System.lineSeparator());
+    sb.append(System.lineSeparator());
+
+    boolean optWs = false;
 
     if (numTestsSkipped > 0) {
       sb.append(getSkippedTestDesc());
+      optWs = true;
     }
 
     if (numTestsFailed > 0) {
+      if (optWs) {
+        sb.append(System.lineSeparator());
+        sb.append(System.lineSeparator());
+      }
+
       sb.append(getFailedTestDesc());
+      optWs = true;
+    }
+
+    if (totalIgnoredSteps > 0) {
+      if (optWs) {
+        sb.append(System.lineSeparator());
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(getIgnoredStepsDesc());
+      optWs = true;
     }
 
     return sb.toString();
@@ -194,6 +251,35 @@ public class ResultSummary
       String desc = indentation + result.getFailureDescription();
       desc = desc.replace(System.lineSeparator(), nlAndIndentation);
       sb.append(desc);
+    }
+
+    return sb.toString();
+  }
+
+  /**
+   * Returns a string describing the ignored commands and how often they occurred.
+   * @return a string describing the ignored commands and how often they occurred.
+   */
+  private String getIgnoredStepsDesc()
+  {
+    final String indentation = "  ";
+    final String nlAndIndentation = System.lineSeparator() + indentation;
+
+    StringBuilder sb = new StringBuilder(1024);
+
+    sb.append("**********************************").append(System.lineSeparator());
+    sb.append(" Summary Of All Ignored Steps (").append(totalIgnoredSteps).append(")").append(System.lineSeparator());
+    sb.append("**********************************").append(System.lineSeparator());
+
+    sb.append(System.lineSeparator());
+
+    for (Map.Entry<String,Integer> ignoredCmd : ignoredCmdCounts.entrySet()) {
+      String cmd = ignoredCmd.getKey();
+      int count = ignoredCmd.getValue();
+
+      sb.append("Count : ");
+      sb.append(String.format("%-4d  ", count));
+      sb.append("Ignored Step : ").append(cmd).append(System.lineSeparator());
     }
 
     return sb.toString();

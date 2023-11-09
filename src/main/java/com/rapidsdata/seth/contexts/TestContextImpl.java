@@ -9,6 +9,7 @@ import com.rapidsdata.seth.logging.TestLogger;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
@@ -242,6 +243,14 @@ public class TestContextImpl implements TestContext
   }
 
   /**
+   * Returns the result of the test
+   */
+  @Override
+  public TestResult getResult() {
+    return testResult;
+  }
+
+  /**
    * Tells any waiting threads on the cleanupPhase condition variable that the testing phase
    * has finished and the cleanup phase has begun. It releases any blocked, waiting threads.
    */
@@ -345,4 +354,5 @@ public class TestContextImpl implements TestContext
   {
     return testOptions;
   }
+
 }

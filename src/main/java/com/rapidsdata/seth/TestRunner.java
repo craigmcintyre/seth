@@ -88,7 +88,19 @@ public class TestRunner implements Runnable
   @Override
   public void run()
   {
+    try {
+      runTest();
+    } finally {
+      // Log the result of this test file
+      TestLogger logger = testContext.getLogger();
+      logger.testExecutionFinished(testContext.getTestFile(), testContext.getResult());
+    }
+  }
+
+  public void runTest()
+  {
     TestLogger logger = testContext.getLogger();
+    logger.testExecuting(testContext.getTestFile());
 
     long stepCount = 0;
 

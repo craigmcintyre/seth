@@ -14,6 +14,7 @@ import java.lang.management.ManagementFactory;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class CommandLineArgs
@@ -107,10 +108,22 @@ public class CommandLineArgs
           "differentiate test names when executed against a debug and then a release version.")
   public String testSuffix = "";
 
+
+  @Option(name      = "--parallel",
+          aliases   = { "-p" },
+          required  = false,
+          usage     = "Set to a value > 1 to run a maximum of this number of tests in parallel.")
+  public int parallelTests = 1;
+
+  @Option(name      = "--ignore",
+          aliases   = { "--ignoreCmd" },
+          required  = false,
+          usage     = "Server commands to be ignored. The syntax must match exactly but case is insensitive.")
+  public List<String> ignoreCommands = new ArrayList<>();
+
   @Argument(usage  = "The list of test files to be executed.",
             hidden = true)
   public List<File> testFiles = null;
-
 
   /**
    * Validates the semantics of the options, after the parser has previously validated the syntax.
@@ -166,6 +179,12 @@ public class CommandLineArgs
       throw new CmdLineException(parser, e);
     }
 
+    // --parallelTests must be >= 1
+    if (parallelTests < 1) {
+      final String msg = "The \"--parallel\" parameter must have a value >= 1." +
+              System.lineSeparator();
+      throw new CmdLineException(parser, msg, null);
+    }
   }
 
 }

@@ -58,8 +58,21 @@ public class TestPlanner
     }
 
     String contents = new String(bytes);
-
     SethLexer lexer = new SethLexer(new ANTLRInputStream(contents));
+
+    // Set the name of the test file (with parent dir prepended) into the lexer
+    // so that it can translate special variables like ${testName} into a unique value.
+    String testParentDir = testFile.getParentFile() == null ? "" : testFile.getParentFile().getName();
+
+    String testName = testFile.getName();
+    int extensionIndex = testName.lastIndexOf(".");
+    if (extensionIndex != -1) {
+      testName = testName.substring(0, extensionIndex);
+    }
+
+    // Set it in the lexer using both the test name and the name of the parent directory.
+    lexer.currentFilename = testParentDir + "_" + testName;
+
     SethParser parser = new SethParser(new CommonTokenStream(lexer));
     parser.setErrorHandler(new ErrorHandler(testFile));
 

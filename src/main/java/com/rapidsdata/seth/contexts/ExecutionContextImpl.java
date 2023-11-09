@@ -2,12 +2,9 @@
 
 package com.rapidsdata.seth.contexts;
 
-import com.rapidsdata.seth.CommandLineArgs;
-import com.rapidsdata.seth.Options;
-import com.rapidsdata.seth.PathRelativity;
+import com.rapidsdata.seth.*;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
-import com.rapidsdata.seth.TestableFile;
 
 import java.io.File;
 import java.sql.Connection;
@@ -256,6 +253,14 @@ public class ExecutionContextImpl implements ExecutionContext
   }
 
   /**
+   * Returns the result of the test
+   */
+  @Override
+  public TestResult getResult() {
+    return testContext.getResult();
+  }
+
+  /**
    * Accumulates a count of test steps that occurred in a given testing thread. Each thread should
    * report the number of test steps is executed when the thread completes.
    * @param count the number of test steps that the testing thread executed.
@@ -407,4 +412,5 @@ public class ExecutionContextImpl implements ExecutionContext
   {
     return testContext.getTestOptions();
   }
+
 }
