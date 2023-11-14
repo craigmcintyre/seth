@@ -16,6 +16,13 @@ public class ConsoleLogger implements TestLogger
   private static final String INDENTATION = "  ";
   private static final String NL_AND_INDENTATION = System.lineSeparator() + INDENTATION;
 
+  private final boolean logTestsPassed;
+
+  public ConsoleLogger(boolean logTestsPassed)
+  {
+    this.logTestsPassed = logTestsPassed;
+  }
+
   /**
    * Logs that the test is currently being validated.
    *
@@ -77,6 +84,12 @@ public class ConsoleLogger implements TestLogger
 
     } else if (result.getStatus() == TestResult.ResultStatus.ABORTED) {
       final String msg = String.format(FMT, "Test Aborted", testFile.getPath());
+      synchronized(this) {
+        System.out.println(msg);
+      }
+
+    } else if (result.getStatus() == TestResult.ResultStatus.SUCCEEDED && logTestsPassed) {
+      final String msg = String.format(FMT, "Test Passed", testFile.getPath());
       synchronized(this) {
         System.out.println(msg);
       }

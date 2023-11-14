@@ -30,8 +30,10 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
    * Constructor
    * @param parentDir the directory that will contain the log file.
    */
-  public FileLogger(File parentDir)
+  public FileLogger(File parentDir, boolean logTestsPassed)
   {
+    super(logTestsPassed);
+
     this.logfile = makeLogFile(parentDir);
 
     // Create a buffered writer for writing to the log file.

@@ -95,17 +95,19 @@ public class Seth {
     // Create an appropriate logger.
     TestLogger logger;
 
+    boolean logTestsPassed = (args.parallelTests > 1);
+
     if (args.logSteps) {
       // This logger logs all test steps to the console and to a file.
-      logger = new StepFileLogger(args.resultDir);
+      logger = new StepFileLogger(args.resultDir, logTestsPassed);
 
     } else if (args.logTests) {
       // This logger logs only messages about whole tests to the console and to a file.
-      logger = new TestFileLogger(args.resultDir);
+      logger = new TestFileLogger(args.resultDir, logTestsPassed);
 
     } else {
       // This logger only logs to the screen.
-      logger = new ConsoleLogger();
+      logger = new ConsoleLogger(logTestsPassed);
     }
 
     Seth seth = new Seth(args, logger);

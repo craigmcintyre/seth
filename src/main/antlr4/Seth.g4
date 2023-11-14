@@ -7,13 +7,14 @@ grammar Seth ;
 
   /**
    * Replaces special variables with their values in the token.
+   * Case insensitive.
    */
   private void replaceVariables()
   {
-    setText(
-      getText().replace("${testname}", currentFilename)
-               .replace("${testName}", currentFilename)
-    );
+    String newStr = SethVariables.replaceVarTestName(getText(), currentFilename);
+    if (newStr != null) {
+      setText(newStr);
+    }
   }
 }
 
@@ -299,7 +300,7 @@ TME : TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? ;
 FLT : ('+' | '-')? (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
 INT : ('+' | '-')? DIGIT+ ;
 DEC : ('+' | '-')? ( (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ) ;
-STR : SINGLE_STR | DOUBLE_STR   { replaceVariables(); };
+STR : (SINGLE_STR | DOUBLE_STR)   { replaceVariables(); };
 
 // We put comments and whitespace on a hidden tokeniser channel so that we can reconstruct
 // the original statement and pass it on to the execution engine unchanged.

@@ -11,9 +11,9 @@ public class StepFileLogger extends TestFileLogger
    *
    * @param parentDir the directory that will contain the log file.
    */
-  public StepFileLogger(File parentDir)
+  public StepFileLogger(File parentDir, boolean logTestsPassed)
   {
-    super(parentDir);
+    super(parentDir, logTestsPassed);
   }
 
   /**

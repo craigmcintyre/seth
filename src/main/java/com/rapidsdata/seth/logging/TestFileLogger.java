@@ -27,9 +27,9 @@ public class TestFileLogger extends FileLogger
    * Constructor
    * @param parentDir the directory that will contain the log file.
    */
-  public TestFileLogger(File parentDir)
+  public TestFileLogger(File parentDir, boolean logTestsPassed)
   {
-    super(parentDir);
+    super(parentDir, logTestsPassed);
   }
 
   /**

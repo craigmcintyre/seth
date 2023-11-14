@@ -62,9 +62,12 @@ public class TestPlanner
 
     // Set the name of the test file (with parent dir prepended) into the lexer
     // so that it can translate special variables like ${testName} into a unique value.
-    String testParentDir = testFile.getParentFile() == null ? "" : testFile.getParentFile().getName();
+    // If the current test file is included in another (i.e. there is a callstack)
+    // then we use the name of the root test file.
+    File rootTestFile = callStack.isEmpty() ? testFile : callStack.get(0);
+    String testParentDir = rootTestFile.getParentFile() == null ? "" : rootTestFile.getParentFile().getName();
 
-    String testName = testFile.getName();
+    String testName = rootTestFile.getName();
     int extensionIndex = testName.lastIndexOf(".");
     if (extensionIndex != -1) {
       testName = testName.substring(0, extensionIndex);
