@@ -1,5 +1,9 @@
 // Copyright (c) 2017 Boray Data Co. Ltd.  All rights reserved.
 
+// An implementation of ExecutionContext for executing certain
+// operations in the middle of parsing. Hence connections and all
+// the other stuff is not required.
+
 package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.*;
@@ -8,7 +12,8 @@ import com.rapidsdata.seth.logging.TestLogger;
 
 import java.io.File;
 import java.sql.Connection;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -17,32 +22,20 @@ import java.util.concurrent.Future;
  * The basic implementation of the ExecutionContext interface, which is used by operations when
  * they are being executed.
  */
-public class ExecutionContextImpl implements ExecutionContext
+public class ParserExecutionContextImpl implements ExecutionContext
 {
   /** The TestContext that this ExecutionContext uses. */
   private final TestContext testContext;
 
-  /** The list of Future objects for asynchronous child tasks. */
-  private final List<Future<?>> futures;
-
-  /** The name of the current connection returned by getConnection(). */
-  private String currentConnectionName = DEFAULT_CONNECTION_NAME;
-
-  /** A map of Connections, keyed by a connection name. */
-  private final Map<String,Connection> connectionMap;
 
 
   /**
    * Constructor
    * @param testContext The TestContext that this ExecutionContext uses.
    */
-  public ExecutionContextImpl(TestContext testContext,
-                              List<Future<?>> futures,
-                              Map<String,Connection> connectionMap)
+  public ParserExecutionContextImpl(TestContext testContext)
   {
     this.testContext = testContext;
-    this.futures = futures;
-    this.connectionMap = connectionMap;
   }
 
 
@@ -54,9 +47,7 @@ public class ExecutionContextImpl implements ExecutionContext
   @Override
   public void registerFuture(Future<?> future)
   {
-    // This doesn't need any synchronisation since an ExecutionContext is only ever
-    // used by a single thread.
-    futures.add(future);
+    // No-op
   }
 
   /**
@@ -66,7 +57,7 @@ public class ExecutionContextImpl implements ExecutionContext
   @Override
   public String getConnectionName()
   {
-    return currentConnectionName;
+    return "";
   }
 
   /**
@@ -78,14 +69,7 @@ public class ExecutionContextImpl implements ExecutionContext
   @Override
   public void useConnection(String name) throws BadConnectionNameException
   {
-    // This doesn't need any synchronisation since an ExecutionContext is only ever
-    // used by a single thread.
-    if (!connectionMap.containsKey(name)) {
-      final String msg = "There is no connection in this context with this name: " + name;
-      throw new BadConnectionNameException(msg);
-    }
-
-    currentConnectionName = name;
+    // no-op
   }
 
   /**
@@ -95,14 +79,7 @@ public class ExecutionContextImpl implements ExecutionContext
   @Override
   public Connection getConnection()
   {
-    Connection conn = connectionMap.get(currentConnectionName);
-
-    if (conn == null) {
-      // Should never happen.
-      final String msg = "No default connection.";
-      throw new SethSystemException(msg);
-    }
-    return conn;
+    return null;
   }
 
   /**
@@ -114,21 +91,7 @@ public class ExecutionContextImpl implements ExecutionContext
   @Override
   public void addConnection(Connection connection, String name) throws ConnectionNameExistsException
   {
-    if (connectionMap.containsKey(name)) {
-      final String msg = "A connection with this name already exists in this context: " + name;
-      throw new ConnectionNameExistsException(msg);
-    }
-
-    connectionMap.put(name, connection);
-
-    // Set this connection as the default.
-    try {
-      useConnection(name);
-
-    } catch (BadConnectionNameException e) {
-      // Should never happen
-      throw new SethSystemException(e);
-    }
+    // no-op
   }
 
   /**
@@ -144,28 +107,8 @@ public class ExecutionContextImpl implements ExecutionContext
   public Connection removeConnection(String name) throws BadConnectionNameException,
                                                          DefaultConnectionNameException
   {
-    if (!connectionMap.containsKey(name)) {
-      final String msg = "There is no connection in this context with this name: " + name;
-      throw new BadConnectionNameException(msg);
-    }
-
-    if (name.equals(DEFAULT_CONNECTION_NAME)) {
-      final String msg = "Cannot drop the default connection: " + DEFAULT_CONNECTION_NAME;
-      throw new DefaultConnectionNameException(msg);
-    }
-
-    Connection conn = connectionMap.remove(name);
-
-    // Set the default connection as the current one.
-    try {
-      useConnection(DEFAULT_CONNECTION_NAME);
-
-    } catch (BadConnectionNameException e) {
-      // Should never happen
-      throw new SethSystemException(e);
-    }
-
-    return conn;
+    // no-op
+    return null;
   }
 
   /**
@@ -173,9 +116,10 @@ public class ExecutionContextImpl implements ExecutionContext
    * @param name the name of the connection we are checking for.
    * @return true if a connection with this name currently exists, otherwise false.
    */
+  @Override
   public boolean hasConnection(String name)
   {
-    return connectionMap.containsKey(name);
+    return false;
   }
 
 

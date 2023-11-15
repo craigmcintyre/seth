@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static com.rapidsdata.seth.TestResult.ResultStatus.NOT_STARTED;
+
 public class TestRunner implements Runnable
 {
   private static final String DEFAULT_CONNECTION_NAME = "default";
@@ -100,12 +102,13 @@ public class TestRunner implements Runnable
   public void runTest()
   {
     TestLogger logger = testContext.getLogger();
-    logger.testExecuting(testContext.getTestFile());
-
     long stepCount = 0;
 
     // Mark the test result as having started.
-    testContext.markAsStarted();
+    if (testContext.getResult().getStatus() == NOT_STARTED) {
+      logger.testExecuting(testContext.getTestFile());
+      testContext.markAsStarted();
+    }
 
     // Make the default connection.
     try {

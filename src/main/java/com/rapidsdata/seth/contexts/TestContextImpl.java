@@ -45,6 +45,9 @@ public class TestContextImpl implements TestContext
   /** Options that are specified to this test. */
   private final Options testOptions = new Options();
 
+  /** A case-insensitive map of variable names and values. */
+  private final Map<String, String> variables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+
   /**
    * Constructor.
    * @param appContext The application context.
@@ -75,6 +78,15 @@ public class TestContextImpl implements TestContext
   public List<TestableFile> getTestableFiles()
   {
     return appContext.getTestableFiles();
+  }
+
+  /**
+   * Returns the map of variable names and values.
+   * @return the map of variable names and values.
+   */
+  @Override
+  public Map<String, String> getVariables() {
+    return variables;
   }
 
   /**

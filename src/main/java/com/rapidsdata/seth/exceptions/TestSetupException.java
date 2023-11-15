@@ -23,6 +23,18 @@ public class TestSetupException extends FailureException
   }
 
   /**
+   * Creates a TestSetupException from a general error message.
+   * @param msg the error message.
+   * @param testFile the file being tested.
+   * @param lineNo the line that the error occurred on
+   */
+  public TestSetupException(String msg, File testFile, int lineNo)
+  {
+    super(msg, testFile, lineNo, null);
+    this.error = msg;
+  }
+
+  /**
    * Creates a FailureException from a FileNotFoundException.
    * @param e The FileNotFoundException for not finding the test file.
    * @param testFile The test file we were trying to find.
@@ -86,5 +98,44 @@ public class TestSetupException extends FailureException
     }
 
     return sb.toString();
+  }
+
+  /**
+   * Returns a StringBuilder with a partially formatted message, optionally describing where
+   * the error occurred and what was being executed.
+   * This function should be called first when overriding getMessage(boolean, boolean, boolean) above.
+   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   *                      had the error then we won't reprint the test file path.
+   * @return a partially filled StringBuilder instance with some metadata about the failure.
+   */
+  @Override
+  protected StringBuilder formatMessage(File outerTestFile)
+  {
+    StringBuilder sb = new StringBuilder(1024);
+
+    if (testFile != null) {
+      sb.append(FILE_HEADING)
+          .append(testFile.getPath());
+    }
+
+    if (lineNumber > 0) {
+      if (sb.length() > 0) {
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(LINE_HEADING)
+          .append(lineNumber);
+    }
+
+    if (command != null) {
+      if (sb.length() > 0) {
+        sb.append(System.lineSeparator());
+      }
+
+      sb.append(COMMAND_HEADING)
+          .append(indent(command));
+    }
+
+    return sb;
   }
 }

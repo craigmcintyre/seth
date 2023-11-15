@@ -19,6 +19,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static com.rapidsdata.seth.TestResult.ResultStatus.NOT_STARTED;
+
 /** The class that runs the batch of test files. */
 public class TestSuite
 {
@@ -50,7 +52,6 @@ public class TestSuite
     List<TestResult> resultList = new LinkedList<>();
     List<FutureContext>  futureContextList = new ArrayList<>();
 
-    TestPlanner planner = new TestPlanner(appContext);
     Plan plan = null;
 
     TestLogger logger = appContext.getLogger();
@@ -92,9 +93,24 @@ public class TestSuite
         // Save it in the list of results. It will get updated as the test executes.
         resultList.add(testResult);
 
+        // Make a new test context for executing this test.
+        testContext = new TestContextImpl(appContext, testableFile.getFile(), testResult);
+
         // Parse each test file
         try {
+          TestPlanner planner = new TestPlanner(testContext);
           plan = planner.newPlanFor(testableFile.getFile(), new ArrayList<File>(), testsToAnnotate);
+
+        } catch (FailureException e) {
+          if (testContext.getResult().getStatus() == NOT_STARTED) {
+            // This can happen with a failure during parsing
+            logger.testExecuting(testContext.getTestFile());
+            testContext.markAsStarted();
+          }
+
+          testResult.setFailure(e);
+          logger.error("\n" + testResult.getFailureDescription());
+          continue;
 
         } catch (FileNotFoundException e) {
           testResult.setFailure(e);
@@ -112,8 +128,6 @@ public class TestSuite
           throw e;
         }
 
-        // Make a new test context for executing this test.
-        testContext = new TestContextImpl(appContext, testableFile.getFile(), testResult);
 
         // Make a new TestRunner to run the plan
         TestRunner testRunner = new TestRunner(plan, testContext, true);

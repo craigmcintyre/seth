@@ -3,9 +3,11 @@
 package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.contexts.AppContext;
+import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
+import com.rapidsdata.seth.parser.SethVariables;
 import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 import org.antlr.v4.runtime.*;
@@ -22,15 +24,15 @@ import java.util.List;
 public class TestPlanner
 {
   /** Contains various common information and objects for the application. */
-  private final AppContext appContext;
+  private final TestContext testContext;
 
   /**
    * Constructor.
-   * @param appContext Contains various common information and objects for the application.
+   * @param testContext Contains various common information and objects for the test.
    */
-  public TestPlanner(AppContext appContext)
+  public TestPlanner(TestContext testContext)
   {
-    this.appContext = appContext;
+    this.testContext = testContext;
   }
 
   /**
@@ -43,7 +45,7 @@ public class TestPlanner
    * @throws PlanningException if there is a problem with the contents of the test file.
    */
   public Plan newPlanFor(File testFile, List<File> callStack, List<TestAnnotationInfo> testsToAnnotate)
-                         throws FileNotFoundException, PlanningException
+                         throws FailureException, FileNotFoundException, PlanningException
   {
     if (!testFile.exists()) {
       throw new FileNotFoundException("File not found: " + testFile.getPath());
@@ -60,21 +62,10 @@ public class TestPlanner
     String contents = new String(bytes);
     SethLexer lexer = new SethLexer(new ANTLRInputStream(contents));
 
-    // Set the name of the test file (with parent dir prepended) into the lexer
-    // so that it can translate special variables like ${testName} into a unique value.
-    // If the current test file is included in another (i.e. there is a callstack)
-    // then we use the name of the root test file.
-    File rootTestFile = callStack.isEmpty() ? testFile : callStack.get(0);
-    String testParentDir = rootTestFile.getParentFile() == null ? "" : rootTestFile.getParentFile().getName();
-
-    String testName = rootTestFile.getName();
-    int extensionIndex = testName.lastIndexOf(".");
-    if (extensionIndex != -1) {
-      testName = testName.substring(0, extensionIndex);
-    }
-
-    // Set it in the lexer using both the test name and the name of the parent directory.
-    lexer.currentFilename = testParentDir + "_" + testName;
+    // Create a SethVariables object and set it into the lexer so it can
+    // lookup and replace variables in token text.
+    SethVariables variableHelper = new SethVariables(testContext, testFile, callStack);
+    lexer.setVariablesHelper(variableHelper);
 
     SethParser parser = new SethParser(new CommonTokenStream(lexer));
     parser.setErrorHandler(new ErrorHandler(testFile));
@@ -88,14 +79,19 @@ public class TestPlanner
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
-      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack, appContext, testsToAnnotate);
+      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack, testContext, testsToAnnotate);
 
       plan = generator.generatePlanFor(tree); // This will typically throw SemanticExceptions,
                                           // but can also throw SyntaxExceptions from included files
                                           // or even a FileNotFoundException for an included path.
 
     } catch (SethBrownBagException e) {
-      if (e.getCause() instanceof PlanningException) {
+      if (e.getCause() instanceof FailureException) {
+        // This comes from immediately executed operations, such as setting
+        // a variable (as this occurs during the parsing stage).
+        throw (FailureException) e.getCause();
+
+      } else if (e.getCause() instanceof PlanningException) {
         throw (PlanningException) e.getCause();
 
       } else if (e.getCause() instanceof FileNotFoundException) {
@@ -151,7 +147,7 @@ public class TestPlanner
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
-      TestPlanGenerator generator = new TestPlanGenerator(parser, resultFile, callStack, appContext, currentOpQueueStack, testsToAnnotate);
+      TestPlanGenerator generator = new TestPlanGenerator(parser, resultFile, callStack, testContext, currentOpQueueStack, testsToAnnotate);
 
       er = generator.generateExpectedResultFor(tree); // This will typically throw SemanticExceptions,
                                                       // but can also throw SyntaxExceptions from included files

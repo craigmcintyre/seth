@@ -19,6 +19,12 @@ public interface TestContext extends AppContext
   public File getTestFile();
 
   /**
+   * Returns the map of variable names and values.
+   * @return the map of variable names and values.
+   */
+  public Map<String,String> getVariables();
+
+  /**
    * A notification flag to child threads whether to continue testing or whether the test is ending
    * and they should stop executing.
    * @return true if the test is continuing or false if it is ending.

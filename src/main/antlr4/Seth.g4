@@ -2,16 +2,29 @@
 
 grammar Seth ;
 
+@lexer::headers {
+  import com.rapidsdata.seth.parser.SethVariables;
+}
+
 @lexer::members {
-  public String currentFilename = "";
+  private SethVariables variablesHelper;
 
   /**
-   * Replaces special variables with their values in the token.
-   * Case insensitive.
+   * Set the variable helper object that is used to lookup and
+   * replace variables in token text.
    */
-  private void replaceVariables()
+  public void setVariablesHelper(SethVariables variablesHelper)
   {
-    String newStr = SethVariables.replaceVarTestName(getText(), currentFilename);
+    this.variablesHelper = variablesHelper;
+  }
+
+  /*
+   * A function that can be called to expand variables found in
+   * token text with their values.
+   */
+  private void evaluateVariables()
+  {
+    String newStr = this.variablesHelper.evaluateToken(getText());
     if (newStr != null) {
       setText(newStr);
     }
@@ -54,6 +67,8 @@ singularStatements : (  sleepStatement
                       | failStatement
                       | setOptionsStatement
                       | unsetOptionsStatement
+                      | setVariablesStatement
+                      | unsetVariablesStatement
                       | emptyStatement
                      ) ';' ;
 
@@ -73,6 +88,9 @@ includeFileStmt     : INCLUDE FILE?  filePath=STR ;
 failStatement       : FAIL (msg=STR)? ;
 setOptionsStatement  : SET (OPTIONS | OPTION) optionList ;
 unsetOptionsStatement: UNSET (OPTIONS | OPTION) optKey (',' optKey)* ;
+setVariablesStatement   : SET (VARIABLES | VARIABLE | VARS | VAR) varList ;
+unsetVariablesStatement : UNSET (VARIABLES | VARIABLE | VARS | VAR) varName (',' varName)* ;
+
 emptyStatement      : ;
 
 
@@ -95,6 +113,11 @@ optionList          : opt ( ',' opt )* ;
 opt                 : optKey ( '=' optVal)? ;
 optKey              : (ID | STR) ;
 optVal              : booleanVal | integerVal | decimalVal | floatVal | stringVal | idVal ;
+
+varList             : varPair ( ',' varPair )* ;
+varPair             : varName '=' varVal ;
+varName             : ID ;
+varVal              : booleanVal | integerVal | decimalVal | floatVal | stringVal | idVal ;
 
 resultFile          : RESULT FILE? ':' filePath=STR ;
 
@@ -241,6 +264,10 @@ TRUE                  : T R U E;
 UNORDERED             : U N O R D E R E D;
 UNSET                 : U N S E T;
 USE                   : U S E;
+VARIABLES             : V A R I A B L E S;
+VARIABLE              : V A R I A B L E;
+VARS                  : V A R S;
+VAR                   : V A R;
 WARNINGS              : W A R N I N G S;
 WARNING               : W A R N I N G;
 YEAR                  : Y E A R;
@@ -287,11 +314,11 @@ fragment DUBLSINGL    : '\'\'' ;
 fragment SINGLE_STR   : '\'' (DUBLSINGL | (~'\''))* '\'' ;
 fragment DOUBLE_STR   : '"'  (DUBLDUBL  | (~'"'))* '"' ;
 
-fragment VARIABLE     : '${' (ID_LETTER | DIGIT)+ '}' ;
+fragment VARIABLE_REF : '${' (ID_LETTER | DIGIT)+ '}' ;
 
 ID  : (ID_LETTER (ID_LETTER | DIGIT)*) ;
-VARIABLE_ID : (ID_LETTER | VARIABLE) (ID_LETTER | DIGIT | VARIABLE)*
-              { replaceVariables(); }
+VARIABLE_ID : (ID_LETTER | VARIABLE_REF) (ID_LETTER | DIGIT | VARIABLE_REF)*
+              { evaluateVariables(); }
             ;
 
 TSP : FOUR_DIGITS '-' TWO_DIGITS '-' TWO_DIGITS (' ' | T) TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? Z?;
@@ -300,7 +327,7 @@ TME : TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? ;
 FLT : ('+' | '-')? (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
 INT : ('+' | '-')? DIGIT+ ;
 DEC : ('+' | '-')? ( (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ) ;
-STR : (SINGLE_STR | DOUBLE_STR)   { replaceVariables(); };
+STR : (SINGLE_STR | DOUBLE_STR)   { evaluateVariables(); };
 
 // We put comments and whitespace on a hidden tokeniser channel so that we can reconstruct
 // the original statement and pass it on to the execution engine unchanged.

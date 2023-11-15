@@ -16,6 +16,8 @@ public abstract class Operation
   /** The expected result for this operation. */
   protected final ExpectedResult expectedResult;
 
+  protected final boolean executeImmediately;
+
   /**
    * Constructor
    * @param metadata The metadata about where this operation came from in the test file.
@@ -24,6 +26,19 @@ public abstract class Operation
   {
     this.metadata = metadata;
     this.expectedResult = expectedResult;
+    this.executeImmediately = false;
+  }
+
+
+  /**
+   * Constructor
+   * @param metadata The metadata about where this operation came from in the test file.
+   */
+  public Operation(OperationMetadata metadata, ExpectedResult expectedResult, boolean executeImmediately)
+  {
+    this.metadata = metadata;
+    this.expectedResult = expectedResult;
+    this.executeImmediately = executeImmediately;
   }
 
   /**
@@ -97,6 +112,16 @@ public abstract class Operation
     return sb.toString();
   }
 
+  /**
+   * Returns whether the operation should execute immediately after it is created,
+   * or as part of the regularly running test.
+   * @return true if the operation should execute immediately after it is created
+   * or false if it can run sequentially with the rest of the test operations.
+   */
+  public boolean getExecuteImmediately()
+  {
+    return executeImmediately;
+  }
 
   @Override
   public String toString()
