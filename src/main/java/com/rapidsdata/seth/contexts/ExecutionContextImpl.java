@@ -414,6 +414,15 @@ public class ExecutionContextImpl implements ExecutionContext
   }
 
   /**
+   * Returns the variables that are set for the whole application (all tests).
+   * @return the variables that are set for the whole application (all tests).
+   */
+  @Override
+  public Map<String, String> getAppVariables() {
+    return testContext.getAppVariables();
+  }
+
+  /**
    * Returns the options that are applied to the this test.
    * @return the options that are applied to the this test.
    */

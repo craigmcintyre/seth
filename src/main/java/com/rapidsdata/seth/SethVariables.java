@@ -38,7 +38,9 @@ public class SethVariables
    */
   public SethVariables(File testFile)
   {
-    initTestNameVars(testFile);
+    if (testFile != null) {
+      initTestNameVars(testFile);
+    }
   }
 
   /**

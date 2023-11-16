@@ -4,14 +4,12 @@ package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.PathRelativity;
-import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.contexts.ParserExecutionContextImpl;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethParser;
-import com.rapidsdata.seth.SethVariables;
 import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.plan.expectedResults.*;
 import org.antlr.v4.runtime.Parser;
@@ -164,6 +162,18 @@ public class TestPlanGenerator extends SethBaseVisitor
     visit(tree);
 
     return options;
+  }
+
+  /**
+   * Used to parse and return a set of app variables.
+   * @param tree
+   * @return a parsed set of variables used.
+   */
+  public Map<String,String> generateVariablesFor(ParseTree tree)
+  {
+    visit(tree);
+
+    return variablesMap;
   }
 
 
@@ -2210,7 +2220,9 @@ public class TestPlanGenerator extends SethBaseVisitor
     Options.BadVarRefHandler errorHandler = Options.getBadVarRefHandler(this.optionList);
 
     try {
-      File testFile = callStack.size() > 0 ? callStack.get(callStack.size() - 1) : testContext.getTestFile();
+      File testFile = callStack != null && callStack.size() > 0 ?
+                        callStack.get(callStack.size() - 1) :
+                        this.testFile;
 
       String s = testContext.getVariables().evaluateVarRefs(str, errorHandler, testFile, line);
       return s;

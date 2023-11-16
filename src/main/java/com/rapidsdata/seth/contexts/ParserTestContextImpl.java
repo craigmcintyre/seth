@@ -1,48 +1,28 @@
 // Copyright (c) 2017 Boray Data Co. Ltd.  All rights reserved.
 
+// A fake/temporary TestContext to be used when parsing command line variables.
+
 package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.*;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.logging.TestLogger;
-import com.rapidsdata.seth.SethVariables;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class TestContextImpl implements TestContext
+public class ParserTestContextImpl implements TestContext
 {
   /** The application context that this test context uses. */
-  private final AppContext appContext;
 
-  /** The test file being executed. */
-  private final File testFile;
-
-  /** The object that will hold the result of the test. */
-  private final TestResult testResult;
-
-  /** A flag that indicates to test threads whether to keep running or to exit the test early. */
-  private volatile boolean continueTesting = true;
-
-  /** A lock used for the cleanupPhase. */
-  private final Lock lock = new ReentrantLock();
-
-  /** A condition to wait on for cleanup to start. */
-  private final Condition cleanupPhase = lock.newCondition();
-
-  /** A count of the number of active threads running the current test. */
-  private final AtomicInteger numActiveThreads = new AtomicInteger(0);
-
-  /** A map of objects that threads can synchronise on. */
-  private final Map<String, CyclicBarrier> syncMap = new ConcurrentHashMap<>();
-
-  /** Options that are specified to this test. */
   private final Options testOptions = new Options();
 
   /** A case-insensitive map of variable names and values. */
@@ -50,20 +30,10 @@ public class TestContextImpl implements TestContext
 
   /**
    * Constructor.
-   * @param appContext The application context.
    */
-  public TestContextImpl(AppContext appContext, File testFile, TestResult testResult)
+  public ParserTestContextImpl()
   {
-    this.appContext = appContext;
-    this.testFile = testFile;
-    this.testResult = testResult;
-    this.variables = new SethVariables(testFile);
-
-    // Apply the app variables to this test context
-    Map<String,String> appVariables = appContext.getAppVariables();
-    if (appVariables != null) {
-      this.variables.putAll(appVariables);
-    }
+    this.variables = new SethVariables(null);
   }
 
 
@@ -74,7 +44,7 @@ public class TestContextImpl implements TestContext
   @Override
   public long getAppStartTime()
   {
-    return appContext.getAppStartTime();
+    return 0;
   }
 
   /**
@@ -84,7 +54,7 @@ public class TestContextImpl implements TestContext
   @Override
   public List<TestableFile> getTestableFiles()
   {
-    return appContext.getTestableFiles();
+    return null;
   }
 
   /**
@@ -103,7 +73,7 @@ public class TestContextImpl implements TestContext
   @Override
   public String getUrl()
   {
-    return appContext.getUrl();
+    return null;
   }
 
   /**
@@ -113,7 +83,7 @@ public class TestContextImpl implements TestContext
   @Override
   public PathRelativity getPathRelativity()
   {
-    return appContext.getPathRelativity();
+    return PathRelativity.REFERER;
   }
 
   /**
@@ -123,7 +93,7 @@ public class TestContextImpl implements TestContext
   @Override
   public TestLogger getLogger()
   {
-    return appContext.getLogger();
+    return null;
   }
 
   /**
@@ -133,7 +103,7 @@ public class TestContextImpl implements TestContext
   @Override
   public ExecutorService getThreadPool()
   {
-    return appContext.getThreadPool();
+    return null;
   }
 
   /**
@@ -143,7 +113,7 @@ public class TestContextImpl implements TestContext
   @Override
   public CommandLineArgs getCommandLineArgs()
   {
-    return appContext.getCommandLineArgs();
+    return null;
   }
 
   /**
@@ -153,7 +123,7 @@ public class TestContextImpl implements TestContext
   @Override
   public Options getAppOptions()
   {
-    return appContext.getAppOptions();
+    return null;
   }
 
   /**
@@ -162,7 +132,7 @@ public class TestContextImpl implements TestContext
    */
   @Override
   public Map<String, String> getAppVariables() {
-    return appContext.getAppVariables();
+    return null;
   }
 
   /**
@@ -172,7 +142,7 @@ public class TestContextImpl implements TestContext
   @Override
   public File getTestFile()
   {
-    return testFile;
+    return null;
   }
 
   /**
@@ -183,7 +153,7 @@ public class TestContextImpl implements TestContext
   @Override
   public boolean continueTesting()
   {
-    return continueTesting;
+    return false;
   }
 
   /**
@@ -193,16 +163,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void waitForCleanup()
   {
-    lock.lock();
-
-    try {
-      while (continueTesting) {
-        cleanupPhase.awaitUninterruptibly();
-      }
-
-    } finally {
-      lock.unlock();
-    }
+    // no-op
   }
 
   /**
@@ -212,16 +173,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void abortTest()
   {
-    lock.lock();
-
-    try {
-      if (continueTesting) {
-        testResult.setAbort();
-        signalEndOfTesting();
-      }
-    } finally {
-      lock.unlock();
-    }
+    // no-op
   }
 
   /**
@@ -230,7 +182,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void markAsStarted()
   {
-    testResult.setStarted();
+    // no-op
   }
 
   /**
@@ -239,16 +191,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void markAsSucceeded()
   {
-    lock.lock();
-
-    try {
-      if (continueTesting) {
-        testResult.setSuccess();
-        signalEndOfTesting();
-      }
-    } finally {
-      lock.unlock();
-    }
+    // no-op
   }
 
   /**
@@ -258,16 +201,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void markAsFailed(FailureException failure)
   {
-    lock.lock();
-
-    try {
-      if (continueTesting) {
-        testResult.setFailure(failure);
-        signalEndOfTesting();
-      }
-    } finally {
-      lock.unlock();
-    }
+    // no-op
   }
 
   /**
@@ -275,7 +209,7 @@ public class TestContextImpl implements TestContext
    */
   @Override
   public TestResult getResult() {
-    return testResult;
+    return null;
   }
 
   /**
@@ -284,15 +218,7 @@ public class TestContextImpl implements TestContext
    */
   private void signalEndOfTesting()
   {
-    lock.lock();
-
-    try {
-      continueTesting = false;
-      cleanupPhase.signalAll();
-
-    } finally {
-      lock.unlock();
-    }
+    // no-op
   }
 
   /**
@@ -303,7 +229,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void accumulateTestSteps(long count)
   {
-    testResult.accumulateSteps(count);
+    // no-op
   }
 
   /**
@@ -312,7 +238,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void incrementActiveThreads()
   {
-    numActiveThreads.incrementAndGet();
+    // no-op
   }
 
   /**
@@ -321,7 +247,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void decrementActiveThreads()
   {
-    numActiveThreads.decrementAndGet();
+    // no-op
   }
 
   /**
@@ -331,7 +257,7 @@ public class TestContextImpl implements TestContext
   @Override
   public int getNumActiveThreads()
   {
-    return numActiveThreads.get();
+    return 0;
   }
 
   /**
@@ -344,24 +270,7 @@ public class TestContextImpl implements TestContext
   @Override
   public CyclicBarrier getOrCreateSyncObject(String name, int parties)
   {
-    // is there currently a sync object with the given name?
-    CyclicBarrier barrier = syncMap.get(name);
-
-    if (barrier == null || barrier.getParties() != parties) {
-      // Create a new CyclicBarrier and save it in the sync map.
-
-      synchronized (syncMap) {
-        // We had better check under synchronisation if someone got in before us.
-        barrier = syncMap.get(name);
-
-        if (barrier == null || barrier.getParties() != parties) {
-          barrier = new CyclicBarrier(parties);
-          syncMap.put(name, barrier);
-        }
-      }
-    }
-
-    return barrier;
+    return null;
   }
 
   /**
@@ -372,9 +281,7 @@ public class TestContextImpl implements TestContext
   @Override
   public void removeSyncObject(String name, CyclicBarrier barrier)
   {
-    synchronized(syncMap) {
-      syncMap.remove(name, barrier);
-    }
+    // no-op
   }
 
   @Override

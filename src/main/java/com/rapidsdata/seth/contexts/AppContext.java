@@ -9,6 +9,7 @@ import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.TestableFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 public interface AppContext
@@ -60,4 +61,10 @@ public interface AppContext
    * @return the options that are applied to the whole application.
    */
   public Options getAppOptions();
+
+  /**
+   * Returns the variables that are set for the whole application (all tests).
+   * @return the variables that are set for the whole application (all tests).
+   */
+  public Map<String,String> getAppVariables();
 }

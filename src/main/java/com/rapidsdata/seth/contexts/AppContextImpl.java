@@ -9,6 +9,7 @@ import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.TestableFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 public class AppContextImpl implements AppContext
@@ -40,6 +41,9 @@ public class AppContextImpl implements AppContext
   /** The options that are applicable to the whole application. */
   private final Options appOptions;
 
+  /** The variables that are applied to all tests that run. */
+  private final Map<String, String> appVariables;
+
 
   public AppContextImpl(long appStartTime,
                         CommandLineArgs args,
@@ -48,7 +52,8 @@ public class AppContextImpl implements AppContext
                         PathRelativity pathRelativity,
                         TestLogger logger,
                         ExecutorService threadPool,
-                        Options appOptions)
+                        Options appOptions,
+                        Map<String,String> appVariables)
   {
     this.appStartTime = appStartTime;
     this.args = args;
@@ -58,6 +63,7 @@ public class AppContextImpl implements AppContext
     this.logger = logger;
     this.threadPool = threadPool;
     this.appOptions = appOptions;
+    this.appVariables = appVariables;
   }
 
   /**
@@ -138,5 +144,10 @@ public class AppContextImpl implements AppContext
   public Options getAppOptions()
   {
     return appOptions;
+  }
+
+  @Override
+  public Map<String, String> getAppVariables() {
+    return appVariables;
   }
 }

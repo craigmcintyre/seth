@@ -44,8 +44,14 @@ public class CommandLineArgs
   @Option(name      = "--opt",
           aliases   = {"--options"},
           required  = false,
-          usage     = "Options that will apply to all test files executed. Specified as \"key=value\" or simply just \"key\".")
+          usage     = "Options that will apply to all test files executed. Specified as \"key1=value1,key2=value2\" or simply just \"key\" (without the quotes).")
   public String opts = null;
+
+  @Option(name      = "--variables",
+          aliases   = {"--vars"},
+          required  = false,
+          usage     = "Setting the name and value of variables that will apply to all test files executed. Specified as \"varName1=value1,varName2=value2\" (without the quotes).")
+  public String variables = null;
 
   @Option(name      = "--unordered",
           required  = false,

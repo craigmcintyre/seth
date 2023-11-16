@@ -4,6 +4,7 @@ package com.rapidsdata.seth;
 
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.AppContextImpl;
+import com.rapidsdata.seth.contexts.ParserTestContextImpl;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.*;
 import com.rapidsdata.seth.parser.SethLexer;
@@ -13,6 +14,7 @@ import com.rapidsdata.seth.plan.TestPlanner;
 import com.rapidsdata.seth.results.ResultWriter;
 import com.rapidsdata.seth.results.ResultWriterFactory;
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.InputMismatchException;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.io.FileUtils;
@@ -27,10 +29,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -169,6 +168,13 @@ public class Seth {
       extractAppOptions(appOptions, args.opts);
     }
 
+    // Extract app variables and add them to the appContext
+    Map<String,String> appVariables = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
+
+    if (args.variables != null) {
+      extractAppVariables(appVariables, args.variables);
+    }
+
     // Create the main run context.
     AppContext appContext = new AppContextImpl(jvmStartTime,
                                                args,
@@ -177,7 +183,8 @@ public class Seth {
                                                args.relativity,
                                                logger,
                                                threadPool,
-                                               appOptions);
+                                               appOptions,
+                                               appVariables);
 
     // Create the ResultWriter
     ResultWriter resultWriter;
@@ -464,7 +471,7 @@ public class Seth {
   /**
    * Use ANTLR to parse and extract all of the options specified on the command line.
    * @param appOptions the Options object to add all of the options to.
-   * @param cmdLineOpts the string containing the command line options.
+   * @param cmdLineOpts the string containing the command line options to be parsed.
    * @throws PlanningException
    */
   private void extractAppOptions(Options appOptions, String cmdLineOpts)
@@ -514,6 +521,63 @@ public class Seth {
 
     if (options != null) {
       appOptions.putAll(options);
+    }
+  }
+
+  /**
+   * Use ANTLR to parse and extract all of the variables specified on the command line.
+   * @param appVariables the variables map object to add all of the variables to.
+   * @param cmdLineVars the string containing the command line variables to be parsed.
+   * @throws PlanningException
+   */
+  private void extractAppVariables(Map<String,String> appVariables, String cmdLineVars)
+  {
+    if (cmdLineVars.trim().isEmpty()) {
+      return;
+    }
+
+    SethLexer lexer = new SethLexer(new ANTLRInputStream(cmdLineVars));
+    SethParser parser = new SethParser(new CommonTokenStream(lexer));
+
+    parser.setErrorHandler(new DefaultErrorStrategy() {
+      @Override public void recover(Parser recognizer, RecognitionException e) { bail(); }
+      @Override public void sync(Parser recognizer) { }
+
+      @Override public Token recoverInline(Parser recognizer) {
+        InputMismatchException e = new InputMismatchException(recognizer);
+        Token t = e.getOffendingToken();
+        String near = getTokenErrorDisplay(t);
+        String expected = e.getExpectedTokens().toString(recognizer.getTokenNames());
+
+        String msg = String.format("Syntax error in variable arguments near %s; expected %s", near, expected);
+        throw new IllegalArgumentException(msg);
+      }
+
+      public void bail() { throw new IllegalArgumentException("Invalid options specified."); }
+    });
+
+    ParseTree tree;
+    Map<String,String> variableMap;
+
+    try {
+      tree = parser.varList();
+
+      ParserTestContextImpl fauxTestContext = new ParserTestContextImpl();
+      TestPlanGenerator generator = new TestPlanGenerator(parser, null, null, fauxTestContext, null);
+      variableMap = generator.generateVariablesFor(tree);
+
+    } catch (SethBrownBagException e) {
+      if (e.getCause() instanceof PlanningException) {
+//        throw new IllegalArgumentException("Invalid options specified", e.getCause());
+        throw e;
+
+      } else {
+        throw new SethSystemException("Unhandled exception " + e.getClass().getSimpleName(), e.getCause());
+      }
+    }
+
+    if (variableMap != null) {
+      appVariables.putAll(variableMap);
     }
   }
 
