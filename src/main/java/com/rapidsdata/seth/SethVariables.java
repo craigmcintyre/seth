@@ -1,24 +1,18 @@
 // Copyright (c) 2023 Boray Data Co. Ltd.  All rights reserved.
 
-package com.rapidsdata.seth.parser;
+package com.rapidsdata.seth;
 
-import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.exceptions.FailureException;
-import com.rapidsdata.seth.exceptions.SethBrownBagException;
 import com.rapidsdata.seth.exceptions.TestSetupException;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SethVariables
 {
-  private final TestContext testContext;
-  private final Map<String,String> variableMap;
+  private final Map<String,String> variableMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
   private static final Pattern pattern = Pattern.compile("\\$\\{\\w+\\}");
 
@@ -38,27 +32,22 @@ public class SethVariables
   private static final String VAR_TESTNAME = "testName";
   private static final String VAR_TESTNAME1 = "testName1";
 
-  public SethVariables(TestContext xContext, File testFile, List<File> callStack)
+  /**
+   * Constructor
+   * @param testFile
+   */
+  public SethVariables(File testFile)
   {
-    this.testContext = xContext;
-    this.variableMap = xContext.getVariables();
-
-    initTestNameVars(testFile, callStack);
+    initTestNameVars(testFile);
   }
 
   /**
    * Initialise the variables starting with ${testName}, if applicable
    * @param testFile
-   * @param callStack
    */
-  private void initTestNameVars(File testFile, List<File> callStack)
+  private void initTestNameVars(File testFile)
   {
-    if (variableMap.containsKey(VAR_TESTNAME)) {
-      return;
-    }
-
-    File rootTestFile = callStack.isEmpty() ? testFile : callStack.get(0);
-    rootTestFile = rootTestFile.getAbsoluteFile();
+    File rootTestFile = testFile.getAbsoluteFile();
 
     String testName = rootTestFile.getName();
     int extensionIndex = testName.lastIndexOf(".");
@@ -103,10 +92,11 @@ public class SethVariables
    * single token. Variable names are case insensitive.
    * @param tokenStr the contents of the token.
    * @param currentLineNo the line number of the current token
-   * @return the updated string, or null if the string does not contain any variables.
-   * @throws SethBrownBagException wrapped around a TestSetupException if a variable lookup error occurs.
+   * @return the updated string, or the original string if it did not contain any variable references.
+   * @throws FailureException if a variable lookup error occurs.
    */
-  public String evaluateToken(String tokenStr, int currentLineNo)
+  public String evaluateVarRefs(String tokenStr, Options.BadVarRefHandler errorHandler,
+                                File currentFile, int currentLineNo) throws FailureException
   {
     Matcher matcher = pattern.matcher(tokenStr);
     List<MatchedVar> matchedVars = new ArrayList<>();
@@ -116,7 +106,7 @@ public class SethVariables
     }
 
     if (matchedVars.isEmpty()) {
-      return null;
+      return tokenStr;
     }
 
     StringBuilder sb = new StringBuilder(tokenStr);
@@ -124,17 +114,27 @@ public class SethVariables
     // Replace the variables in reverse order so that the index values
     // we found them at remain correct.
     ListIterator<MatchedVar> iter = matchedVars.listIterator(matchedVars.size());
+
     while (iter.hasPrevious()) {
       MatchedVar matchedVar = iter.previous();
       String varName = matchedVar.varName.substring(2, matchedVar.varName.length() - 1); // Strip the outer ${} part
       String varValue = variableMap.get(varName);
 
       if (varValue == null) {
-        String errMsg = String.format("Variable not set: ${%s}", varName);
-        FailureException e = new TestSetupException(errMsg, testContext.getTestFile(), currentLineNo);
-        throw new SethBrownBagException(e);
-        // TODO: Could handle this as a warning, or simply replace with an empty string.
-//        varValue = "";
+
+        switch (errorHandler) {
+
+          case ERROR:
+            String errMsg = String.format("Variable not set: ${%s}", varName);
+            throw new TestSetupException(errMsg, currentFile, currentLineNo);
+
+          case EMPTY:       // Use an empty string instead
+            varValue = "";
+            break;
+
+          case NO_EVAL:     // Don't evaluate. Leave the reference as it is.
+            continue;
+        }
       }
 
       sb.replace(matchedVar.startIdx,
@@ -145,6 +145,24 @@ public class SethVariables
     return sb.toString();
   }
 
+  /**
+   * Adds new variables to the map.
+   * @param newVars the set of variables and values to be added.
+   */
+  public void putAll(Map<String,String> newVars)
+  {
+    this.variableMap.putAll(newVars);
+  }
 
+  /**
+   * Removes a variable from the map and returns its value, or null if it
+   * wasn't in the collection.
+   * @param varName the name of the variable to be removed, without the "${}" adornments.
+   * @return the value of the variable, or null if a variable of that name didn't exist.
+   */
+  public String remove(String varName)
+  {
+    return this.variableMap.remove(varName);
+  }
 
 }

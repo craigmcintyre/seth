@@ -24,6 +24,19 @@ public class SetOptionsOp extends Operation
   }
 
   /**
+   * Constructor
+   * @param metadata The metadata about where this operation came from in the test file.
+   * @param options the keys and values of the options to be set.
+   * @param executeImmediately if true then execute immediately after parsing
+   */
+  public SetOptionsOp(OperationMetadata metadata, ExpectedResult expectedResult, Options options, boolean executeImmediately)
+  {
+    super(metadata, expectedResult, executeImmediately);
+
+    this.options = options;
+  }
+
+  /**
    * Rewrites the current operation with the given expected result.
    * @param expectedResult the expected result to compare to.
    * @return the newly rewritten, immutable Operation with the new expected result.
@@ -31,7 +44,7 @@ public class SetOptionsOp extends Operation
   @Override
   public Operation rewriteWith(ExpectedResult expectedResult)
   {
-    return new SetOptionsOp(this.metadata, expectedResult, this.options);
+    return new SetOptionsOp(this.metadata, expectedResult, this.options, this.executeImmediately);
   }
 
   /**

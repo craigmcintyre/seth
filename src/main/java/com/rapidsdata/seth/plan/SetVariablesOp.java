@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.SethVariables;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
@@ -46,8 +47,8 @@ public class SetVariablesOp extends Operation
   public void execute(ExecutionContext xContext) throws FailureException
   {
 
-    Map<String,String> variablesMap = xContext.getVariables();
-    variablesMap.putAll(newVars);
+    SethVariables sethVars = xContext.getVariables();
+    sethVars.putAll(newVars);
 
     expectedResult.assertActualAsSuccess(xContext, null);
   }

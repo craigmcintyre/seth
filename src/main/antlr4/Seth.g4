@@ -2,35 +2,6 @@
 
 grammar Seth ;
 
-@lexer::headers {
-  import com.rapidsdata.seth.parser.SethVariables;
-}
-
-@lexer::members {
-  private SethVariables variablesHelper;
-
-  /**
-   * Set the variable helper object that is used to lookup and
-   * replace variables in token text.
-   */
-  public void setVariablesHelper(SethVariables variablesHelper)
-  {
-    this.variablesHelper = variablesHelper;
-  }
-
-  /*
-   * A function that can be called to expand variables found in
-   * token text with their values.
-   */
-  private void evaluateVariables()
-  {
-    String newStr = this.variablesHelper.evaluateToken(getText());
-    if (newStr != null) {
-      setText(newStr);
-    }
-  }
-}
-
 testFile          : statements cleanupSection? ;
 
 cleanupSection    : CLEANUP statementBlock ;
@@ -111,12 +82,12 @@ expectedResult      : opts?
 opts                : '[' optionList ']' ;
 optionList          : opt ( ',' opt )* ;
 opt                 : optKey ( '=' optVal)? ;
-optKey              : (ID | STR) ;
+optKey              : (ID | VARIABLE_ID | STR) ;
 optVal              : booleanVal | integerVal | decimalVal | floatVal | stringVal | idVal ;
 
 varList             : varPair ( ',' varPair )* ;
 varPair             : varName '=' varVal ;
-varName             : ID ;
+varName             : (ID | VARIABLE_ID) ;
 varVal              : booleanVal | integerVal | decimalVal | floatVal | stringVal | idVal ;
 
 resultFile          : RESULT FILE? ':' filePath=STR ;
@@ -175,7 +146,7 @@ integerVal          : INT ;
 decimalVal          : DEC ;
 floatVal            : FLT ;
 stringVal           : STR ;
-idVal               : ID ;
+idVal               : (ID | VARIABLE_ID) ;
 dateVal             : (DATE STR) | DTE ;
 timeVal             : (TIME STR) | TME ;
 timestampVal        : (TIMESTAMP STR) | TSP ;
@@ -317,9 +288,7 @@ fragment DOUBLE_STR   : '"'  (DUBLDUBL  | (~'"'))* '"' ;
 fragment VARIABLE_REF : '${' (ID_LETTER | DIGIT)+ '}' ;
 
 ID  : (ID_LETTER (ID_LETTER | DIGIT)*) ;
-VARIABLE_ID : (ID_LETTER | VARIABLE_REF) (ID_LETTER | DIGIT | VARIABLE_REF)*
-              { evaluateVariables(); }
-            ;
+VARIABLE_ID : (ID_LETTER | VARIABLE_REF) (ID_LETTER | DIGIT | VARIABLE_REF)* ;
 
 TSP : FOUR_DIGITS '-' TWO_DIGITS '-' TWO_DIGITS (' ' | T) TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? Z?;
 DTE : FOUR_DIGITS '-' TWO_DIGITS '-' TWO_DIGITS ;
@@ -327,7 +296,7 @@ TME : TWO_DIGITS ':' TWO_DIGITS ':' TWO_DIGITS ('.' DIGIT+)? ;
 FLT : ('+' | '-')? (DEC | DIGIT+) ('e' | 'E') ('+' | '-')? DIGIT+ ;
 INT : ('+' | '-')? DIGIT+ ;
 DEC : ('+' | '-')? ( (DIGIT+ '.' DIGIT*) | '.' DIGIT+ ) ;
-STR : (SINGLE_STR | DOUBLE_STR)   { evaluateVariables(); };
+STR : (SINGLE_STR | DOUBLE_STR) ;
 
 // We put comments and whitespace on a hidden tokeniser channel so that we can reconstruct
 // the original statement and pass it on to the execution engine unchanged.

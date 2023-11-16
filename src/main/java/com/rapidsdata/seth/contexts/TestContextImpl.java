@@ -5,11 +5,11 @@ package com.rapidsdata.seth.contexts;
 import com.rapidsdata.seth.*;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.logging.TestLogger;
+import com.rapidsdata.seth.SethVariables;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
@@ -46,7 +46,7 @@ public class TestContextImpl implements TestContext
   private final Options testOptions = new Options();
 
   /** A case-insensitive map of variable names and values. */
-  private final Map<String, String> variables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+  private final SethVariables variables;
 
   /**
    * Constructor.
@@ -57,6 +57,7 @@ public class TestContextImpl implements TestContext
     this.appContext = appContext;
     this.testFile = testFile;
     this.testResult = testResult;
+    this.variables = new SethVariables(testFile);
   }
 
 
@@ -85,7 +86,7 @@ public class TestContextImpl implements TestContext
    * @return the map of variable names and values.
    */
   @Override
-  public Map<String, String> getVariables() {
+  public SethVariables getVariables() {
     return variables;
   }
 

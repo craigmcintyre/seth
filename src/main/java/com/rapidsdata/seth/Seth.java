@@ -4,10 +4,7 @@ package com.rapidsdata.seth;
 
 import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.AppContextImpl;
-import com.rapidsdata.seth.exceptions.InvalidResultFormatException;
-import com.rapidsdata.seth.exceptions.PlanningException;
-import com.rapidsdata.seth.exceptions.SethBrownBagException;
-import com.rapidsdata.seth.exceptions.SethSystemException;
+import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
@@ -116,7 +113,13 @@ public class Seth {
       seth.run();
 
     } catch (SethBrownBagException e) {
+      Throwable wrapped = e.getCause();
       String msg = getStackTraceFrom(e);
+
+      if (wrapped instanceof PlanningException) {
+        msg = wrapped.toString();
+      }
+
       seth.logger.log(msg, false);
     }
   }
@@ -501,7 +504,8 @@ public class Seth {
 
     } catch (SethBrownBagException e) {
       if (e.getCause() instanceof PlanningException) {
-        throw new IllegalArgumentException("Invalid options specified", e.getCause());
+//        throw new IllegalArgumentException("Invalid options specified", e.getCause());
+        throw e;
 
       } else {
         throw new SethSystemException("Unhandled exception " + e.getClass().getSimpleName(), e.getCause());

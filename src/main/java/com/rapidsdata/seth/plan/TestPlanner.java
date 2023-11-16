@@ -2,12 +2,11 @@
 
 package com.rapidsdata.seth.plan;
 
-import com.rapidsdata.seth.contexts.AppContext;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
-import com.rapidsdata.seth.parser.SethVariables;
+import com.rapidsdata.seth.SethVariables;
 import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 import org.antlr.v4.runtime.*;
@@ -61,12 +60,6 @@ public class TestPlanner
 
     String contents = new String(bytes);
     SethLexer lexer = new SethLexer(new ANTLRInputStream(contents));
-
-    // Create a SethVariables object and set it into the lexer so it can
-    // lookup and replace variables in token text.
-    SethVariables variableHelper = new SethVariables(testContext, testFile, callStack);
-    lexer.setVariablesHelper(variableHelper);
-
     SethParser parser = new SethParser(new CommonTokenStream(lexer));
     parser.setErrorHandler(new ErrorHandler(testFile));
 

@@ -142,7 +142,7 @@ public class ParserExecutionContextImpl implements ExecutionContext
    * @return the map of variable names and values.
    */
   @Override
-  public Map<String, String> getVariables() {
+  public SethVariables getVariables() {
     return testContext.getVariables();
   }
 

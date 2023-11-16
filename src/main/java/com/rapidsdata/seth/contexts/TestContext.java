@@ -5,9 +5,9 @@ package com.rapidsdata.seth.contexts;
 import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.exceptions.FailureException;
+import com.rapidsdata.seth.SethVariables;
 
 import java.io.File;
-import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 
 public interface TestContext extends AppContext
@@ -22,7 +22,7 @@ public interface TestContext extends AppContext
    * Returns the map of variable names and values.
    * @return the map of variable names and values.
    */
-  public Map<String,String> getVariables();
+  public SethVariables getVariables();
 
   /**
    * A notification flag to child threads whether to continue testing or whether the test is ending

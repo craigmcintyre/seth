@@ -26,6 +26,19 @@ public class UnsetOptionsOp extends Operation
   }
 
   /**
+   * Constructor
+   * @param metadata The metadata about where this operation came from in the test file.
+   * @param keys the name of the option to be removed from the testOptions.
+   * @param executeImmediately if true then this operation will be executed immediately after parsing
+   */
+  public UnsetOptionsOp(OperationMetadata metadata, ExpectedResult expectedResult, List<String> keys, boolean executeImmediately)
+  {
+    super(metadata, expectedResult, executeImmediately);
+
+    this.keys = keys;
+  }
+
+  /**
    * Rewrites the current operation with the given expected result.
    * @param expectedResult the expected result to compare to.
    * @return the newly rewritten, immutable Operation with the new expected result.
@@ -33,7 +46,7 @@ public class UnsetOptionsOp extends Operation
   @Override
   public Operation rewriteWith(ExpectedResult expectedResult)
   {
-    return new UnsetOptionsOp(this.metadata, expectedResult, this.keys);
+    return new UnsetOptionsOp(this.metadata, expectedResult, this.keys, this.executeImmediately);
   }
 
   /**

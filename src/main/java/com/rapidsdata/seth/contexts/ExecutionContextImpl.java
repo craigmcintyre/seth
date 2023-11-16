@@ -5,6 +5,7 @@ package com.rapidsdata.seth.contexts;
 import com.rapidsdata.seth.*;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
+import com.rapidsdata.seth.SethVariables;
 
 import java.io.File;
 import java.sql.Connection;
@@ -198,7 +199,7 @@ public class ExecutionContextImpl implements ExecutionContext
    * @return the map of variable names and values.
    */
   @Override
-  public Map<String, String> getVariables() {
+  public SethVariables getVariables() {
     return testContext.getVariables();
   }
 

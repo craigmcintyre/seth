@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.Options;
+import com.rapidsdata.seth.SethVariables;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
@@ -48,10 +49,10 @@ public class UnsetVariablesOp extends Operation
   public void execute(ExecutionContext xContext) throws FailureException
   {
 
-    Map<String,String> variablesMap = xContext.getVariables();
+    SethVariables sethVars = xContext.getVariables();
 
     for (String varName : varNames) {
-      String result = variablesMap.remove(varName);
+      String result = sethVars.remove(varName);
 
       if (result == null) {
         expectedResult.assertActualAsFailure(xContext, "No test variable with the name \"" + varName + "\".");

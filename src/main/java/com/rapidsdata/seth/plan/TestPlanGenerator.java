@@ -4,12 +4,14 @@ package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.PathRelativity;
+import com.rapidsdata.seth.TestResult;
 import com.rapidsdata.seth.contexts.ParserExecutionContextImpl;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.parser.SethBaseVisitor;
 import com.rapidsdata.seth.parser.SethParser;
+import com.rapidsdata.seth.SethVariables;
 import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.plan.expectedResults.*;
 import org.antlr.v4.runtime.Parser;
@@ -87,11 +89,15 @@ public class TestPlanGenerator extends SethBaseVisitor
   /** The current test to be annotated with new expected results. */
   private TestAnnotationInfo testToAnnotate = null;
 
-  /** key/value options that can be applied at different levels. */
+  /** Parsing of key/value options that can be applied at different levels. */
   private Options options = null;
 
   /** Variable name and values that are being defined in the test file. */
   private Map<String,String> variablesMap = null;
+
+  /** The list of options that may apply during this parsing operation. */
+  private final LinkedList<Options> optionList;
+
 
 
   /**
@@ -106,6 +112,9 @@ public class TestPlanGenerator extends SethBaseVisitor
     this.callStack = callStack;
     this.testContext = testContext;
     this.testsToAnnotate = testsToAnnotate;
+    this.optionList = testContext == null ?
+                      Options.listOf() :
+                      Options.listOf(testContext.getAppOptions(), testContext.getTestOptions());
   }
 
   /**
@@ -126,6 +135,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     this.testContext = testContext;
     this.currentOpQueueStack = currentOpQueueStack;
     this.testsToAnnotate = testsToAnnotate;
+    this.optionList = Options.listOf(testContext.getAppOptions(), testContext.getTestOptions());
   }
 
   /**
@@ -271,21 +281,25 @@ public class TestPlanGenerator extends SethBaseVisitor
 
         } else {
           // Add a "don't care" expected result.
-          Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
-          ExpectedResult expectedResult = new DontCareExpectedResult(op.metadata, testContext, options);
-          Operation newOp = op.rewriteWith(expectedResult);
-          currentOpQueueStack.peek().add(newOp);
+          if (!currentOpQueueStack.peek().isEmpty()) {
+            Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
+            ExpectedResult expectedResult = new DontCareExpectedResult(op.metadata, testContext, options);
+            Operation newOp = op.rewriteWith(expectedResult);
+            currentOpQueueStack.peek().add(newOp);
+          }
         }
       }
     }
 
-    Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
-    if (op.executeImmediately) {
-      executeImmediately(op);
+    if (!currentOpQueueStack.peek().isEmpty()) {
+      Operation op = currentOpQueueStack.peek().remove(currentOpQueueStack.peek().size() - 1);
+      if (op.executeImmediately) {
+        executeImmediately(op);
 
-    } else {
-      // Put it back on the list
-      currentOpQueueStack.peek().add(op);
+      } else {
+        // Put it back on the list
+        currentOpQueueStack.peek().add(op);
+      }
     }
 
     return null;
@@ -300,6 +314,10 @@ public class TestPlanGenerator extends SethBaseVisitor
     OperationMetadata opMetadata = opMetadataStack.pop();
     String desc = opMetadata.getDescription().trim();
     desc = desc.substring(1, desc.length() - 1);
+
+    // Evaluate any tokens in the command
+    desc = cleanVariableRefs(opMetadata.getDescription(), ctx.getStart().getLine());
+
     OperationMetadata newOpMetadata = opMetadata.rewriteWith(desc);
 
     Operation op = new ServerOp(newOpMetadata, new DontCareExpectedResult(newOpMetadata, testContext, options));
@@ -314,6 +332,11 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     OperationMetadata opMetadata = opMetadataStack.pop();
+
+    // Evaluate any tokens in the command
+    String desc = cleanVariableRefs(opMetadata.getDescription(), ctx.getStart().getLine());
+    opMetadata = opMetadata.rewriteWith(desc);
+
     Operation op = new ServerOp(opMetadata, new DontCareExpectedResult(opMetadata, testContext, options));
     currentOpQueueStack.peek().add(op);
 
@@ -512,8 +535,38 @@ public class TestPlanGenerator extends SethBaseVisitor
     OperationMetadata opMetadata = opMetadataStack.pop();
     ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, testContext, options);
 
-    Operation op = new SetOptionsOp(opMetadata, expectedResult, options);
-    currentOpQueueStack.peek().add(op);
+    // If any of the operations concern variable refs then these need to be split out and
+    // executed immediately.
+    Operation immediateOp = null;
+    Options immediateOptions = null;
+
+    Iterator<String> iter = options.keySet().iterator();
+    while (iter.hasNext()) {
+      String optKey = iter.next().toLowerCase();
+
+      if (Options.executeImmediateOptions.contains(optKey)) {
+
+        if (immediateOptions == null) {
+          immediateOptions = new Options();
+          immediateOp = new SetOptionsOp(opMetadata, expectedResult, immediateOptions, true);
+        }
+
+        // Remove it from the regular option set and add it to the execute-immediate options set.
+        Object val = options.get(optKey);
+        iter.remove();
+        immediateOptions.put(optKey, val);
+      }
+    }
+
+    if (!options.isEmpty()) {
+      Operation op = new SetOptionsOp(opMetadata, expectedResult, options);
+      currentOpQueueStack.peek().add(op);
+    }
+
+    // Put the execute-immediate operation on last
+    if (immediateOp != null) {
+      currentOpQueueStack.peek().add(immediateOp);
+    }
 
     return null;
   }
@@ -526,15 +579,45 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     for (SethParser.OptKeyContext keyCtx : ctx.optKey()) {
-      String key = (keyCtx.ID() != null ? keyCtx.ID().getText() : cleanString(keyCtx.STR().getText()));
+      String key = (keyCtx.ID() != null ? keyCtx.ID().getText() : cleanString(keyCtx.STR().getSymbol()));
       keys.add(key);
     }
 
     OperationMetadata opMetadata = opMetadataStack.pop();
     ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, testContext, options);
 
-    Operation op = new UnsetOptionsOp(opMetadata, expectedResult, keys);
-    currentOpQueueStack.peek().add(op);
+
+    // If any of the operations concern variable refs then these need to be split out and
+    // executed immediately.
+    Operation immediateOp = null;
+    List<String> immediateKeys = null;
+
+    Iterator<String> iter = keys.listIterator();
+    while (iter.hasNext())
+    {
+      String optKey = iter.next().toLowerCase();
+      if (Options.executeImmediateOptions.contains(optKey)) {
+
+        if (immediateKeys == null) {
+          immediateKeys = new ArrayList<String>();
+          immediateOp = new UnsetOptionsOp(opMetadata, expectedResult, immediateKeys, true);
+        }
+
+        // Remove it from the original list and add it to the execute-immediate list.
+        iter.remove();
+        immediateKeys.add(optKey);
+      }
+    }
+
+    if (!keys.isEmpty()) {
+      Operation op = new UnsetOptionsOp(opMetadata, expectedResult, keys);
+      currentOpQueueStack.peek().add(op);
+    }
+
+    // Put the execute-immediate operation on last
+    if (immediateOp != null) {
+      currentOpQueueStack.peek().add(immediateOp);
+    }
 
     return null;
   }
@@ -586,7 +669,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     OperationMetadata opMetadata = opMetadataStack.pop();
     ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, testContext, options);
 
-    String failureMsg = (ctx.msg == null ? null : cleanString(ctx.msg.getText()));
+    String failureMsg = (ctx.msg == null ? null : cleanString(ctx.msg));
 
     Operation op = new FailOp(opMetadata, expectedResult, failureMsg);
     currentOpQueueStack.peek().add(op);
@@ -599,7 +682,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String msg = cleanString(ctx.logStr.getText());
+    String msg = cleanString(ctx.logStr);
 
     OperationMetadata opMetadata = opMetadataStack.pop();
     ExpectedResult expectedResult = new DontCareExpectedResult(opMetadata, testContext, options);
@@ -618,7 +701,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     String name = null;
 
     if (ctx.syncName != null) {
-      name = cleanString(ctx.syncName.getText());
+      name = cleanString(ctx.syncName);
     }
 
     int count = -1;
@@ -647,7 +730,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String name = cleanString(ctx.connName.getText());
+    String name = cleanString(ctx.connName);
 
     if (name.trim().isEmpty()) {
       final String msg = "Connection name cannot be whitespace or empty.";
@@ -658,7 +741,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     String url = null;
 
     if (ctx.url != null) {
-      url = cleanString(ctx.url.getText());
+      url = cleanString(ctx.url);
 
       if (url.trim().isEmpty()) {
         final String msg = "Connection URL cannot be whitespace or empty.";
@@ -681,7 +764,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String name = cleanString(ctx.connName.getText());
+    String name = cleanString(ctx.connName);
 
     if (name.trim().isEmpty()) {
       final String msg = "Connection name cannot be whitespace or empty.";
@@ -703,7 +786,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String name = cleanString(ctx.connName.getText());
+    String name = cleanString(ctx.connName);
 
     if (name.trim().isEmpty()) {
       final String msg = "Connection name cannot be whitespace or empty.";
@@ -727,7 +810,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     gotIncludeStatement = true;
 
-    String path = cleanString(ctx.filePath.getText());
+    String path = cleanString(ctx.filePath);
     File includeFile = new File(path);
 
     // Ensure we are not including ourselves.
@@ -886,12 +969,45 @@ public class TestPlanGenerator extends SethBaseVisitor
     ArrayList<Object> oldColumnVals = this.columnVals;  // backup
     this.columnVals = new ArrayList<Object>(1);
 
-    String key = (ctx.optKey().ID() != null ? ctx.optKey().ID().getText() : cleanString(ctx.optKey().STR().getText()));
+    String key;
+
+    if (ctx.optKey().ID() != null) {
+      key = ctx.optKey().ID().getText();
+
+    } else if (ctx.optKey().VARIABLE_ID() != null) {
+      key = cleanVariableRefs(ctx.optKey().VARIABLE_ID().getSymbol());
+
+    } else if (ctx.optKey().STR() != null) {
+      key = cleanString(ctx.optKey().STR().getSymbol());
+
+    } else {
+      throw new IllegalStateException();
+    }
+
     key = key.toLowerCase();
 
     visitChildren(ctx);
 
-    Object value = (columnVals.size() > 0 ? columnVals.get(0) : null);
+    Object value = (columnVals.isEmpty() ? null : columnVals.get(0));
+
+    // If we got a badVarRef option then convert the value to an enum
+    if (key.equalsIgnoreCase(Options.BAD_VAR_REF_KEY)) {
+      String valStr = value.toString();
+      Options.BadVarRefHandler errorHandler = Options.BadVarRefHandler.fromDesc(valStr);
+      if (errorHandler == null) {
+        String errMsg = String.format("Invalid value for option %s. Value must be one of: [%s]",
+            Options.BAD_VAR_REF_KEY, String.join(", ", Options.BadVarRefHandler.validDescriptions()));
+
+        throw wrapException(new SyntaxException(errMsg,
+                                                testFile,
+                                                ctx.optVal().start.getLine(),
+                                                ctx.optVal().start.getCharPositionInLine(),
+                                                ctx.getText()));
+      }
+
+      value = errorHandler;
+    }
+
     this.options.put(key, value);
 
     this.columnVals = oldColumnVals;  // restore
@@ -920,6 +1036,16 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     String varName = ctx.varName().ID().getText();
 
+    if (ctx.varName().ID() != null) {
+      varName = ctx.varName().ID().getText();
+
+    } else if (ctx.varName().VARIABLE_ID() != null) {
+      varName = cleanVariableRefs(ctx.varName().VARIABLE_ID().getSymbol());
+
+    } else {
+      throw new IllegalStateException();
+    }
+
     visitChildren(ctx);
 
     String value = (columnVals.isEmpty() ? "" : columnVals.get(0).toString());
@@ -934,7 +1060,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String path = cleanString(ctx.filePath.getText());
+    String path = cleanString(ctx.filePath);
     File includeFile = new File(path);
 
     // Ensure we are not including ourselves.
@@ -1038,7 +1164,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String warningMsg = cleanString(ctx.msg.getText());
+    String warningMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1056,7 +1182,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     int errCode = convertToInt(ctx.code);
-    String errMsg = cleanString(ctx.msg.getText());
+    String errMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1074,7 +1200,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     int errCode = convertToInt(ctx.code);
-    String errMsg = cleanString(ctx.msg.getText());
+    String errMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1108,7 +1234,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String errMsg = cleanString(ctx.msg.getText());
+    String errMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1125,7 +1251,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String errMsg = cleanString(ctx.msg.getText());
+    String errMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1145,7 +1271,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     List<String> errMsgs = new ArrayList<>();
 
     for (TerminalNode node : ctx.strList().STR()) {
-      errMsgs.add(cleanString(node.getSymbol().getText()));
+      errMsgs.add(cleanString(node.getSymbol()));
     }
 
     boolean mustMatchAll = (ctx.ANY() == null);
@@ -1207,7 +1333,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String errMsg = cleanString(ctx.msg.getText());
+    String errMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1224,7 +1350,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String errMsg = cleanString(ctx.msg.getText());
+    String errMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1241,7 +1367,7 @@ public class TestPlanGenerator extends SethBaseVisitor
   {
     visitChildren(ctx);
 
-    String errMsg = cleanString(ctx.msg.getText());
+    String errMsg = cleanString(ctx.msg);
 
     // Get the metadata for the last statement that was added.
     List<Operation> opList = currentOpQueueStack.peek();
@@ -1573,7 +1699,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       this.columnDefs.add(ExpectedColumnType.STRING);
     }
 
-    String val = cleanString(ctx.STR().getText());
+    String val = cleanString(ctx.STR().getSymbol());
     this.columnVals.add(val);
 
     return null;
@@ -1588,7 +1714,17 @@ public class TestPlanGenerator extends SethBaseVisitor
       this.columnDefs.add(ExpectedColumnType.STRING);
     }
 
-    String val = ctx.ID().getText();
+    String val;
+    if (ctx.ID() != null) {
+      val = ctx.ID().getText();
+
+    } else if (ctx.VARIABLE_ID() != null) {
+      val = cleanVariableRefs(ctx.VARIABLE_ID().getSymbol());
+
+    } else {
+      throw new IllegalStateException();
+    }
+
     this.columnVals.add(val);
 
     return null;
@@ -1608,7 +1744,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     //   YYYY-MM-DD
 
     Token strToken = (ctx.STR() == null ? ctx.DTE().getSymbol() : ctx.STR().getSymbol());
-    String strVal = cleanString(strToken.getText());
+    String strVal = cleanString(strToken);
 
     try {
       LocalDate localDate = LocalDate.parse(strVal);
@@ -1636,7 +1772,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     //   hh:mm:ss[.f]
 
     Token strToken = (ctx.STR() == null ? ctx.TME().getSymbol() : ctx.STR().getSymbol());
-    String strVal = cleanString(strToken.getText());
+    String strVal = cleanString(strToken);
 
     try {
       LocalTime localTime = LocalTime.parse(strVal);
@@ -1674,7 +1810,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (ctx.STR() != null) {
       token = ctx.STR().getSymbol();
-      strVal = cleanString(token.getText());
+      strVal = cleanString(token);
 
     } else {
       token = ctx.TSP().getSymbol();
@@ -1722,7 +1858,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     Token strToken = ctx.STR().getSymbol();
-    String strVal = cleanString(strToken.getText()).trim();
+    String strVal = cleanString(strToken).trim();
 
     // There can be a sign outside of the interval string as well as one inside.
     // This initially caters for the sign outside of the interval string.
@@ -1762,7 +1898,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     visitChildren(ctx);
 
     Token strToken = ctx.STR().getSymbol();
-    String strVal = cleanString(strToken.getText()).trim();
+    String strVal = cleanString(strToken).trim();
 
     // There can be a sign outside of the interval string as well as one inside.
     // This initially caters for the sign outside of the interval string.
@@ -1887,10 +2023,13 @@ public class TestPlanGenerator extends SethBaseVisitor
   /**
    * Return a cleaned-up string for raw string tokens.
    */
-  private String cleanString(String raw)
+  private String cleanString(Token token)
   {
+    String raw = token.getText();
     String str = raw.substring(1, raw.length() - 1);
     str = str.replaceAll("\'\'", "\'");
+
+    str = cleanVariableRefs(str, token.getLine());
     return str;
   }
 
@@ -2023,7 +2162,6 @@ public class TestPlanGenerator extends SethBaseVisitor
   private void executeImmediately(Operation op) throws SethBrownBagException
   {
     TestLogger logger = testContext.getLogger();
-    logger.testExecuting(testContext.getTestFile());
 
     // Mark the test result as having started.
     if (testContext.getResult().getStatus() == NOT_STARTED) {
@@ -2038,6 +2176,47 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     } catch (FailureException e) {
       throw new SethBrownBagException(e);
+    }
+  }
+
+  /**
+   * Evaluates the token for any variable references and returns a string
+   * with any of those variable refs replaced by their corresponding values.
+   * @param token
+   * @return a string with any variable refs replaced by their corresponding values
+   * @throws SethBrownBagException wrapping a FailureException if an error occurs.
+   */
+  private String cleanVariableRefs(Token token) {
+    return cleanVariableRefs(token.getText(), token.getLine());
+  }
+
+  /**
+   * Evaluates the string for any variable references and returns a string
+   * with any of those variable refs replaced by their corresponding values.
+   * If there are no references found then the original string is returned.
+   * @param str the string that may contain variable references
+   * @param line the line in the current file that this string appeared.
+   * @return a string with any variable refs replaced by their corresponding values
+   * @throws SethBrownBagException wrapping a FailureException if an error occurs.
+   */
+  private String cleanVariableRefs(String str, int line)
+  {
+    if (Options.getNoVarRefEval(this.optionList)) {
+      // Don't do any evaluation of variable references.
+      return str;
+    }
+
+    // How should we handle the evaluation of an invalid variable reference?
+    Options.BadVarRefHandler errorHandler = Options.getBadVarRefHandler(this.optionList);
+
+    try {
+      File testFile = callStack.size() > 0 ? callStack.get(callStack.size() - 1) : testContext.getTestFile();
+
+      String s = testContext.getVariables().evaluateVarRefs(str, errorHandler, testFile, line);
+      return s;
+
+    } catch (FailureException e) {
+      throw wrapException(e);
     }
   }
 }
