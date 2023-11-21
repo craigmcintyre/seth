@@ -199,7 +199,7 @@ public class ComparableInterval
     try {
       ResultSetMetaData rsmd = rs.getMetaData();
 
-      boolean isIndexType = rsmd.getColumnType(columnIdx) == Types.OTHER &&
+      boolean isIndexType = rsmd.getColumnType(columnIdx) == Types.JAVA_OBJECT &&
                             rsmd.getColumnTypeName(columnIdx).toLowerCase().startsWith("interval");
 
       if (!isIndexType) {
