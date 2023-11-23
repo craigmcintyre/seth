@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class ServerOp extends Operation
 {
@@ -56,10 +57,11 @@ public class ServerOp extends Operation
     String cmd = metadata.getDescription();
 
     // Check if the command is to be ignored
-    List<String> cmdIgnoreList = xContext.getCommandLineArgs().ignoreCommands;
+    List<Pattern> cmdIgnoreList = xContext.getIgnorableCommands();
+
     if (!cmdIgnoreList.isEmpty()) {
-      for (String ignorableCmd : cmdIgnoreList) {
-        if (cmd.equalsIgnoreCase(ignorableCmd)) {
+      for (Pattern ignorableCmd : cmdIgnoreList) {
+        if (ignorableCmd.matcher(cmd).matches()) {
 
           // Record the count of how many times this command was ignored
           xContext.getResult().accumulateIgnoredCommand(cmd);

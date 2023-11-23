@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 
 /**
  * The basic implementation of the ExecutionContext interface, which is used by operations when
@@ -420,6 +421,25 @@ public class ExecutionContextImpl implements ExecutionContext
   @Override
   public Map<String, String> getAppVariables() {
     return testContext.getAppVariables();
+  }
+
+  /**
+   * Returns a list of regex patterns for matching commands that are to be ignored.
+   * @return a list of regex patterns for matching commands that are to be ignored.
+   */
+  @Override
+  public List<Pattern> getIgnorableCommands() {
+    return testContext.getIgnorableCommands();
+  }
+
+  /**
+   * Compiles and adds a collection of regex strings as Patterns representing
+   * commands that are to be ignored.
+   * @param regexes the regex strings to be compiled to java Patterns
+   */
+  @Override
+  public void addIgnorableCommand(List<String> regexes) {
+    testContext.addIgnorableCommand(regexes);
   }
 
   /**

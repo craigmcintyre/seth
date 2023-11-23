@@ -8,9 +8,11 @@ import com.rapidsdata.seth.PathRelativity;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.TestableFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 
 public class AppContextImpl implements AppContext
 {
@@ -44,6 +46,9 @@ public class AppContextImpl implements AppContext
   /** The variables that are applied to all tests that run. */
   private final Map<String, String> appVariables;
 
+  /** A list of regex patterns to match commands that are to be ignored. */
+  private final List<Pattern> ignorableCommands;
+
 
   public AppContextImpl(long appStartTime,
                         CommandLineArgs args,
@@ -64,6 +69,7 @@ public class AppContextImpl implements AppContext
     this.threadPool = threadPool;
     this.appOptions = appOptions;
     this.appVariables = appVariables;
+    this.ignorableCommands = new ArrayList<>();
   }
 
   /**
@@ -146,8 +152,36 @@ public class AppContextImpl implements AppContext
     return appOptions;
   }
 
+  /**
+   * Returns the variables that are set for the whole application (all tests).
+   * @return the variables that are set for the whole application (all tests).
+   */
   @Override
   public Map<String, String> getAppVariables() {
     return appVariables;
+  }
+
+  /**
+   * Returns a list of regex patterns for matching commands that are to be ignored.
+   * @return a list of regex patterns for matching commands that are to be ignored.
+   */
+  @Override
+  public List<Pattern> getIgnorableCommands()
+  {
+    return ignorableCommands;
+  }
+
+  /**
+   * Compiles and adds a collection of regex strings as Patterns representing
+   * commands that are to be ignored.
+   * @param regexes the regex strings to be compiled to java Patterns
+   */
+  @Override
+  public void addIgnorableCommand(List<String> regexes)
+  {
+    for (String regex : regexes) {
+      Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+      ignorableCommands.add(p);
+    }
   }
 }

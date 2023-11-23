@@ -124,7 +124,7 @@ public class CommandLineArgs
   @Option(name      = "--ignore",
           aliases   = { "--ignoreCmd" },
           required  = false,
-          usage     = "Server commands to be ignored. The syntax must match exactly but case is insensitive.")
+          usage     = "Server commands to be ignored in regex format (case insensitive).")
   public List<String> ignoreCommands = new ArrayList<>();
 
   @Argument(usage  = "The list of test files to be executed.",

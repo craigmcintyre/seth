@@ -31,7 +31,7 @@ public class TestSuite
   private final ResultWriter resultWriter;
 
   /** Commands to be ignored when running tests in parallel. */
-  private static final String[] PARALLEL_IGNORE_CMDS = { "trackmemory;", "memoryleaks;" };
+  private static final String[] PARALLEL_IGNORE_CMDS_REGEX = { "trackmemory\\s*;\\s*", "trackmemory\\s+force\\s*;\\s*", "memoryleaks\\s*;\\s*" };
 
   /**
    * Constructor
@@ -68,7 +68,8 @@ public class TestSuite
 
     // if we are running tests in parallel then ignore the memoryleaks and trackmemory commands
     if (numParallelTests > 1) {
-      Collections.addAll(appContext.getCommandLineArgs().ignoreCommands, PARALLEL_IGNORE_CMDS);
+      Collections.addAll(appContext.getCommandLineArgs().ignoreCommands, PARALLEL_IGNORE_CMDS_REGEX);
+      appContext.addIgnorableCommand(Arrays.asList(PARALLEL_IGNORE_CMDS_REGEX));
     }
 
     try {

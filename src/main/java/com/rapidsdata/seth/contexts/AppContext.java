@@ -11,6 +11,7 @@ import com.rapidsdata.seth.TestableFile;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 
 public interface AppContext
 {
@@ -67,4 +68,17 @@ public interface AppContext
    * @return the variables that are set for the whole application (all tests).
    */
   public Map<String,String> getAppVariables();
+
+  /**
+   * Returns a list of regex patterns for matching commands that are to be ignored.
+   * @return a list of regex patterns for matching commands that are to be ignored.
+   */
+  public List<Pattern> getIgnorableCommands();
+
+  /**
+   * Compiles and adds a collection of regex strings as Patterns representing
+   * commands that are to be ignored.
+   * @param regexes the regex strings to be compiled to java Patterns
+   */
+  public void addIgnorableCommand(List<String> regexes);
 }

@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 public class TestContextImpl implements TestContext
 {
@@ -163,6 +164,26 @@ public class TestContextImpl implements TestContext
   @Override
   public Map<String, String> getAppVariables() {
     return appContext.getAppVariables();
+  }
+
+
+  /**
+   * Returns a list of regex patterns for matching commands that are to be ignored.
+   * @return a list of regex patterns for matching commands that are to be ignored.
+   */
+  @Override
+  public List<Pattern> getIgnorableCommands() {
+    return appContext.getIgnorableCommands();
+  }
+
+  /**
+   * Compiles and adds a collection of regex strings as Patterns representing
+   * commands that are to be ignored.
+   * @param regexes the regex strings to be compiled to java Patterns
+   */
+  @Override
+  public void addIgnorableCommand(List<String> regexes) {
+    appContext.addIgnorableCommand(regexes);
   }
 
   /**
