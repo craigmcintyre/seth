@@ -2,11 +2,11 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.TestableFile;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
-import com.rapidsdata.seth.SethVariables;
 import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 import org.antlr.v4.runtime.*;
@@ -36,32 +36,24 @@ public class TestPlanner
 
   /**
    * Parses a testfile and returns a Plan instance representing it.
-   * @param testFile The file to be parsed.
+   * @param testableFile The file to be parsed.
    * @param callStack the stack of files that are currently being parsed, resulting from file inclusions.
    * @param testsToAnnotate a list that will be populated with tests to annotate. Can be null.
    * @return a Plan that can be executed.
    * @throws FileNotFoundException if the test file doesn't exist.
    * @throws PlanningException if there is a problem with the contents of the test file.
    */
-  public Plan newPlanFor(File testFile, List<File> callStack, List<TestAnnotationInfo> testsToAnnotate)
+  public Plan newPlanFor(TestableFile testableFile, List<TestableFile> callStack, List<TestAnnotationInfo> testsToAnnotate)
                          throws FailureException, FileNotFoundException, PlanningException
   {
-    if (!testFile.exists()) {
-      throw new FileNotFoundException("File not found: " + testFile.getPath());
+    if (!testableFile.exists()) {
+      throw new FileNotFoundException("File not found: " + testableFile.describePath());
     }
 
-    byte[] bytes;
-
-    try {
-      bytes = Files.readAllBytes(testFile.toPath());
-    } catch (IOException | OutOfMemoryError | SecurityException e) {
-      throw new SethSystemException(e);
-    }
-
-    String contents = new String(bytes);
+    String contents = testableFile.contents();
     SethLexer lexer = new SethLexer(new ANTLRInputStream(contents));
     SethParser parser = new SethParser(new CommonTokenStream(lexer));
-    parser.setErrorHandler(new ErrorHandler(testFile));
+    parser.setErrorHandler(new ErrorHandler(testableFile));
 
     // Parse the contents of the file.
     ParseTree tree;
@@ -72,7 +64,7 @@ public class TestPlanner
 
       // Now that we've parsed the statement into a ParseTree we now need to build
       // the list of Operations. We use the visitor pattern for walking the ParseTree.
-      TestPlanGenerator generator = new TestPlanGenerator(parser, testFile, callStack, testContext, testsToAnnotate);
+      TestPlanGenerator generator = new TestPlanGenerator(parser, testableFile, callStack, testContext, testsToAnnotate);
 
       plan = generator.generatePlanFor(tree); // This will typically throw SemanticExceptions,
                                           // but can also throw SyntaxExceptions from included files
@@ -107,25 +99,17 @@ public class TestPlanner
    * @throws FileNotFoundException if the result file doesn't exist.
    * @throws PlanningException if there is a problem with the contents of the result file.
    */
-  public ExpectedResult newExpectedResultFor(File resultFile,
-                                             List<File> callStack,
+  public ExpectedResult newExpectedResultFor(TestableFile resultFile,
+                                             List<TestableFile> callStack,
                                              Deque<List<Operation>> currentOpQueueStack,
                                              List<TestAnnotationInfo> testsToAnnotate)
                         throws FileNotFoundException, PlanningException
   {
     if (!resultFile.exists()) {
-      throw new FileNotFoundException("File not found: " + resultFile.getPath());
+      throw new FileNotFoundException("File not found: " + resultFile.describePath());
     }
 
-    byte[] bytes;
-
-    try {
-      bytes = Files.readAllBytes(resultFile.toPath());
-    } catch (IOException | OutOfMemoryError | SecurityException e) {
-      throw new SethSystemException(e);
-    }
-
-    String contents = new String(bytes);
+    String contents = resultFile.contents();
 
     SethLexer lexer = new SethLexer(new ANTLRInputStream(contents));
     SethParser parser = new SethParser(new CommonTokenStream(lexer));
@@ -168,12 +152,12 @@ public class TestPlanner
   protected static class ErrorHandler extends DefaultErrorStrategy
   {
     /** The file being tested. */
-    private final File testFile;
+    private final TestableFile testableFile;
 
     /** Constructor */
-    public ErrorHandler(File testFile)
+    public ErrorHandler(TestableFile testableFile)
     {
-      this.testFile = testFile;
+      this.testableFile = testableFile;
     }
 
     //@Override
@@ -196,7 +180,7 @@ public class TestPlanner
       int pos = t.getCharPositionInLine()+1;
       String near = getTokenErrorDisplay(t);
 
-      throw parseException(testFile, line, pos, near);
+      throw parseException(testableFile, line, pos, near);
     }
 
     @Override
@@ -207,7 +191,7 @@ public class TestPlanner
       int pos = t.getCharPositionInLine()+1;
       String near = getTokenErrorDisplay(t);
 
-      throw parseException(testFile, line, pos, near);
+      throw parseException(testableFile, line, pos, near);
     }
 
     @Override
@@ -219,7 +203,7 @@ public class TestPlanner
       String near = getTokenErrorDisplay(t);
       String expected = e.getExpectedTokens().toString(recognizer.getTokenNames());
 
-      throw parseException(testFile, line, pos, near, expected);
+      throw parseException(testableFile, line, pos, near, expected);
     }
 
     @Override
@@ -231,7 +215,7 @@ public class TestPlanner
       String near = getTokenErrorDisplay(t);
       String expected = recognizer.getExpectedTokens().toString(recognizer.getTokenNames());
 
-      throw parseException(testFile, line, pos, near, expected);
+      throw parseException(testableFile, line, pos, near, expected);
     }
   }
 
@@ -239,21 +223,21 @@ public class TestPlanner
    * Make and bag a parse exception. We do this because we can't change the overloaded
    * function definitions in the ErrorHandler above.
    */
-  public static SethBrownBagException parseException(File file, int line, int pos, String near)
+  public static SethBrownBagException parseException(TestableFile testableFile, int line, int pos, String near)
   {
     final String msg = String.format("Syntax error in file %s:%d:%d near %s",
-                                     file.getPath(), line, pos, near);
-    return new SethBrownBagException(new SyntaxException(msg, file, line, pos, near));
+                                     testableFile.describePath(), line, pos, near);
+    return new SethBrownBagException(new SyntaxException(msg, testableFile, line, pos, near));
   }
 
   /**
    * Make and bag a parse exception. We do this because we can't change the overloaded
    * function definitions in the ErrorHandler above.
    */
-  public static SethBrownBagException parseException(File file, int line, int pos, String near, String expected)
+  public static SethBrownBagException parseException(TestableFile testableFile, int line, int pos, String near, String expected)
   {
     final String msg = String.format("Syntax error in file %s:%d:%d near %s; expected %s",
-                                     file, line, pos, near, expected);
-    return new SethBrownBagException(new SyntaxException(msg, file, line, pos, near));
+                                     testableFile, line, pos, near, expected);
+    return new SethBrownBagException(new SyntaxException(msg, testableFile, line, pos, near));
   }
 }

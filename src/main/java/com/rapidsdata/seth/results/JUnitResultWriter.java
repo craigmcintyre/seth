@@ -95,20 +95,12 @@ public class JUnitResultWriter extends LoggableResultWriter
       Element testCase = document.createElement("testcase");
       root.appendChild(testCase);
 
-      String parentStr;
+      String parentStr = testResult.getTestableFile().getDirectory();
 
-      try {
-        parentStr = testResult.getTestFile().getCanonicalFile().getParent();
-
-        // Hack for RapidsSE
-        int idx = parentStr.lastIndexOf("/tests/");
-        if (idx != -1) {
-          parentStr = parentStr.substring(idx + "/tests/".length());
-        }
-
-      } catch (IOException e) {
-        e.printStackTrace();
-        throw new SethBrownBagException(e);
+      // Hack for RapidsSE
+      int idx = parentStr.lastIndexOf("/tests/");
+      if (idx != -1) {
+        parentStr = parentStr.substring(idx + "/tests/".length());
       }
 
       testCase.setAttribute("name", testResult.getTestName() + context.getCommandLineArgs().testSuffix);

@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth.exceptions;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 
 public class OperationException extends FailureException
@@ -12,24 +14,24 @@ public class OperationException extends FailureException
   /**
    * Creates a TestSetupException from a general error message.
    * @param msg the error message.
-   * @param testFile the file being tested.
+   * @param testableFile the file being tested.
    */
-  public OperationException(String msg, File testFile)
+  public OperationException(String msg, TestableFile testableFile)
   {
-    super(msg, testFile, -1, null);
+    super(msg, testableFile, -1, null);
     this.error = msg;
   }
 
   /**
    * Creates a TestSetupException from a general error message.
    * @param msg the error message.
-   * @param testFile the file being tested.
+   * @param testableFile the file being tested.
    * @param line the line number where the error occurred.
    * @param command the command being executed at the time of the error.
    */
-  public OperationException(String msg, File testFile, long line, String command)
+  public OperationException(String msg, TestableFile testableFile, long line, String command)
   {
-    super(msg, testFile, line, command);
+    super(msg, testableFile, line, command);
     this.error = msg;
   }
 
@@ -37,11 +39,11 @@ public class OperationException extends FailureException
    * Creates a TestSetupException from a general error message.
    * @param msg the error message.
    * @param t a chained exception.
-   * @param testFile the file being tested.
+   * @param testableFile the file being tested.
    */
-  public OperationException(String msg, Throwable t, File testFile)
+  public OperationException(String msg, Throwable t, TestableFile testableFile)
   {
-    super(msg, t, testFile, -1, null);
+    super(msg, t, testableFile, -1, null);
     this.error = msg;
   }
 
@@ -49,13 +51,13 @@ public class OperationException extends FailureException
    * Creates a TestSetupException from a general error message.
    * @param msg the error message.
    * @param t a chained exception.
-   * @param testFile the file being tested.
+   * @param testableFile the file being tested.
    * @param line the line number where the error occurred.
    * @param command the command being executed at the time of the error.
    */
-  public OperationException(String msg, Throwable t, File testFile, long line, String command)
+  public OperationException(String msg, Throwable t, TestableFile testableFile, long line, String command)
   {
-    super(msg, t, testFile, line, command);
+    super(msg, t, testableFile, line, command);
     this.error = msg;
   }
 
@@ -73,14 +75,14 @@ public class OperationException extends FailureException
   /**
    * Return a description of the failure, with option descriptions of where it failed and what
    * was being executed.
-   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   * @param outerTestableFile the path of the outer-most test file. If this equals the test file that
    *                      had the error then we won't reprint the test file path.
    * @return a description of the failure.
    */
   @Override
-  public String getMessage(File outerTestFile)
+  public String getMessage(TestableFile outerTestableFile)
   {
-    StringBuilder sb = formatMessage(outerTestFile);
+    StringBuilder sb = formatMessage(outerTestableFile);
 
     if (error != null) {
       if (sb.length() > 0) {

@@ -8,16 +8,10 @@ import com.rapidsdata.seth.*;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.logging.TestLogger;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 public class ParserTestContextImpl implements TestContext
@@ -157,10 +151,11 @@ public class ParserTestContextImpl implements TestContext
 
   /**
    * Returns the test file currently being executed.
+   *
    * @return the test file currently being executed.
    */
   @Override
-  public File getTestFile()
+  public TestableFile getTestFile()
   {
     return null;
   }

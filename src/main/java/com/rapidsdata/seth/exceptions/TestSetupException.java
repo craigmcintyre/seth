@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth.exceptions;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 
@@ -14,34 +16,34 @@ public class TestSetupException extends FailureException
    * Creates a TestSetupException from a general error message.
    * @param msg the error message.
    * @param t a chained exception.
-   * @param testFile the file being tested.
+   * @param testableFile the file being tested.
    */
-  public TestSetupException(String msg, Throwable t, File testFile)
+  public TestSetupException(String msg, Throwable t, TestableFile testableFile)
   {
-    super(msg, t, testFile, -1, null);
+    super(msg, t, testableFile, -1, null);
     this.error = msg;
   }
 
   /**
    * Creates a TestSetupException from a general error message.
    * @param msg the error message.
-   * @param testFile the file being tested.
+   * @param testableFile the file being tested.
    * @param lineNo the line that the error occurred on
    */
-  public TestSetupException(String msg, File testFile, int lineNo)
+  public TestSetupException(String msg, TestableFile testableFile, int lineNo)
   {
-    super(msg, testFile, lineNo, null);
+    super(msg, testableFile, lineNo, null);
     this.error = msg;
   }
 
   /**
    * Creates a FailureException from a FileNotFoundException.
    * @param e The FileNotFoundException for not finding the test file.
-   * @param testFile The test file we were trying to find.
+   * @param testableFile The test file we were trying to find.
    */
-  public TestSetupException(FileNotFoundException e, File testFile)
+  public TestSetupException(FileNotFoundException e, TestableFile testableFile)
   {
-    super(e.getMessage(), e, testFile, -1, null);
+    super(e.getMessage(), e, testableFile, -1, null);
     this.error = e.getMessage();
   }
 
@@ -51,7 +53,7 @@ public class TestSetupException extends FailureException
    */
   public TestSetupException(PlanningException e)
   {
-    super(e.getMessage(), null /* don't print stack trace */, e.getFile(), e.getLine(), e.getCommand());
+    super(e.getMessage(), null /* don't print stack trace */, e.getTestableFile(), e.getLine(), e.getCommand());
     this.error = e.getMessage();
   }
 
@@ -69,14 +71,14 @@ public class TestSetupException extends FailureException
   /**
    * Return a description of the failure, with option descriptions of where it failed and what
    * was being executed.
-   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   * @param outerTestableFile the path of the outer-most test file. If this equals the test file that
    *                      had the error then we won't reprint the test file path.
    * @return a description of the failure.
    */
   @Override
-  public String getMessage(File outerTestFile)
+  public String getMessage(TestableFile outerTestableFile)
   {
-    StringBuilder sb = formatMessage(outerTestFile);
+    StringBuilder sb = formatMessage(outerTestableFile);
 
     if (error != null) {
       if (sb.length() > 0) {
@@ -104,18 +106,18 @@ public class TestSetupException extends FailureException
    * Returns a StringBuilder with a partially formatted message, optionally describing where
    * the error occurred and what was being executed.
    * This function should be called first when overriding getMessage(boolean, boolean, boolean) above.
-   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   * @param outerTestableFile the path of the outer-most test file. If this equals the test file that
    *                      had the error then we won't reprint the test file path.
    * @return a partially filled StringBuilder instance with some metadata about the failure.
    */
   @Override
-  protected StringBuilder formatMessage(File outerTestFile)
+  protected StringBuilder formatMessage(TestableFile outerTestableFile)
   {
     StringBuilder sb = new StringBuilder(1024);
 
-    if (testFile != null) {
+    if (testableFile != null) {
       sb.append(FILE_HEADING)
-          .append(testFile.getPath());
+          .append(testableFile.describePath());
     }
 
     if (lineNumber > 0) {

@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.TestableFile;
 import com.rapidsdata.seth.contexts.ExecutionContext;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
@@ -52,9 +53,9 @@ public abstract class Operation
    * Returns the test file that this operation came from.
    * @return the test file that this operation came from.
    */
-  public File getTestFile()
+  public TestableFile getTestFile()
   {
-    return metadata.getTestFile();
+    return metadata.getTestableFile();
   }
 
   /**

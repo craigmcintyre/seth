@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth.logging;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 
 public class StepFileLogger extends TestFileLogger
@@ -24,7 +26,7 @@ public class StepFileLogger extends TestFileLogger
    * @param lineNum  the line number of the command in the test file.
    */
   @Override
-  public void testStepExecuting(File testFile, String command, long lineNum)
+  public void testStepExecuting(TestableFile testFile, String command, long lineNum)
   {
     // Ensure we write to the console.
     super.testStepExecuting(testFile, command, lineNum);

@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.logging;
 
 import com.rapidsdata.seth.TestResult;
+import com.rapidsdata.seth.TestableFile;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -38,12 +39,12 @@ public class TestFileLogger extends FileLogger
    * @param testFile the path of the test being validated.
    */
   @Override
-  public void testValidating(File testFile)
+  public void testValidating(TestableFile testFile)
   {
     // Ensure we write to the console.
     super.testValidating(testFile);
 
-    String msg = "Validating test file " + testFile.getPath();
+    String msg = "Validating test file " + testFile.describePath();
     queue.add(decorateMessage(msg));
   }
 
@@ -53,12 +54,12 @@ public class TestFileLogger extends FileLogger
    * @param testFile the path of the test being skipped.
    */
   @Override
-  public void testSkipping(File testFile)
+  public void testSkipping(TestableFile testFile)
   {
     // Ensure we write to the console.
     super.testSkipping(testFile);
 
-    String msg = "Skipping test file " + testFile.getPath();
+    String msg = "Skipping test file " + testFile.describePath();
     queue.add(decorateMessage(msg));
   }
 
@@ -68,12 +69,12 @@ public class TestFileLogger extends FileLogger
    * @param testFile the path of the test being executed.
    */
   @Override
-  public void testExecuting(File testFile)
+  public void testExecuting(TestableFile testFile)
   {
     // Ensure we write to the console.
     super.testExecuting(testFile);
 
-    String msg = "Executing test: " + testFile.getPath();
+    String msg = "Executing test: " + testFile.describePath();
     queue.add(decorateMessage(msg));
   }
 
@@ -84,7 +85,7 @@ public class TestFileLogger extends FileLogger
    * @param result   the result of the execution.
    */
   @Override
-  public void testExecutionFinished(File testFile, TestResult result)
+  public void testExecutionFinished(TestableFile testFile, TestResult result)
   {
     // Ensure we write to the console.
     super.testExecutionFinished(testFile, result);
@@ -103,7 +104,7 @@ public class TestFileLogger extends FileLogger
    * @param lineNum  the line number of the command in the test file.
    */
   @Override
-  public void testStepExecuting(File testFile, String command, long lineNum)
+  public void testStepExecuting(TestableFile testFile, String command, long lineNum)
   {
     // Ensure we write to the console.
     super.testStepExecuting(testFile, command, lineNum);

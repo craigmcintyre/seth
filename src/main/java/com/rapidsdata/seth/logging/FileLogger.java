@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.logging;
 
 import com.rapidsdata.seth.TestResult;
+import com.rapidsdata.seth.TestableFile;
 import com.rapidsdata.seth.exceptions.SethSystemException;
 
 import java.io.*;
@@ -58,7 +59,7 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
    * @param testFile the path of the test being validated.
    */
   @Override
-  public void testValidating(File testFile)
+  public void testValidating(TestableFile testFile)
   {
     // Ensure we write to the console.
     super.testValidating(testFile);
@@ -70,7 +71,7 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
    * @param testFile the path of the test being skipped.
    */
   @Override
-  public void testSkipping(File testFile)
+  public void testSkipping(TestableFile testFile)
   {
     // Ensure we write to the console.
     super.testSkipping(testFile);
@@ -82,7 +83,7 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
    * @param testFile the path of the test being executed.
    */
   @Override
-  public void testExecuting(File testFile)
+  public void testExecuting(TestableFile testFile)
   {
     // Ensure we write to the console.
     super.testExecuting(testFile);
@@ -95,7 +96,7 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
    * @param result   the result of the execution.
    */
   @Override
-  public void testExecutionFinished(File testFile, TestResult result)
+  public void testExecutionFinished(TestableFile testFile, TestResult result)
   {
     // Ensure we write to the console.
     super.testExecutionFinished(testFile, result);
@@ -109,7 +110,7 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
    * @param lineNum  the line number of the command in the test file.
    */
   @Override
-  public void testStepExecuting(File testFile, String command, long lineNum)
+  public void testStepExecuting(TestableFile testFile, String command, long lineNum)
   {
     // Ensure we write to the console.
     super.testStepExecuting(testFile, command, lineNum);

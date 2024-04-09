@@ -41,7 +41,7 @@ public class TestResult
   private static final String FAILURE_INDENTING = System.lineSeparator() + "  ";
 
   /** The test file being executed. */
-  private File testFile;
+  private TestableFile testableFile;
 
   /** The shortened name being given to the test. May simply be the name of the file. */
   private String testName;
@@ -66,11 +66,11 @@ public class TestResult
 
   /**
    * Constructor.
-   * @param testFile The test file being executed.
+   * @param testableFile The test file being executed.
    */
-  public TestResult(File testFile, String testName)
+  public TestResult(TestableFile testableFile, String testName)
   {
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.testName = testName;
     this.status = ResultStatus.NOT_STARTED;
     this.failureException = null;
@@ -84,9 +84,9 @@ public class TestResult
    * Returns the test file being executed.
    * @return the test file being executed.
    */
-  public File getTestFile()
+  public TestableFile getTestableFile()
   {
-    return testFile;
+    return testableFile;
   }
 
   /**
@@ -131,7 +131,7 @@ public class TestResult
   public void setFailure(FileNotFoundException e)
   {
     setStatus(ResultStatus.FAILED);
-    failureException = new TestSetupException(e, testFile);
+    failureException = new TestSetupException(e, testableFile);
   }
 
   /**
@@ -251,7 +251,7 @@ public class TestResult
   public String getFailureDescription()
   {
     if (failureException != null) {
-      return failureException.getMessage(testFile);
+      return failureException.getMessage(testableFile);
     }
 
     return "";
@@ -270,8 +270,8 @@ public class TestResult
     String msg = String.format("Test %-11s :  ", status.name().toUpperCase());
 
     if (status == ResultStatus.FAILED) {
-      if (!testFile.equals(failureException.getTestFile())) {
-        msg += testFile.getPath();
+      if (!testableFile.equals(failureException.getTestableFile())) {
+        msg += testableFile.describePath();
       }
 
       if (failureException != null) {
@@ -281,7 +281,7 @@ public class TestResult
       return msg;
     }
 
-    msg += testFile.getPath();
+    msg += testableFile.describePath();
     return msg;
   }
 
@@ -292,9 +292,9 @@ public class TestResult
   }
 
   /** @returns a TestResult indicating that the given test file was skipped. */
-  public static TestResult skipped(File testFile, String testName)
+  public static TestResult skipped(TestableFile testableFile, String testName)
   {
-    TestResult result = new TestResult(testFile, testName);
+    TestResult result = new TestResult(testableFile, testName);
     result.setSkipped();
     return result;
   }

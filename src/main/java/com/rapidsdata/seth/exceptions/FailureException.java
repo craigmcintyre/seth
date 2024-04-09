@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth.exceptions;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -27,25 +29,25 @@ public abstract class FailureException extends SethException
   protected static final String NL_INDENTATION = System.lineSeparator() + INDENTATION;
 
 
-  protected final File testFile;
+  protected final TestableFile testableFile;
   protected final long lineNumber;
   protected final String command;
 
 
-  public FailureException(String message, File testFile, long lineNumber, String command)
+  public FailureException(String message, TestableFile testableFile, long lineNumber, String command)
   {
     super(message);
 
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.lineNumber = lineNumber;
     this.command = command;
   }
 
-  public FailureException(String message, Throwable t, File testFile, long lineNumber, String command)
+  public FailureException(String message, Throwable t, TestableFile testableFile, long lineNumber, String command)
   {
     super(message, t);
 
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.lineNumber = lineNumber;
     this.command = command;
   }
@@ -53,13 +55,13 @@ public abstract class FailureException extends SethException
   /**
    * Creates a FailureException from a FileNotFoundException.
    * @param e The FileNotFoundException for not finding the test file.
-   * @param testFile The test file we were trying to find.
+   * @param testableFile The test file we were trying to find.
    */
-  public FailureException(FileNotFoundException e, File testFile)
+  public FailureException(FileNotFoundException e, TestableFile testableFile)
   {
     super(e.getMessage(), e);
 
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.lineNumber = -1;
     this.command = null;
   }
@@ -72,7 +74,7 @@ public abstract class FailureException extends SethException
   {
     super(e.getMessage(), e);
 
-    this.testFile = e.getFile();
+    this.testableFile = e.getTestableFile();
     this.lineNumber = e.getLine();
     this.command = null;
   }
@@ -81,9 +83,9 @@ public abstract class FailureException extends SethException
    * Returns the test file that the error occurred in.
    * @return the test file that the error occurred in.
    */
-  public File getTestFile()
+  public TestableFile getTestableFile()
   {
-    return testFile;
+    return testableFile;
   }
 
   /**
@@ -102,23 +104,23 @@ public abstract class FailureException extends SethException
    * @return a description of the failure, showing where it occurred, the command executed
    * and why it failed.
    */
-  public abstract String getMessage(File outerTestFile);
+  public abstract String getMessage(TestableFile outerTestFile);
 
   /**
    * Returns a StringBuilder with a partially formatted message, optionally describing where
    * the error occurred and what was being executed.
    * This function should be called first when overriding getMessage(boolean, boolean, boolean) above.
-   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   * @param outerTestableFile the path of the outer-most test file. If this equals the test file that
    *                      had the error then we won't reprint the test file path.
    * @return a partially filled StringBuilder instance with some metadata about the failure.
    */
-  protected StringBuilder formatMessage(File outerTestFile)
+  protected StringBuilder formatMessage(TestableFile outerTestableFile)
   {
     StringBuilder sb = new StringBuilder(1024);
 
-    if ( !(testFile != null && outerTestFile != null && testFile.equals(outerTestFile)) ) {
+    if ( !(testableFile != null && outerTestableFile != null && testableFile.equals(outerTestableFile)) ) {
       sb.append(FILE_HEADING)
-        .append(testFile.getPath());
+        .append(testableFile.describePath());
     }
 
     if (lineNumber > 0) {

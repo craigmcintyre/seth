@@ -4,19 +4,20 @@ package com.rapidsdata.seth.contexts;
 
 import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.TestResult;
+import com.rapidsdata.seth.TestableFile;
 import com.rapidsdata.seth.exceptions.FailureException;
 import com.rapidsdata.seth.SethVariables;
 
-import java.io.File;
 import java.util.concurrent.CyclicBarrier;
 
 public interface TestContext extends AppContext
 {
   /**
    * Returns the test file currently being executed.
+   *
    * @return the test file currently being executed.
    */
-  public File getTestFile();
+  public TestableFile getTestFile();
 
   /**
    * Returns the map of variable names and values.

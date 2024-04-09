@@ -4,6 +4,7 @@ package com.rapidsdata.seth.plan;
 
 import com.rapidsdata.seth.Options;
 import com.rapidsdata.seth.PathRelativity;
+import com.rapidsdata.seth.TestableFile;
 import com.rapidsdata.seth.contexts.ParserExecutionContextImpl;
 import com.rapidsdata.seth.contexts.TestContext;
 import com.rapidsdata.seth.exceptions.*;
@@ -36,10 +37,10 @@ public class TestPlanGenerator extends SethBaseVisitor
   private final Parser parser;
 
   /** The test file we're reading. */
-  private final File testFile;
+  private final TestableFile testableFile;
 
   /** The stack of files that are currently being parsed, resulting from file inclusions. */
-  private final List<File> callStack;
+  private final List<TestableFile> callStack;
 
   /** A collection of information and objects used by the application as a whole. */
   private final TestContext testContext;
@@ -101,12 +102,12 @@ public class TestPlanGenerator extends SethBaseVisitor
   /**
    * Constructor.
    * @param parser The parser we're using to parse the test file.
-   * @param testFile The test file we're reading.
+   * @param testableFile The test file we're reading.
    */
-  public TestPlanGenerator(SethParser parser, File testFile, List<File> callStack, TestContext testContext, List<TestAnnotationInfo> testsToAnnotate)
+  public TestPlanGenerator(SethParser parser, TestableFile testableFile, List<TestableFile> callStack, TestContext testContext, List<TestAnnotationInfo> testsToAnnotate)
   {
     this.parser = parser;
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.callStack = callStack;
     this.testContext = testContext;
     this.testsToAnnotate = testsToAnnotate;
@@ -118,17 +119,17 @@ public class TestPlanGenerator extends SethBaseVisitor
   /**
    * Constructor.
    * @param parser The parser we're using to parse the test file.
-   * @param testFile The test file we're reading.
+   * @param testableFile The test file we're reading.
    */
   public TestPlanGenerator(SethParser parser,
-                           File testFile,
-                           List<File> callStack,
+                           TestableFile testableFile,
+                           List<TestableFile> callStack,
                            TestContext testContext,
                            Deque<List<Operation>> currentOpQueueStack,
                            List<TestAnnotationInfo> testsToAnnotate)
   {
     this.parser = parser;
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.callStack = callStack;
     this.testContext = testContext;
     this.currentOpQueueStack = currentOpQueueStack;
@@ -193,7 +194,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     // Also push the currentOpQueue, which is the queue of testOps, onto a stack too.
     List<Operation> testOps    = new LinkedList<>();
     List<Operation> cleanupOps = new LinkedList<>();
-    Plan plan = new Plan(testFile, testOps, cleanupOps);
+    Plan plan = new Plan(testableFile, testOps, cleanupOps);
 
     planStack.push(plan);
     currentOpQueueStack.push(testOps);
@@ -201,8 +202,10 @@ public class TestPlanGenerator extends SethBaseVisitor
     if (testContext.getCommandLineArgs().recordResults) {
 
       // Make the output filename of the recorded results file.
-      Path outputTestFile = Paths.get(testContext.getCommandLineArgs().resultDir.getPath(), testFile.getName());
-      testToAnnotate = new TestAnnotationInfo(testFile.toPath(), outputTestFile);
+      // We know that testableFile cannot be a command line script.
+      assert(testableFile.getFile() != null);
+      Path outputTestFile = Paths.get(testContext.getCommandLineArgs().resultDir.getPath(), testableFile.getFile().getName());
+      testToAnnotate = new TestAnnotationInfo(testableFile.getFile().toPath(), outputTestFile);
       testsToAnnotate.add(testToAnnotate);
     }
 
@@ -248,7 +251,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       phase = TestPhase.CLEANUP;
     }
 
-    OperationMetadata opMetadata = new OperationMetadata(statementText, testFile, line, phase);
+    OperationMetadata opMetadata = new OperationMetadata(statementText, testableFile, line, phase);
 
     opMetadataStack.push(opMetadata);
     gotIncludeStatement = false;
@@ -264,7 +267,7 @@ public class TestPlanGenerator extends SethBaseVisitor
         // We shouldn't have an expected result for an include statement.
         final String msg = "Include statements cannot have an expected result.";
         Token firstToken = ctx.expected.getStart();
-        throw semanticException(testFile, firstToken.getLine(), firstToken.getCharPositionInLine(), opMetadata.getDescription(), msg);
+        throw semanticException(testableFile, firstToken.getLine(), firstToken.getCharPositionInLine(), opMetadata.getDescription(), msg);
       }
 
       // Rewrite the operation with the expected result.
@@ -360,7 +363,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     // Also push the currentOpQueue, which is the queue of testOps, onto a stack too.
     List<Operation> testOps    = new LinkedList<>();
     List<Operation> cleanupOps = new LinkedList<>();
-    Plan plan = new Plan(testFile, testOps, cleanupOps);
+    Plan plan = new Plan(testableFile, testOps, cleanupOps);
 
     planStack.push(plan);
     currentOpQueueStack.push(testOps);
@@ -393,7 +396,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (count != null && count < 0) {
       final String msg = "Loop count must be positive: " + count;
-      throw semanticException(testFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.loopCount.getLine(), ctx.loopCount.getCharPositionInLine(),
                               opMetadata.getDescription(), msg);
     }
 
@@ -418,7 +421,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (count < 0) {
       final String msg = "Loop time must be positive: " + count;
-      throw semanticException(testFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(),
                               opMetadata.getDescription(), msg);
     }
 
@@ -463,7 +466,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (numThreads <= 0) {
       final String msg = "Thread count must be positive: " + numThreads;
-      throw semanticException(testFile, ctx.threadCount.getLine(), ctx.threadCount.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.threadCount.getLine(), ctx.threadCount.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(), msg);
     }
 
@@ -490,7 +493,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     // Also push the currentOpQueue, which is the queue of testOps, onto a stack too.
     List<Operation> shuffleOps = new LinkedList<>();
     List<Operation> cleanupOps = new LinkedList<>();
-    Plan plan = new Plan(testFile, shuffleOps, cleanupOps);
+    Plan plan = new Plan(testableFile, shuffleOps, cleanupOps);
 
     planStack.push(plan);
     currentOpQueueStack.push(shuffleOps);
@@ -524,7 +527,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (millis < 0) {
       final String msg = "Sleep time must be positive: " + millis;
-      throw semanticException(testFile, ctx.millis.getLine(), ctx.millis.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.millis.getLine(), ctx.millis.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(), msg);
     }
 
@@ -721,7 +724,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
       if (count < 0) {
         final String msg = "Synchronisation count must be greater than zero: " + count;
-        throw semanticException(testFile, ctx.syncCount.getLine(), ctx.syncCount.getCharPositionInLine(),
+        throw semanticException(testableFile, ctx.syncCount.getLine(), ctx.syncCount.getCharPositionInLine(),
                                 opMetadataStack.peek().getDescription(), msg);
       }
     }
@@ -744,7 +747,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (name.trim().isEmpty()) {
       final String msg = "Connection name cannot be whitespace or empty.";
-      throw semanticException(testFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(), msg);
     }
 
@@ -755,7 +758,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
       if (url.trim().isEmpty()) {
         final String msg = "Connection URL cannot be whitespace or empty.";
-        throw semanticException(testFile, ctx.url.getLine(), ctx.url.getCharPositionInLine(),
+        throw semanticException(testableFile, ctx.url.getLine(), ctx.url.getCharPositionInLine(),
                                 opMetadataStack.peek().getDescription(), msg);
       }
     }
@@ -778,7 +781,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (name.trim().isEmpty()) {
       final String msg = "Connection name cannot be whitespace or empty.";
-      throw semanticException(testFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(), msg);
     }
 
@@ -800,7 +803,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (name.trim().isEmpty()) {
       final String msg = "Connection name cannot be whitespace or empty.";
-      throw semanticException(testFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.connName.getLine(), ctx.connName.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(), msg);
     }
 
@@ -824,28 +827,28 @@ public class TestPlanGenerator extends SethBaseVisitor
     File includeFile = new File(path);
 
     // Ensure we are not including ourselves.
-    if (testFile.equals(includeFile)) {
+    if (testableFile.equals(includeFile)) {
       final String msg = "File cannot include itself.";
-      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(),msg);
     }
 
     // Ensure that we do not have a circular dependency.
-    for (File parent : callStack) {
+    for (TestableFile parent : callStack) {
 
       if (parent.equals(includeFile)) {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("Circular file inclusion detected: ");
 
-        for (File p : callStack) {
-          sb.append(p.getPath()).append(" --> ");
+        for (TestableFile p : callStack) {
+          sb.append(p.describePath()).append(" --> ");
         }
 
-        sb.append(testFile.getPath());
+        sb.append(testableFile.describePath());
         sb.append(" --> ");
         sb.append(includeFile.getPath());
 
-        throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+        throw semanticException(testableFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
                                 opMetadataStack.peek().getDescription(), sb.toString());
       }
     }
@@ -854,15 +857,15 @@ public class TestPlanGenerator extends SethBaseVisitor
     TestPlanner planner = new TestPlanner(testContext);
     Plan subPlan = null;
 
-    List<File> subCallStack = new LinkedList<>();
+    List<TestableFile> subCallStack = new LinkedList<>();
     subCallStack.addAll(callStack);
-    subCallStack.add(testFile);
+    subCallStack.add(testableFile);
 
     // We need to resolve the included file if it is not an absolute path
     // and we are resolving relative locations to the current test file.
     if (!includeFile.isAbsolute() && testContext.getPathRelativity() == PathRelativity.REFERER) {
 
-      String parent = testFile.getParent();
+      String parent = testableFile.getDirectory();
 
       if (parent == null) {
         parent = "";
@@ -872,7 +875,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     try {
-      subPlan = planner.newPlanFor(includeFile, subCallStack, testsToAnnotate);
+      subPlan = planner.newPlanFor(new TestableFile(includeFile, TestableFile.Instruction.READ), subCallStack, testsToAnnotate);
 
     } catch (FailureException | PlanningException e) {
       throw wrapException(e);
@@ -881,7 +884,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       // The included file path is not found so this is a semantic exception in the current file.
       // So convert this to a SemanticException.
       final String msg = "Included file not found: " + path;
-      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(), msg);
     }
 
@@ -1009,7 +1012,7 @@ public class TestPlanGenerator extends SethBaseVisitor
             Options.BAD_VAR_REF_KEY, String.join(", ", Options.BadVarRefHandler.validDescriptions()));
 
         throw wrapException(new SyntaxException(errMsg,
-                                                testFile,
+            testableFile,
                                                 ctx.optVal().start.getLine(),
                                                 ctx.optVal().start.getCharPositionInLine(),
                                                 ctx.getText()));
@@ -1074,28 +1077,28 @@ public class TestPlanGenerator extends SethBaseVisitor
     File includeFile = new File(path);
 
     // Ensure we are not including ourselves.
-    if (testFile.equals(includeFile)) {
+    if (testableFile.equals(includeFile)) {
       final String msg = "File cannot include itself.";
-      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(),msg);
     }
 
     // Ensure that we do not have a circular dependency.
-    for (File parent : callStack) {
+    for (TestableFile parent : callStack) {
 
       if (parent.equals(includeFile)) {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("Circular file inclusion detected: ");
 
-        for (File p : callStack) {
-          sb.append(p.getPath()).append(" --> ");
+        for (TestableFile p : callStack) {
+          sb.append(p.describePath()).append(" --> ");
         }
 
-        sb.append(testFile.getPath());
+        sb.append(testableFile.describePath());
         sb.append(" --> ");
         sb.append(includeFile.getPath());
 
-        throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+        throw semanticException(testableFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
                                 opMetadataStack.peek().getDescription(), sb.toString());
       }
     }
@@ -1104,15 +1107,15 @@ public class TestPlanGenerator extends SethBaseVisitor
     TestPlanner planner = new TestPlanner(testContext);
     ExpectedResult er = null;
 
-    List<File> subCallStack = new LinkedList<>();
+    List<TestableFile> subCallStack = new LinkedList<>();
     subCallStack.addAll(callStack);
-    subCallStack.add(testFile);
+    subCallStack.add(testableFile);
 
     // We need to resolve the included file if it is not an absolute path
     // and we are resolving relative locations to the current test file.
     if (!includeFile.isAbsolute() && testContext.getPathRelativity() == PathRelativity.REFERER) {
 
-      String parent = testFile.getParent();
+      String parent = testableFile.getDirectory();
 
       if (parent == null) {
         parent = "";
@@ -1122,7 +1125,10 @@ public class TestPlanGenerator extends SethBaseVisitor
     }
 
     try {
-      er = planner.newExpectedResultFor(includeFile, subCallStack, currentOpQueueStack, testsToAnnotate);
+      er = planner.newExpectedResultFor(new TestableFile(includeFile, TestableFile.Instruction.READ),
+                                        subCallStack,
+                                        currentOpQueueStack,
+                                        testsToAnnotate);
 
     } catch (PlanningException e) {
       throw wrapException(e);
@@ -1131,7 +1137,7 @@ public class TestPlanGenerator extends SethBaseVisitor
       // The included file path is not found so this is a semantic exception in the current file.
       // So convert this to a SemanticException.
       final String msg = "Included file not found: " + path;
-      throw semanticException(testFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
+      throw semanticException(testableFile, ctx.filePath.getLine(), ctx.filePath.getCharPositionInLine(),
                               opMetadataStack.peek().getDescription(), msg);
     }
 
@@ -1325,7 +1331,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (expectedWarningCount < 0) {
       final String msg = "The expected warning count must be >= 0.";
-      throw semanticException(testFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      throw semanticException(testableFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(), currentExpectedResultDesc, msg);
     }
 
     // Get the metadata for the last statement that was added.
@@ -1478,7 +1484,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (expectedRowCount < 0) {
       final String msg = "The expected row count must be >= 0.";
-      throw semanticException(testFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      throw semanticException(testableFile, ctx.count.getLine(), ctx.count.getCharPositionInLine(), currentExpectedResultDesc, msg);
     }
 
     // Get the metadata for the last statement that was added.
@@ -1503,22 +1509,22 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     if (lowerVal == upperVal && lowerVal == Long.MIN_VALUE) {
       final String msg = "Either the lower bound or upper bound must be specified for the row range.";
-      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      throw semanticException(testableFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
     }
 
     if (lowerVal < 0 && lowerVal != Long.MIN_VALUE) {
       final String msg = "The lower bound of the range must not be negative.";
-      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      throw semanticException(testableFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
     }
 
     if (upperVal < 0 && upperVal != Long.MIN_VALUE) {
       final String msg = "The upper bound of the range must not be negative.";
-      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      throw semanticException(testableFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
     }
 
     if (lowerVal > upperVal && upperVal != Long.MIN_VALUE) {
       final String msg = "The lower bound of the range must be less than or equal to the upper bound of the range.";
-      throw semanticException(testFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
+      throw semanticException(testableFile, ctx.lowerInclusivity.getLine(), ctx.lowerInclusivity.getCharPositionInLine(), currentExpectedResultDesc, msg);
     }
 
     // Get the metadata for the last statement that was added.
@@ -1582,7 +1588,7 @@ public class TestPlanGenerator extends SethBaseVisitor
         final String msg = "The '...' column name definition can only be specified as the last " +
                            "column name definition.";
         Token token = ctx.columnName().get(i).ignoreRemainingColumns().ELLIPSIS().getSymbol();
-        throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, msg);
+        throw semanticException(testableFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, msg);
       }
     }
 
@@ -1615,7 +1621,7 @@ public class TestPlanGenerator extends SethBaseVisitor
         final String msg = "The '...' column definition can only be specified as the last " +
                            "definition for row.";
         Token token = ctx.columnData().get(i).ignoreRemainingColumns().ELLIPSIS().getSymbol();
-        throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, msg);
+        throw semanticException(testableFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, msg);
       }
     }
 
@@ -1762,7 +1768,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     } catch (DateTimeParseException e) {
       final String errMsg = "Unable to parse date string: '" + strVal + "'. Must be 'yyyy-mm-dd'.";
-      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+      throw semanticException(testableFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
     }
 
     return null;
@@ -1790,7 +1796,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     } catch (DateTimeParseException e) {
       final String errMsg = "Unable to parse time string: '" + strVal + "'. Must be 'hh:mm:dd'.";
-      throw semanticException(testFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+      throw semanticException(testableFile, strToken.getLine(), strToken.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
     }
 
     return null;
@@ -1830,7 +1836,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     // Check for a 'T' in the middle of the value
     if (strVal.length() <= T_INDEX) {
       final String errMsg = "Unable to parse timestamp string: '" + strVal + "'. Must be 'yyyy-mm-dd hh:mm:ss[.fff...]'.";
-      throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+      throw semanticException(testableFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
     }
 
     strVal = strVal.trim().toUpperCase();
@@ -1856,7 +1862,7 @@ public class TestPlanGenerator extends SethBaseVisitor
 
     } catch (IllegalArgumentException e) {
       final String errMsg = "Unable to parse timestamp string: '" + strVal + "'. Must be 'yyyy-mm-dd hh:mm:ss[.fff...]'.";
-      throw semanticException(testFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
+      throw semanticException(testableFile, token.getLine(), token.getCharPositionInLine(), currentExpectedResultDesc, errMsg);
     }
 
     return null;
@@ -1879,7 +1885,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     else if (ctx.m   != null) intervalType = ComparableInterval.IntervalType.MONTH;
     else if (ctx.y2m != null) intervalType = ComparableInterval.IntervalType.YEAR_TO_MONTH;
     else throw wrapException( new SyntaxException("Invalid interval type",
-                                                  testFile,
+          testableFile,
                                                   ctx.start.getLine(),
                                                   ctx.start.getCharPositionInLine(),
                                                   null) );
@@ -1887,7 +1893,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     ComparableInterval interval = ComparableInterval.parseIntervalStringComponent(strVal, isMinus, intervalType);
     if (interval == null) {
       throw wrapException( new SyntaxException("Invalid interval literal",
-                                               testFile,
+          testableFile,
                                                ctx.start.getLine(),
                                                ctx.start.getCharPositionInLine(),
                                                null) );
@@ -1926,7 +1932,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     else if (ctx.m2s != null) intervalType = ComparableInterval.IntervalType.MINUTE_TO_SECOND;
     else if (ctx.s   != null) intervalType = ComparableInterval.IntervalType.SECOND;
     else throw wrapException( new SyntaxException("Invalid interval type",
-          testFile,
+          testableFile,
           ctx.start.getLine(),
           ctx.start.getCharPositionInLine(),
           null) );
@@ -1934,7 +1940,7 @@ public class TestPlanGenerator extends SethBaseVisitor
     ComparableInterval interval = ComparableInterval.parseIntervalStringComponent(strVal, isMinus, intervalType);
     if (interval == null) {
       throw wrapException( new SyntaxException("Invalid interval literal",
-          testFile,
+          testableFile,
           ctx.start.getLine(),
           ctx.start.getCharPositionInLine(),
           null) );
@@ -1994,19 +2000,19 @@ public class TestPlanGenerator extends SethBaseVisitor
 
   /**
    * Creates a SemanticException and wraps a SethBrownBagException around it.
-   * @param file the file that the error occurred in.
+   * @param testableFile the file that the error occurred in.
    * @param line the line that the error occurred in.
    * @param pos the position on the line that the error occurred in.
    * @param command the command that has the semantic error.
    * @param errorMsg an error message.
    * @return an unchecked exception ready for throwing.
    */
-  private SethBrownBagException semanticException(File file, int line, int pos, String command, String errorMsg)
+  private SethBrownBagException semanticException(TestableFile testableFile, int line, int pos, String command, String errorMsg)
   {
     final String format = "Semantic error in file %s:%d:%d : %s";
-    final String msg = String.format(format, file, line, pos + 1, errorMsg);
+    final String msg = String.format(format, testableFile, line, pos + 1, errorMsg);
 
-    return wrapException(new SemanticException(msg, file, line, pos, command));
+    return wrapException(new SemanticException(msg, testableFile, line, pos, command));
   }
 
   /**
@@ -2220,11 +2226,11 @@ public class TestPlanGenerator extends SethBaseVisitor
     Options.BadVarRefHandler errorHandler = Options.getBadVarRefHandler(this.optionList);
 
     try {
-      File testFile = callStack != null && callStack.size() > 0 ?
-                        callStack.get(callStack.size() - 1) :
-                        this.testFile;
+      TestableFile testableFile = callStack != null && callStack.size() > 0 ?
+                                    callStack.get(callStack.size() - 1) :
+                                    this.testableFile;
 
-      String s = testContext.getVariables().evaluateVarRefs(str, errorHandler, testFile, line);
+      String s = testContext.getVariables().evaluateVarRefs(str, errorHandler, testableFile, line);
       return s;
 
     } catch (FailureException e) {

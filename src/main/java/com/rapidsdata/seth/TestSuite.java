@@ -10,6 +10,7 @@ import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.plan.Plan;
 import com.rapidsdata.seth.plan.TestPlanner;
 import com.rapidsdata.seth.plan.annotated.TestAnnotationInfo;
+import com.rapidsdata.seth.results.ResultSummary;
 import com.rapidsdata.seth.results.ResultWriter;
 
 import java.io.*;
@@ -46,7 +47,7 @@ public class TestSuite
   /**
    * Runs all the tests in the test suite.
    */
-  public void run()
+  public ResultSummary run()
   {
     // A list of results from running all the tests.
     List<TestResult> resultList = new LinkedList<>();
@@ -77,11 +78,13 @@ public class TestSuite
       // Iterate each test file
       for (TestableFile testableFile : appContext.getTestableFiles()) {
 
-        String testName = testableFile.getFile().getName();
+        String testName = testableFile.getInstruction() == TestableFile.Instruction.EXECUTE ?
+                            TestableFile.SCRIPT_TEST_NAME :
+                            testableFile.getFile().getName();
 
         if (testableFile.getInstruction() == TestableFile.Instruction.SKIP) {
-          logger.testSkipping(testableFile.getFile());
-          resultList.add(TestResult.skipped(testableFile.getFile(), testName));
+          logger.testSkipping(testableFile);
+          resultList.add(TestResult.skipped(testableFile, testName));
           continue;
         }
 
@@ -89,18 +92,18 @@ public class TestSuite
         // logger.testExecuting(testableFile.getFile());
 
         // Make a TestResult to hold the result of the test.
-        TestResult testResult = new TestResult(testableFile.getFile(), testName);
+        TestResult testResult = new TestResult(testableFile, testName);
 
         // Save it in the list of results. It will get updated as the test executes.
         resultList.add(testResult);
 
         // Make a new test context for executing this test.
-        testContext = new TestContextImpl(appContext, testableFile.getFile(), testResult);
+        testContext = new TestContextImpl(appContext, testableFile, testResult);
 
         // Parse each test file
         try {
           TestPlanner planner = new TestPlanner(testContext);
-          plan = planner.newPlanFor(testableFile.getFile(), new ArrayList<File>(), testsToAnnotate);
+          plan = planner.newPlanFor(testableFile, new ArrayList<TestableFile>(), testsToAnnotate);
 
         } catch (FailureException e) {
           if (testContext.getResult().getStatus() == NOT_STARTED) {
@@ -182,6 +185,8 @@ public class TestSuite
 
       threadPool.shutdownNow();
     }
+
+    return ResultSummary.summariseFrom(resultList);
   }
 
 

@@ -127,6 +127,12 @@ public class CommandLineArgs
           usage     = "Server commands to be ignored in regex format (case insensitive).")
   public List<String> ignoreCommands = new ArrayList<>();
 
+  @Option(name      = "--script",
+          aliases   = { "-s" },
+          required  = false,
+          usage     = "The Seth script to be executed, if not specified as test files.")
+  public String script = null;
+
   @Argument(usage  = "The list of test files to be executed.",
             hidden = true)
   public List<File> testFiles = null;
@@ -164,10 +170,16 @@ public class CommandLineArgs
       throw new CmdLineException(parser, msg, null);
     }
 
-    // Check if no test files and no listfile has been specified.
-    if (listFile == null && testFiles == null) {
+    // Check if no test files and no listfile and no script has been specified.
+    if (listFile == null && testFiles == null && (script == null || script.isEmpty())) {
       final String msg = "No test files have been specified." +
                          System.lineSeparator();
+      throw new CmdLineException(parser, msg, null);
+    }
+
+    if (recordResults && script != null && !script.isEmpty()) {
+      final String msg = "Cannot specify both --record and --script." +
+          System.lineSeparator();
       throw new CmdLineException(parser, msg, null);
     }
 

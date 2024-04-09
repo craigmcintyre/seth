@@ -47,7 +47,7 @@ public class FailOp extends Operation
   @Override
   public void execute(ExecutionContext xContext) throws FailureException
   {
-    throw new OperationException(failureMsg, metadata.getTestFile(), metadata.getLine(), describe());
+    throw new OperationException(failureMsg, metadata.getTestableFile(), metadata.getLine(), describe());
   }
 
   @Override

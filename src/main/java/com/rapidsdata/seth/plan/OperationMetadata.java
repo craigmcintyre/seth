@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 
 /**
@@ -13,7 +15,7 @@ public class OperationMetadata
   private final String description;
 
   /** The file that the operation came from. */
-  private final File testFile;
+  private final TestableFile testableFile;
 
   /** The line in the file where this operation occurs. */
   private final int line;
@@ -24,14 +26,14 @@ public class OperationMetadata
   /**
    * Constructor
    * @param description The description of the operation.
-   * @param testFile The file that the operation came from.
+   * @param testableFile The file that the operation came from.
    * @param line The line in the file where this operation occurs.
    * @param phase Whether this operation was specified in a test or a cleanup phase.
    */
-  public OperationMetadata(String description, File testFile, int line, TestPhase phase)
+  public OperationMetadata(String description, TestableFile testableFile, int line, TestPhase phase)
   {
     this.description = description;
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.line = line;
     this.phase = phase;
   }
@@ -49,9 +51,9 @@ public class OperationMetadata
    * Returns the file that the operation came from.
    * @return the file that the operation came from.
    */
-  public File getTestFile()
+  public TestableFile getTestableFile()
   {
-    return testFile;
+    return testableFile;
   }
 
   /**
@@ -79,6 +81,6 @@ public class OperationMetadata
    */
   public OperationMetadata rewriteWith(String newDescription)
   {
-    return new OperationMetadata(newDescription, this.testFile, this.line, this.phase);
+    return new OperationMetadata(newDescription, this.testableFile, this.line, this.phase);
   }
 }

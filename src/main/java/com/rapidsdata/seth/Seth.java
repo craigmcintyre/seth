@@ -11,6 +11,7 @@ import com.rapidsdata.seth.parser.SethLexer;
 import com.rapidsdata.seth.parser.SethParser;
 import com.rapidsdata.seth.plan.TestPlanGenerator;
 import com.rapidsdata.seth.plan.TestPlanner;
+import com.rapidsdata.seth.results.ResultSummary;
 import com.rapidsdata.seth.results.ResultWriter;
 import com.rapidsdata.seth.results.ResultWriterFactory;
 import org.antlr.v4.runtime.*;
@@ -50,18 +51,37 @@ public class Seth {
 
   private static final int minimumJavaVer = 11;
 
+  private static boolean startedAsStandalone = false;
+
   /**
    * The main entry point for the SE Test Harness
    * @param arguments The arguments provided to the application.
    */
   public static void main(String[] arguments)
   {
+    try {
+      startedAsStandalone = true;
+      start(arguments);
+
+    } catch (RuntimeException e) {
+      System.err.println(e.getMessage());
+      System.exit(1);
+    }
+  }
+
+  /**
+   * An alternate entry point for callers using Seth as a library.
+   * @param arguments The arguments provided to the application.
+   * @return The results of the operation.
+   */
+  public static ResultSummary start(String[] arguments) throws RuntimeException
+  {
     // Check Java version meets minimum
     int currentJavaVer = getCurrentJavaVer();
     if (currentJavaVer < minimumJavaVer) {
-      System.err.println("Seth requires Java >= " + minimumJavaVer +
-                         ". The current Java version is " + currentJavaVer);
-      System.exit(1);
+      String errMsg = "Seth requires Java >= " + minimumJavaVer +
+          ". The current Java version is " + currentJavaVer;
+      throw new RuntimeException(errMsg);
     }
 
     // Parse the command line arguments
@@ -77,8 +97,10 @@ public class Seth {
       System.err.println(e.getMessage());
       System.err.println("Usage: ./seth.sh <options> [files...]");
       System.err.println("Command line options are:");
-      parser.printUsage(System.err);
-      System.exit(1);
+
+      StringWriter sw = new StringWriter();
+      parser.printUsage(sw, null);
+      throw new RuntimeException(sw.toString());
     }
 
     // Clean the result directory if necessary.
@@ -107,11 +129,14 @@ public class Seth {
     }
 
     Seth seth = new Seth(args, logger);
+    ResultSummary resultSummary;
 
     try {
-      seth.run();
+      resultSummary = seth.run();
 
     } catch (SethBrownBagException e) {
+      resultSummary = ResultSummary.summariseFrom(Collections.emptyList());
+
       Throwable wrapped = e.getCause();
       String msg = getStackTraceFrom(e);
 
@@ -120,7 +145,13 @@ public class Seth {
       }
 
       seth.logger.log(msg, false);
+
+      if (!startedAsStandalone) {
+        throw new RuntimeException(wrapped);
+      }
     }
+
+    return resultSummary;
   }
 
   /**
@@ -137,7 +168,7 @@ public class Seth {
   /**
    * The main execution loop of the application.
    */
-  private void run()
+  private ResultSummary run()
   {
     logStartTime();
 
@@ -146,7 +177,7 @@ public class Seth {
 
     if (testableFiles.isEmpty()) {
       logger.log("There are no test files to execute!", false);
-      return;
+      return ResultSummary.summariseFrom(Collections.emptyList());
     }
 
     // Get the JDBC driver we are using.
@@ -193,12 +224,13 @@ public class Seth {
 
     } catch (InvalidResultFormatException e) {
       logger.error(e.getMessage());
-      return;
+      return ResultSummary.summariseFrom(Collections.emptyList());
     }
 
     // Run the test suite.
+    ResultSummary resultSummary;
     TestSuite testSuite = new TestSuite(appContext, resultWriter);
-    testSuite.run();
+    resultSummary = testSuite.run();
 
     // Shut down the thread pool we created for running the tests.
     // Wait 5 seconds for it to complete and then force it to shutdown.
@@ -219,6 +251,7 @@ public class Seth {
     } catch (IOException e) { /*ignore*/ }
 
     // All done.
+    return resultSummary;
   }
 
 
@@ -247,11 +280,18 @@ public class Seth {
 
     if (args.listFile != null) {
       // We need to read a file that then contains the
-      testableFiles = getTestableFilesFromListFile(args.listFile, args.relativity, TestableFile.Instruction.EXECUTE);
+      testableFiles = getTestableFilesFromListFile(args.listFile, args.relativity, TestableFile.Instruction.READ);
+
+    } else if (args.testFiles != null) {
+      // We should have a set of test files specified on the command line.
+      testableFiles = TestableFile.listOf(args.testFiles, TestableFile.Instruction.READ);
+
+    } else if (args.script != null && !args.script.isEmpty()){
+      testableFiles = new ArrayList<>();
+      testableFiles.add(new TestableFile(args.script));
 
     } else {
-      // We should have a set of test files specified on the command line.
-      testableFiles = TestableFile.listOf(args.testFiles, TestableFile.Instruction.EXECUTE);
+      return Collections.emptyList();
     }
 
     // Validate that each of these files exist. Remove those that do not exist.
@@ -260,7 +300,7 @@ public class Seth {
     while (iterator.hasNext()) {
       TestableFile testableFile = iterator.next();
 
-      if (testableFile.getInstruction() == TestableFile.Instruction.EXECUTE &&
+      if (testableFile.getInstruction() == TestableFile.Instruction.READ &&
           !testableFile.getFile().exists()) {
         final String msg = "Test file \"" + testableFile.getFile().getPath() + "\" does not exist and will not be executed.";
         logger.error(msg);

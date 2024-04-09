@@ -2,6 +2,7 @@
 
 package com.rapidsdata.seth.exceptions;
 
+import com.rapidsdata.seth.TestableFile;
 import com.rapidsdata.seth.plan.OperationMetadata;
 import com.rapidsdata.seth.plan.expectedResults.ExpectedResult;
 
@@ -24,7 +25,7 @@ public class ExpectedResultFailureException extends FailureException
                                         String actualResultDesc,
                                         String expectedResultDesc)
   {
-    super("Actual result does not compare to the expected result.", opMetadata.getTestFile(),
+    super("Actual result does not compare to the expected result.", opMetadata.getTestableFile(),
           opMetadata.getLine(), opMetadata.getDescription());
 
     this.commentDesc = commentDesc;
@@ -39,7 +40,7 @@ public class ExpectedResultFailureException extends FailureException
                                         Throwable throwable)
   {
     super("Actual result does not compare to the expected result.", throwable,
-        opMetadata.getTestFile(), opMetadata.getLine(), opMetadata.getDescription());
+        opMetadata.getTestableFile(), opMetadata.getLine(), opMetadata.getDescription());
 
     this.commentDesc = commentDesc;
     this.actualResultDesc = actualResultDesc;
@@ -60,14 +61,14 @@ public class ExpectedResultFailureException extends FailureException
   /**
    * Return a description of the failure, with option descriptions of where it failed and what
    * was being executed.
-   * @param outerTestFile the path of the outer-most test file. If this equals the test file that
+   * @param outerTestableFile the path of the outer-most test file. If this equals the test file that
    *                      had the error then we won't reprint the test file path.
    * @return a description of the failure.
    */
   @Override
-  public String getMessage(File outerTestFile)
+  public String getMessage(TestableFile outerTestableFile)
   {
-    StringBuilder sb = formatMessage(outerTestFile);
+    StringBuilder sb = formatMessage(outerTestableFile);
 
     if (sb.length() > 0) {
       sb.append(System.lineSeparator());

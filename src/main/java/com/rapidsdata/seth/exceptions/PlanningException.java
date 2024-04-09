@@ -2,12 +2,14 @@
 
 package com.rapidsdata.seth.exceptions;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 
 public abstract class PlanningException extends SethException
 {
   /** The file that the error occurred in. Should be non-null. */
-  private final File file;
+  private final TestableFile testableFile;
 
   /** The line that the error occurred on. Can be -1 if not applicable. */
   private final int line;
@@ -21,20 +23,20 @@ public abstract class PlanningException extends SethException
   /** The parsed command where the error occurred. Can be null if not applicable. */
   private final String command;
 
-  public PlanningException(String message, File file, int line, int pos, String near)
+  public PlanningException(String message, TestableFile testableFile, int line, int pos, String near)
   {
     super(message);
-    this.file = file;
+    this.testableFile = testableFile;
     this.line = line;
     this.pos = pos;
     this.near = near;
     this.command = null;
   }
 
-  public PlanningException(String message, File file, int line, int pos, String near, String command)
+  public PlanningException(String message, TestableFile testableFile, int line, int pos, String near, String command)
   {
     super(message);
-    this.file = file;
+    this.testableFile = testableFile;
     this.line = line;
     this.pos = pos;
     this.near = near;
@@ -42,9 +44,9 @@ public abstract class PlanningException extends SethException
   }
 
 
-  public File getFile()
+  public TestableFile getTestableFile()
   {
-    return file;
+    return testableFile;
   }
 
   public int getLine()

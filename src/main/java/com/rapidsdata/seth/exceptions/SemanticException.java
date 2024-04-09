@@ -2,13 +2,15 @@
 
 package com.rapidsdata.seth.exceptions;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 
 public class SemanticException extends PlanningException
 {
 
-  public SemanticException(String message, File file, int line, int pos, String command)
+  public SemanticException(String message, TestableFile testableFile, int line, int pos, String command)
   {
-    super(message, file, line, pos, null, command);
+    super(message, testableFile, line, pos, null, command);
   }
 }

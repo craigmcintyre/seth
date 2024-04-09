@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.logging;
 
 import com.rapidsdata.seth.TestResult;
+import com.rapidsdata.seth.TestableFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,9 +30,9 @@ public class ConsoleLogger implements TestLogger
    * @param testFile the path of the test being validated.
    */
   @Override
-  public void testValidating(File testFile)
+  public void testValidating(TestableFile testFile)
   {
-    final String msg = String.format(FMT, "Validating", testFile.getPath());
+    final String msg = String.format(FMT, "Validating", testFile.describePath());
 
     synchronized(this) {
       System.out.println(msg);
@@ -44,9 +45,9 @@ public class ConsoleLogger implements TestLogger
    * @param testFile the path of the test being skipped.
    */
   @Override
-  public void testSkipping(File testFile)
+  public void testSkipping(TestableFile testFile)
   {
-    final String msg = String.format(FMT, "Skipping", testFile.getPath());
+    final String msg = String.format(FMT, "Skipping", testFile.describePath());
     synchronized(this) {
       System.out.println(msg);
     }
@@ -58,9 +59,9 @@ public class ConsoleLogger implements TestLogger
    * @param testFile the path of the test being executed.
    */
   @Override
-  public void testExecuting(File testFile)
+  public void testExecuting(TestableFile testFile)
   {
-    final String msg = String.format(FMT, "Executing", testFile.getPath());
+    final String msg = String.format(FMT, "Executing", testFile.describePath());
     synchronized(this) {
       System.out.println(msg);
     }
@@ -73,23 +74,23 @@ public class ConsoleLogger implements TestLogger
    * @param result   the result of the execution.
    */
   @Override
-  public void testExecutionFinished(File testFile, TestResult result)
+  public void testExecutionFinished(TestableFile testFile, TestResult result)
   {
     if (result.getStatus() == TestResult.ResultStatus.FAILED) {
       final String msg = String.format(FMT, "Test Failed",
-          testFile.getPath() + System.lineSeparator() + indent(result.getFailureDescription()));
+          testFile.describePath() + System.lineSeparator() + indent(result.getFailureDescription()));
       synchronized(this) {
         System.out.println(msg);
       }
 
     } else if (result.getStatus() == TestResult.ResultStatus.ABORTED) {
-      final String msg = String.format(FMT, "Test Aborted", testFile.getPath());
+      final String msg = String.format(FMT, "Test Aborted", testFile.describePath());
       synchronized(this) {
         System.out.println(msg);
       }
 
     } else if (result.getStatus() == TestResult.ResultStatus.SUCCEEDED && logTestsPassed) {
-      final String msg = String.format(FMT, "Test Passed", testFile.getPath());
+      final String msg = String.format(FMT, "Test Passed", testFile.describePath());
       synchronized(this) {
         System.out.println(msg);
       }
@@ -106,7 +107,7 @@ public class ConsoleLogger implements TestLogger
    * @param lineNum  the line number of the command in the test file.
    */
   @Override
-  public void testStepExecuting(File testFile, String command, long lineNum)
+  public void testStepExecuting(TestableFile testFile, String command, long lineNum)
   {
     // We won't print test steps to the console - it would be waaay too noisy.
     // Save this for the log files.

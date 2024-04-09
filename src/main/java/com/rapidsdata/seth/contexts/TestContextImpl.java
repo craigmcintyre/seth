@@ -23,7 +23,7 @@ public class TestContextImpl implements TestContext
   private final AppContext appContext;
 
   /** The test file being executed. */
-  private final File testFile;
+  private final TestableFile testFile;
 
   /** The object that will hold the result of the test. */
   private final TestResult testResult;
@@ -53,7 +53,7 @@ public class TestContextImpl implements TestContext
    * Constructor.
    * @param appContext The application context.
    */
-  public TestContextImpl(AppContext appContext, File testFile, TestResult testResult)
+  public TestContextImpl(AppContext appContext, TestableFile testFile, TestResult testResult)
   {
     this.appContext = appContext;
     this.testFile = testFile;
@@ -188,10 +188,11 @@ public class TestContextImpl implements TestContext
 
   /**
    * Returns the test file currently being executed.
+   *
    * @return the test file currently being executed.
    */
   @Override
-  public File getTestFile()
+  public TestableFile getTestFile()
   {
     return testFile;
   }

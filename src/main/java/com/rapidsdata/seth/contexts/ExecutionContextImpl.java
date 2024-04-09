@@ -7,7 +7,6 @@ import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
 import com.rapidsdata.seth.SethVariables;
 
-import java.io.File;
 import java.sql.Connection;
 import java.util.*;
 import java.util.concurrent.CyclicBarrier;
@@ -187,10 +186,11 @@ public class ExecutionContextImpl implements ExecutionContext
 
   /**
    * Returns the test file currently being executed.
+   *
    * @return the test file currently being executed.
    */
   @Override
-  public File getTestFile()
+  public TestableFile getTestFile()
   {
     return testContext.getTestFile();
   }

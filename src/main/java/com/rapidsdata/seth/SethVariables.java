@@ -36,7 +36,7 @@ public class SethVariables
    * Constructor
    * @param testFile
    */
-  public SethVariables(File testFile)
+  public SethVariables(TestableFile testFile)
   {
     if (testFile != null) {
       initTestNameVars(testFile);
@@ -47,9 +47,9 @@ public class SethVariables
    * Initialise the variables starting with ${testName}, if applicable
    * @param testFile
    */
-  private void initTestNameVars(File testFile)
+  private void initTestNameVars(TestableFile testFile)
   {
-    File rootTestFile = testFile.getAbsoluteFile();
+    File rootTestFile = testFile.getFile().getAbsoluteFile();
 
     String testName = rootTestFile.getName();
     int extensionIndex = testName.lastIndexOf(".");
@@ -98,7 +98,7 @@ public class SethVariables
    * @throws FailureException if a variable lookup error occurs.
    */
   public String evaluateVarRefs(String tokenStr, Options.BadVarRefHandler errorHandler,
-                                File currentFile, int currentLineNo) throws FailureException
+                                TestableFile testableFile, int currentLineNo) throws FailureException
   {
     Matcher matcher = pattern.matcher(tokenStr);
     List<MatchedVar> matchedVars = new ArrayList<>();
@@ -128,7 +128,7 @@ public class SethVariables
 
           case ERROR:
             String errMsg = String.format("Variable not set: ${%s}", varName);
-            throw new TestSetupException(errMsg, currentFile, currentLineNo);
+            throw new TestSetupException(errMsg, testableFile, currentLineNo);
 
           case EMPTY:       // Use an empty string instead
             varValue = "";

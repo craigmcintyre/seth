@@ -3,6 +3,7 @@
 package com.rapidsdata.seth.logging;
 
 import com.rapidsdata.seth.TestResult;
+import com.rapidsdata.seth.TestableFile;
 
 import java.io.Closeable;
 import java.io.File;
@@ -13,26 +14,26 @@ public interface TestLogger extends Closeable
    * Logs that the test is currently being validated.
    * @param testFile the path of the test being validated.
    */
-  public void testValidating(File testFile);
+  public void testValidating(TestableFile testFile);
 
   /**
    * Logs that the test is currently being skipped.
    * @param testFile the path of the test being skipped.
    */
-  public void testSkipping(File testFile);
+  public void testSkipping(TestableFile testFile);
 
   /**
    * Logs that the test is currently being executed.
    * @param testFile the path of the test being executed.
    */
-  public void testExecuting(File testFile);
+  public void testExecuting(TestableFile testFile);
 
   /**
    * Logs that the test has completed executing (successfully or not).
    * @param testFile the path of the test that was executed.
    * @param result the result of the execution.
    */
-  public void testExecutionFinished(File testFile, TestResult result);
+  public void testExecutionFinished(TestableFile testFile, TestResult result);
 
   /**
    * Logs that the a given test step is currently being executed.
@@ -40,7 +41,7 @@ public interface TestLogger extends Closeable
    * @param command the test step command being executed.
    * @param lineNum the line number of the command in the test file.
    */
-  public void testStepExecuting(File testFile, String command, long lineNum);
+  public void testStepExecuting(TestableFile testFile, String command, long lineNum);
 
   /**
    * Log a general purpose message.

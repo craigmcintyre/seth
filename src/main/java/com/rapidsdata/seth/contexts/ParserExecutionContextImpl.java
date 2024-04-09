@@ -10,7 +10,6 @@ import com.rapidsdata.seth.*;
 import com.rapidsdata.seth.exceptions.*;
 import com.rapidsdata.seth.logging.TestLogger;
 
-import java.io.File;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
@@ -130,10 +129,11 @@ public class ParserExecutionContextImpl implements ExecutionContext
 
   /**
    * Returns the test file currently being executed.
+   *
    * @return the test file currently being executed.
    */
   @Override
-  public File getTestFile()
+  public TestableFile getTestFile()
   {
     return testContext.getTestFile();
   }

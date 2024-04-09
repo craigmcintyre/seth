@@ -2,6 +2,8 @@
 
 package com.rapidsdata.seth.plan;
 
+import com.rapidsdata.seth.TestableFile;
+
 import java.io.File;
 import java.util.List;
 
@@ -9,7 +11,7 @@ import java.util.List;
 public class Plan
 {
   /** The test file that this plan represents. */
-  private final File testFile;
+  private final TestableFile testableFile;
 
   /** The operations for the test. */
   private final List<Operation> testOps;
@@ -20,13 +22,13 @@ public class Plan
 
   /**
    * Constructor
-   * @param testFile the file under test.
+   * @param testableFile the file under test.
    * @param testOps the list of operations to be executed for this test.
    * @param cleanupOps the list of operations to cleanup any changes after running the test.
    */
-  public Plan(File testFile, List<Operation> testOps, List<Operation> cleanupOps)
+  public Plan(TestableFile testableFile, List<Operation> testOps, List<Operation> cleanupOps)
   {
-    this.testFile = testFile;
+    this.testableFile = testableFile;
     this.testOps = testOps;
     this.cleanupOps = cleanupOps;
   }
@@ -35,9 +37,9 @@ public class Plan
    * Returns the test file that this plan represents.
    * @return the test file that this plan represents.
    */
-  public File getTestFile()
+  public TestableFile getTestableFile()
   {
-    return testFile;
+    return testableFile;
   }
 
   /**

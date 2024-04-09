@@ -221,7 +221,7 @@ public class ResultSummary
     sb.append("***********************************").append(System.lineSeparator());
 
     for (TestResult result : skippedTests) {
-      sb.append("Skipped : ").append(result.getTestFile().getPath()).append(System.lineSeparator());
+      sb.append("Skipped : ").append(result.getTestableFile().describePath()).append(System.lineSeparator());
     }
 
     return sb.toString();
@@ -246,7 +246,7 @@ public class ResultSummary
 
       sb.append(System.lineSeparator());
       sb.append(System.lineSeparator());
-      sb.append("Test : ").append(result.getTestFile().getPath()).append(System.lineSeparator());
+      sb.append("Test : ").append(result.getTestableFile().describePath()).append(System.lineSeparator());
 
       String desc = indentation + result.getFailureDescription();
       desc = desc.replace(System.lineSeparator(), nlAndIndentation);
