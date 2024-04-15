@@ -83,6 +83,11 @@ public class CommandLineArgs
           usage     = "Log the execution of each step to a log file in the resultdir. This logs in greater detail than --logtests. Default is not to log anything to file.")
   public boolean logSteps = false;
 
+  @Option(name      = "--lognameprefix",
+      required  = false,
+      usage     = "A prefix that will be prepended to the name of the log file.")
+  public String logNamePrefix = null;
+
   @Option(name      = "--relativity",
           required  = false,
           usage     = "Determines how relative paths are interpreted. Set to \"referer\" for " +

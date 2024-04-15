@@ -31,11 +31,11 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
    * Constructor
    * @param parentDir the directory that will contain the log file.
    */
-  public FileLogger(File parentDir, boolean logTestsPassed)
+  public FileLogger(File parentDir, String logNamePrefix, boolean logTestsPassed)
   {
     super(logTestsPassed);
 
-    this.logfile = makeLogFile(parentDir);
+    this.logfile = makeLogFile(parentDir, logNamePrefix);
 
     // Create a buffered writer for writing to the log file.
     BufferedWriter writer;
@@ -160,9 +160,10 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
   /**
    * Creates a new logfile in the parentDir and returns a File reference to it.
    * @param parentDir the result directory where the logfile will be created.
+   * @param logNamePrefix the optional prefix to the name of the log file
    * @return a File reference to the newly created logfile.
    */
-  protected File makeLogFile(File parentDir)
+  protected File makeLogFile(File parentDir, String logNamePrefix)
   {
     // Get the time that the application started and format this into a filename.
     long jvmStartTime = ManagementFactory.getRuntimeMXBean().getStartTime();
@@ -172,7 +173,13 @@ public abstract class FileLogger extends ConsoleLogger implements Closeable
     Calendar calendar = Calendar.getInstance();
     calendar.setTimeInMillis(jvmStartTime);
 
-    final String filename = "log-" + sdf.format(calendar.getTime());
+    final String filename;
+
+    if (logNamePrefix != null && !logNamePrefix.isEmpty()) {
+      filename = logNamePrefix + "-log-" + sdf.format(calendar.getTime());
+    } else {
+      filename = "log-" + sdf.format(calendar.getTime());
+    }
 
     File logfile = Paths.get(parentDir.getPath(), filename).toFile();
 

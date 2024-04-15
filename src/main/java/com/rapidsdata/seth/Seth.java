@@ -117,11 +117,11 @@ public class Seth {
 
     if (args.logSteps) {
       // This logger logs all test steps to the console and to a file.
-      logger = new StepFileLogger(args.resultDir, logTestsPassed);
+      logger = new StepFileLogger(args.resultDir, args.logNamePrefix, logTestsPassed);
 
     } else if (args.logTests) {
       // This logger logs only messages about whole tests to the console and to a file.
-      logger = new TestFileLogger(args.resultDir, logTestsPassed);
+      logger = new TestFileLogger(args.resultDir, args.logNamePrefix, logTestsPassed);
 
     } else {
       // This logger only logs to the screen.
