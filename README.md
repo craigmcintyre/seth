@@ -1,7 +1,7 @@
 # SETH
 
-SETH is the SQL Test Harness, a tool for testing SQL-based databases. It can be used for any database with a JDBC 
-interface. 
+SETH is the **S**QL **E**xecution **T**est **H**arness, a tool for testing SQL-based databases. It can be used for 
+any database with a JDBC interface. 
 
 With SETH you write a test file that contains the SQL statements you wish to execute and the results that you expect
 from those statements. SETH will execute these against your database and compare the actual results to the expected
@@ -46,15 +46,17 @@ SELECT * FROM mr_fusion;
 failure contains: "flux capacitor is empty"
 ```
 
-SETH offers looping, concurrency & multi-threading support, synchronisation, multi-connections, command randomisation,
-result recording and much, much more. 
+SETH offers looping, concurrency & multi-threading support, synchronisation, multi-connections, 
+command randomisation, variables, options, result recording and much, much more. 
 
-SETH is written in Java so it will run mostly anywhere and it requires a JDBC driver for the server being tested. 
-The commands do not need to be SQL, but SETH does understand SQL data types for nuanced comparisons.
+SETH is written in Java so it will run mostly anywhere and it requires a JDBC driver for the database server 
+being tested. The commands do not need to be SQL, but SETH does understand SQL data types for nuanced comparisons.
 
-SETH was designed, written and documented by Craig McIntyre. The copyright is owned by his former employer Boray Data
-Co Ltd, who originally open sourced it. They can be contacted at info@boraydata.cn.
+SETH was designed, written and documented by myself, Craig McIntyre. The copyright is owned by my former employer 
+Boray Data Co Ltd, who originally open sourced it [here](https://bitbucket.org/rapidsdataproject/seth). 
+They can be contacted at info@boraydata.cn.
+
+SETH is licenced under the AGPL. Licence details can be found [here](LICENSE).
 
 Full documentation, including build and usage details, can be found [here](docs/index.md).
 
-SETH is licenced under the AGPL. Licence details can be found [here](LICENSE).
