@@ -8,7 +8,7 @@
   </tr>
 </table>
 
-# Internal Commands
+# SETH Commands
 The test harness will also recognise a number of internal commands to help write more advanced tests. 
 These are described below:
 

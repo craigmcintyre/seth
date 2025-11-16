@@ -1,7 +1,7 @@
 <table style="width:100%;">
   <tr>
     <td style="text-align: left;"><a href="running.md">Prev: Running SETH</a></td>
-    <td style="text-align: right;"><a href="commands.md">Next: Internal Commands/a></td>
+    <td style="text-align: right;"><a href="commands.md">Next: SETH Commands/a></td>
   </tr>
   <tr>
     <td colspan="2" style="text-align: center;"><a href="index.md">Contents</a></td>
