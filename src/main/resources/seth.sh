@@ -4,17 +4,20 @@
 DIR=$(dirname "$0")
 CLASSPATH=".:*:${DIR}:${DIR}/*"
 
-# Connection details for RapidsSE wireline protocol
+# Database connection details
 HOST="localhost"
 PORT="9123"
+DATABASE="myDatabase"
+#USER?
+#PASSWORD?
 
 # Additional arguments for SETH. Enable as required.
 #SETH_ARGS="--clean --logtests"   # log all test executions to a file
 SETH_ARGS="--clean --logsteps"   # log executions of all steps within each test to a file.
 
-# The SE JDBC URL that tells the JDBC driver how to connect to SE.
-JDBC_URL="jdbc:se://${HOST}:${PORT}"
+# The JDBC URL that identifies the database and how to connect to it
+JDBC_URL="jdbc:postgresql://${HOST}:${PORT}/${DATABASE}"
 
-# Run the SE Test Harness
+# Run SETH
 java -cp "${CLASSPATH}" com.rapidsdata.seth.Seth -u "${JDBC_URL}" ${SETH_ARGS}  $@
 
