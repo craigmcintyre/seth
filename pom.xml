@@ -107,7 +107,7 @@
     </dependencies>
 
     <scm>
-        <developerConnection>scm:git:https://bitbucket.org/rapidsdataproject/seth.git</developerConnection>
+        <developerConnection>scm:git@github.com:craigmcintyre/seth.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -186,6 +186,9 @@
                     <minimizeJar>true</minimizeJar> <!-- http://stackoverflow.com/questions/8817257/minimize-an-uber-jar-correctly-using-shade-plugin -->
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                            <mainClass>com.rapidsdata.seth.Seth</mainClass>
+                        </transformer>
                     </transformers>
                     <filters>
                         <filter>
