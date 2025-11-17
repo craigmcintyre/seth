@@ -8,7 +8,7 @@
     <!-- Basics (version num will be inherited from parent) -->
     <groupId>com.rapidsdata</groupId>
     <artifactId>seth</artifactId>
-    <version>1.5.4-SNAPSHOT</version>
+    <version>1.5.4</version>
 
     <!-- Prevents a compile warning about file encoding -->
     <properties>
@@ -108,7 +108,7 @@
 
     <scm>
         <developerConnection>scm:git:git@github.com:craigmcintyre/seth.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v1.5.4</tag>
     </scm>
 
 
