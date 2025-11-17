@@ -3,6 +3,7 @@
 results
 !src/main/java/com/rapidsdata/seth/results
 debug/
+dependency-reduced-pom.xml
 
 # IntelliJ files
 shelf
