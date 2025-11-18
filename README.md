@@ -58,5 +58,7 @@ They can be contacted at info@boraydata.cn.
 
 SETH is licenced under the AGPL. Licence details can be found [here](LICENSE).
 
+You can download the latest release [here](https://github.com/craigmcintyre/seth/releases).
+
 Full documentation, including build and usage details, can be found [here](docs/index.md).
 
